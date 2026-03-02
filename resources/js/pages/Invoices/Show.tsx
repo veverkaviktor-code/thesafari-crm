@@ -1,0 +1,358 @@
+import { Link, router } from '@inertiajs/react';
+import { format } from 'date-fns';
+import { cs } from 'date-fns/locale';
+import {
+    CheckCircle2,
+    Download,
+    Mail,
+    Pencil,
+} from 'lucide-react';
+import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import InvoiceStatusBadge, {
+    type InvoiceStatus,
+} from '@/components/invoices/InvoiceStatusBadge';
+
+interface InvoiceItem {
+    id: number;
+    description: string;
+    quantity: number;
+    unit: string;
+    unit_price: number;
+    total_price: number;
+}
+
+interface Invoice {
+    id: number;
+    invoice_number: string;
+    variable_symbol: string;
+    issue_date: string;
+    due_date: string;
+    paid_at: string | null;
+    status: InvoiceStatus;
+    payment_method: string;
+    total: number;
+    notes: string | null;
+    customer: {
+        id: number;
+        name: string;
+        company: string | null;
+        ico: string | null;
+        dic: string | null;
+        billing_street: string | null;
+        billing_city: string | null;
+        billing_zip: string | null;
+    };
+    order: { id: number; title: string } | null;
+    items: InvoiceItem[];
+}
+
+interface Props {
+    invoice: Invoice;
+    company: {
+        name: string;
+        ico: string;
+        dic: string;
+        street: string;
+        city: string;
+        zip: string;
+        bank_account: string;
+    } | null;
+}
+
+const formatCurrency = (v: number) =>
+    new Intl.NumberFormat('cs-CZ', {
+        style: 'currency',
+        currency: 'CZK',
+        maximumFractionDigits: 2,
+    }).format(v);
+
+const formatDate = (d: string) =>
+    format(new Date(d), 'd. MMMM yyyy', { locale: cs });
+
+export default function Show({ invoice, company }: Props) {
+    const co = company ?? {
+        name: 'The Safari s.r.o.',
+        ico: '',
+        dic: '',
+        street: '',
+        city: '',
+        zip: '',
+        bank_account: '',
+    };
+
+    const handleMarkPaid = () => {
+        router.post(`/faktury/${invoice.id}/paid`, {}, { preserveScroll: true });
+    };
+
+    const handleSendEmail = () => {
+        router.post(`/faktury/${invoice.id}/send`, {}, { preserveScroll: true });
+    };
+
+    return (
+        <AuthenticatedLayout
+            title={`Faktura ${invoice.invoice_number}`}
+            breadcrumbs={[
+                { label: 'Faktury', href: '/faktury' },
+                { label: invoice.invoice_number },
+            ]}
+        >
+            <div className="mx-auto max-w-4xl space-y-6">
+                {/* Actions bar */}
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-2xl font-semibold text-white">
+                            {invoice.invoice_number}
+                        </h1>
+                        <InvoiceStatusBadge status={invoice.status} />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            asChild
+                            variant="outline"
+                            size="sm"
+                            className="border-white/10 text-gray-300 hover:text-white"
+                        >
+                            <a
+                                href={`/faktury/${invoice.id}/pdf`}
+                                download
+                            >
+                                <Download className="h-4 w-4" />
+                                Stáhnout PDF
+                            </a>
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-white/10 text-gray-300 hover:text-white"
+                            onClick={handleSendEmail}
+                        >
+                            <Mail className="h-4 w-4" />
+                            Odeslat e-mailem
+                        </Button>
+                        {invoice.status !== 'zaplacena' && (
+                            <Button
+                                size="sm"
+                                className="bg-emerald-600 text-white hover:bg-emerald-700"
+                                onClick={handleMarkPaid}
+                            >
+                                <CheckCircle2 className="h-4 w-4" />
+                                Zaplaceno
+                            </Button>
+                        )}
+                        <Button
+                            asChild
+                            variant="ghost"
+                            size="icon-sm"
+                            className="text-gray-400 hover:text-white"
+                        >
+                            <Link href={`/faktury/${invoice.id}/upravit`}>
+                                <Pencil className="h-4 w-4" />
+                            </Link>
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Invoice card */}
+                <div className="rounded-xl border border-white/5 bg-[#1a1a22] p-8">
+                    {/* Header */}
+                    <div className="flex items-start justify-between">
+                        <div>
+                            <h2 className="text-xl font-bold text-white">
+                                FAKTURA
+                            </h2>
+                            <p className="text-sm text-[#D97706]">
+                                {invoice.invoice_number}
+                            </p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-sm font-semibold text-white">
+                                {co.name}
+                            </p>
+                            {co.street && (
+                                <p className="text-xs text-gray-500">
+                                    {co.street}, {co.zip} {co.city}
+                                </p>
+                            )}
+                            {co.ico && (
+                                <p className="text-xs text-gray-500">
+                                    IČO: {co.ico}
+                                    {co.dic ? ` | DIČ: ${co.dic}` : ''}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+
+                    <Separator className="my-6 bg-white/5" />
+
+                    {/* Customer + Dates */}
+                    <div className="grid gap-6 md:grid-cols-2">
+                        <div>
+                            <p className="mb-1 text-xs font-medium text-gray-500">
+                                ODBĚRATEL
+                            </p>
+                            <p className="text-sm font-semibold text-white">
+                                {invoice.customer.name}
+                            </p>
+                            {invoice.customer.company && (
+                                <p className="text-xs text-gray-400">
+                                    {invoice.customer.company}
+                                </p>
+                            )}
+                            {invoice.customer.billing_street && (
+                                <p className="text-xs text-gray-500">
+                                    {invoice.customer.billing_street},{' '}
+                                    {invoice.customer.billing_zip}{' '}
+                                    {invoice.customer.billing_city}
+                                </p>
+                            )}
+                            {invoice.customer.ico && (
+                                <p className="text-xs text-gray-500">
+                                    IČO: {invoice.customer.ico}
+                                    {invoice.customer.dic
+                                        ? ` | DIČ: ${invoice.customer.dic}`
+                                        : ''}
+                                </p>
+                            )}
+                        </div>
+                        <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                                <span className="text-gray-500">
+                                    Datum vystavení
+                                </span>
+                                <span className="text-gray-300">
+                                    {formatDate(invoice.issue_date)}
+                                </span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-gray-500">
+                                    Datum splatnosti
+                                </span>
+                                <span className="text-gray-300">
+                                    {formatDate(invoice.due_date)}
+                                </span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-gray-500">
+                                    Variabilní symbol
+                                </span>
+                                <span className="text-gray-300">
+                                    {invoice.variable_symbol}
+                                </span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-gray-500">
+                                    Způsob platby
+                                </span>
+                                <span className="text-gray-300">
+                                    {invoice.payment_method === 'banka'
+                                        ? 'Bankovní převod'
+                                        : 'Hotovost'}
+                                </span>
+                            </div>
+                            {co.bank_account && (
+                                <div className="flex justify-between">
+                                    <span className="text-gray-500">
+                                        Číslo účtu
+                                    </span>
+                                    <span className="text-gray-300">
+                                        {co.bank_account}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <Separator className="my-6 bg-white/5" />
+
+                    {/* Items table */}
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="border-b border-white/5 text-left text-xs text-gray-500">
+                                <th className="pb-2 font-medium">Popis</th>
+                                <th className="pb-2 text-right font-medium">
+                                    Množství
+                                </th>
+                                <th className="pb-2 text-right font-medium">
+                                    Cena/ks
+                                </th>
+                                <th className="pb-2 text-right font-medium">
+                                    Celkem
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {invoice.items.map((item) => (
+                                <tr
+                                    key={item.id}
+                                    className="border-b border-white/5"
+                                >
+                                    <td className="py-3 text-gray-300">
+                                        {item.description}
+                                    </td>
+                                    <td className="py-3 text-right text-gray-400">
+                                        {item.quantity} {item.unit}
+                                    </td>
+                                    <td className="py-3 text-right text-gray-400">
+                                        {formatCurrency(item.unit_price)}
+                                    </td>
+                                    <td className="py-3 text-right font-medium text-gray-300">
+                                        {formatCurrency(item.total_price)}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+
+                    {/* Total */}
+                    <div className="mt-4 flex justify-end">
+                        <div className="w-48 space-y-1">
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-500">Základ</span>
+                                <span className="text-gray-300">
+                                    {formatCurrency(invoice.total)}
+                                </span>
+                            </div>
+                            <Separator className="bg-white/5" />
+                            <div className="flex justify-between">
+                                <span className="text-sm font-medium text-gray-400">
+                                    Celkem
+                                </span>
+                                <span className="text-lg font-bold text-[#D97706]">
+                                    {formatCurrency(invoice.total)}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Notes */}
+                    {invoice.notes && (
+                        <>
+                            <Separator className="my-6 bg-white/5" />
+                            <p className="text-xs text-gray-500">
+                                {invoice.notes}
+                            </p>
+                        </>
+                    )}
+
+                    {/* Linked order */}
+                    {invoice.order && (
+                        <>
+                            <Separator className="my-6 bg-white/5" />
+                            <p className="text-xs text-gray-500">
+                                Zakázka:{' '}
+                                <Link
+                                    href={`/zakazky/${invoice.order.id}`}
+                                    className="text-[#D97706] hover:underline"
+                                >
+                                    {invoice.order.title}
+                                </Link>
+                            </p>
+                        </>
+                    )}
+                </div>
+            </div>
+        </AuthenticatedLayout>
+    );
+}
