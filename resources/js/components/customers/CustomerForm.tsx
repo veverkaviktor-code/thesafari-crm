@@ -70,12 +70,14 @@ interface CustomerFormProps {
     form: InertiaFormProps<CustomerFormData>;
     onSubmit: (e: FormEvent) => void;
     submitLabel: string;
+    onCancel?: () => void;
 }
 
 export default function CustomerForm({
     form,
     onSubmit,
     submitLabel,
+    onCancel,
 }: CustomerFormProps) {
     const { data, setData, errors, processing } = form;
     const [tagInput, setTagInput] = useState('');
@@ -109,6 +111,14 @@ export default function CustomerForm({
             reader.readAsDataURL(file);
         } else {
             setAvatarPreview(null);
+        }
+    };
+
+    const handleCancel = () => {
+        if (onCancel) {
+            onCancel();
+        } else {
+            window.history.back();
         }
     };
 
@@ -352,7 +362,7 @@ export default function CustomerForm({
                     type="button"
                     variant="ghost"
                     className="text-gray-400 hover:text-white"
-                    onClick={() => window.history.back()}
+                    onClick={handleCancel}
                 >
                     Zrušit
                 </Button>

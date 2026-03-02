@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react';
-import { Link, router } from '@inertiajs/react';
+import { type FormEvent, useCallback, useState } from 'react';
+import { router, useForm } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import DataTable, { type Column } from '@/components/ui/DataTable';
@@ -17,6 +17,11 @@ import OrderStatusBadge, {
 import DivisionBadge, {
     type Division,
 } from '@/components/orders/DivisionBadge';
+import GlassModal from '@/components/ui/GlassModal';
+import OrderForm, {
+    defaultOrderData,
+    type OrderFormData,
+} from '@/components/orders/OrderForm';
 import { cn } from '@/lib/utils';
 
 interface Order {
@@ -40,8 +45,15 @@ interface PaginatedOrders {
     to: number | null;
 }
 
+interface Customer {
+    id: number;
+    name: string;
+    company: string | null;
+}
+
 interface Props {
     orders: PaginatedOrders;
+    customers: Customer[];
     filters: {
         search?: string;
         status?: string;
@@ -121,8 +133,21 @@ const columns: Column<Order>[] = [
     },
 ];
 
-export default function Index({ orders, filters }: Props) {
+export default function Index({ orders, customers, filters }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
+    const [showCreate, setShowCreate] = useState(false);
+
+    const form = useForm<OrderFormData>({ ...defaultOrderData });
+
+    const handleCreateSubmit = (e: FormEvent) => {
+        e.preventDefault();
+        form.post('/zakazky', {
+            onSuccess: () => {
+                setShowCreate(false);
+                form.reset();
+            },
+        });
+    };
 
     const applyFilters = useCallback(
         (params: Record<string, string | number | undefined>) => {
@@ -158,13 +183,11 @@ export default function Index({ orders, filters }: Props) {
                         Zakázky
                     </h1>
                     <Button
-                        asChild
                         className="bg-[#D97706] text-white hover:bg-[#B45309]"
+                        onClick={() => setShowCreate(true)}
                     >
-                        <Link href="/zakazky/create">
-                            <Plus className="h-4 w-4" />
-                            Nová zakázka
-                        </Link>
+                        <Plus className="h-4 w-4" />
+                        Nová zakázka
                     </Button>
                 </div>
 
@@ -264,6 +287,21 @@ export default function Index({ orders, filters }: Props) {
                     emptyMessage="Žádné zakázky"
                 />
             </div>
+
+            <GlassModal
+                open={showCreate}
+                onClose={() => setShowCreate(false)}
+                title="Nová zakázka"
+                maxWidth="max-w-3xl"
+            >
+                <OrderForm
+                    form={form}
+                    onSubmit={handleCreateSubmit}
+                    submitLabel="Vytvořit zakázku"
+                    customers={customers}
+                    onCancel={() => setShowCreate(false)}
+                />
+            </GlassModal>
         </AuthenticatedLayout>
     );
 }

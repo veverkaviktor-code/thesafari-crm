@@ -39,6 +39,7 @@ class SubscriptionController extends Controller
         return Inertia::render('Neniweb/Index', [
             'domains' => $domains,
             'hostings' => $hostings,
+            'customers' => Customer::select('id', 'name', 'company')->orderBy('name')->get(),
             'filters' => $request->only(['search', 'tab', 'status', 'sort_by', 'sort_dir']),
         ]);
     }

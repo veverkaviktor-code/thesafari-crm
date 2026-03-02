@@ -52,6 +52,7 @@ interface Props {
     onSubmit: (e: FormEvent) => void;
     submitLabel: string;
     customers: Customer[];
+    onCancel?: () => void;
 }
 
 const divisions = [
@@ -67,10 +68,19 @@ export default function OrderForm({
     onSubmit,
     submitLabel,
     customers,
+    onCancel,
 }: Props) {
     const { data, setData, errors, processing } = form;
 
     const deadlineDate = data.deadline ? new Date(data.deadline) : undefined;
+
+    const handleCancel = () => {
+        if (onCancel) {
+            onCancel();
+        } else {
+            window.history.back();
+        }
+    };
 
     return (
         <form onSubmit={onSubmit} className="space-y-6">
@@ -242,7 +252,7 @@ export default function OrderForm({
                     type="button"
                     variant="ghost"
                     className="text-gray-400 hover:text-white"
-                    onClick={() => window.history.back()}
+                    onClick={handleCancel}
                 >
                     Zrušit
                 </Button>

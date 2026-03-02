@@ -24,6 +24,7 @@ class OrderController extends Controller
 
         return Inertia::render('Orders/Index', [
             'orders' => $orders,
+            'customers' => Customer::select('id', 'name', 'company')->orderBy('name')->get(),
             'filters' => $request->only(['search', 'status', 'division', 'customer_id']),
         ]);
     }

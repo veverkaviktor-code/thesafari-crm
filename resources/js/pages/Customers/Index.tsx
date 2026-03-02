@@ -1,9 +1,14 @@
-import { useCallback, useState } from 'react';
-import { Link, router } from '@inertiajs/react';
+import { type FormEvent, useCallback, useState } from 'react';
+import { router, useForm } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import DataTable from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/button';
+import GlassModal from '@/components/ui/GlassModal';
+import CustomerForm, {
+    defaultCustomerData,
+    type CustomerFormData,
+} from '@/components/customers/CustomerForm';
 import {
     type CustomerRow,
     customerColumns,
@@ -31,6 +36,19 @@ interface Props {
 
 export default function Index({ customers, filters }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
+    const [showCreate, setShowCreate] = useState(false);
+
+    const form = useForm<CustomerFormData>({ ...defaultCustomerData });
+
+    const handleCreateSubmit = (e: FormEvent) => {
+        e.preventDefault();
+        form.post('/zakaznici', {
+            onSuccess: () => {
+                setShowCreate(false);
+                form.reset();
+            },
+        });
+    };
 
     const applyFilters = useCallback(
         (params: Record<string, string | number | undefined>) => {
@@ -46,7 +64,6 @@ export default function Index({ customers, filters }: Props) {
     const handleSearch = useCallback(
         (value: string) => {
             setSearch(value);
-            // Debounce-like: apply on next tick to batch rapid typing
             const timeout = setTimeout(
                 () => applyFilters({ search: value || undefined }),
                 300,
@@ -84,13 +101,11 @@ export default function Index({ customers, filters }: Props) {
                         Zákazníci
                     </h1>
                     <Button
-                        asChild
                         className="bg-[#D97706] text-white hover:bg-[#B45309]"
+                        onClick={() => setShowCreate(true)}
                     >
-                        <Link href="/zakaznici/create">
-                            <Plus className="h-4 w-4" />
-                            Nový zákazník
-                        </Link>
+                        <Plus className="h-4 w-4" />
+                        Nový zákazník
                     </Button>
                 </div>
 
@@ -117,6 +132,19 @@ export default function Index({ customers, filters }: Props) {
                     emptyMessage="Zatím nemáte žádné zákazníky"
                 />
             </div>
+
+            <GlassModal
+                open={showCreate}
+                onClose={() => setShowCreate(false)}
+                title="Nový zákazník"
+            >
+                <CustomerForm
+                    form={form}
+                    onSubmit={handleCreateSubmit}
+                    submitLabel="Vytvořit zákazníka"
+                    onCancel={() => setShowCreate(false)}
+                />
+            </GlassModal>
         </AuthenticatedLayout>
     );
 }

@@ -1,11 +1,16 @@
-import { useState } from 'react';
-import { router } from '@inertiajs/react';
+import { type FormEvent, useState } from 'react';
+import { router, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import DataTable from '@/components/ui/DataTable';
 import ExpirationBadge from '@/components/neniweb/ExpirationBadge';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import GlassModal from '@/components/ui/GlassModal';
+import NeniwebForm, {
+    defaultNeniwebData,
+    type NeniwebFormData,
+} from '@/components/neniweb/NeniwebForm';
 import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
 import { Globe, Server, Plus } from 'lucide-react';
@@ -24,6 +29,12 @@ interface Subscription {
     status: string;
 }
 
+interface Customer {
+    id: number;
+    name: string;
+    company: string | null;
+}
+
 interface Props {
     domains: {
         data: Subscription[];
@@ -39,6 +50,7 @@ interface Props {
         per_page: number;
         total: number;
     };
+    customers: Customer[];
     filters: {
         tab?: string;
         search?: string;
@@ -70,7 +82,9 @@ const domainColumns = [
         label: 'Zákazník',
         render: (sub: Subscription) => (
             <span className="text-gray-300">
-                {sub.customer ? (sub.customer.company || sub.customer.name) : '—'}
+                {sub.customer
+                    ? sub.customer.company || sub.customer.name
+                    : '—'}
             </span>
         ),
     },
@@ -78,7 +92,9 @@ const domainColumns = [
         key: 'provider' as const,
         label: 'Registrár',
         render: (sub: Subscription) => (
-            <span className="text-gray-400 text-sm">{sub.provider || '—'}</span>
+            <span className="text-gray-400 text-sm">
+                {sub.provider || '—'}
+            </span>
         ),
     },
     {
@@ -88,7 +104,9 @@ const domainColumns = [
         render: (sub: Subscription) => (
             <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-400">
-                    {format(new Date(sub.expires_at), 'd. M. yyyy', { locale: cs })}
+                    {format(new Date(sub.expires_at), 'd. M. yyyy', {
+                        locale: cs,
+                    })}
                 </span>
                 <ExpirationBadge expiresAt={sub.expires_at} />
             </div>
@@ -98,7 +116,9 @@ const domainColumns = [
         key: 'auto_renew' as const,
         label: 'Auto-renew',
         render: (sub: Subscription) => (
-            <span className={`text-sm ${sub.auto_renew ? 'text-green-400' : 'text-gray-500'}`}>
+            <span
+                className={`text-sm ${sub.auto_renew ? 'text-green-400' : 'text-gray-500'}`}
+            >
                 {sub.auto_renew ? 'Ano' : 'Ne'}
             </span>
         ),
@@ -109,7 +129,11 @@ const domainColumns = [
         sortable: true,
         render: (sub: Subscription) => (
             <span className="text-sm text-gray-300">
-                {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(sub.price_yearly)}
+                {new Intl.NumberFormat('cs-CZ', {
+                    style: 'currency',
+                    currency: 'CZK',
+                    maximumFractionDigits: 0,
+                }).format(sub.price_yearly)}
             </span>
         ),
     },
@@ -118,7 +142,11 @@ const domainColumns = [
         label: 'Stav',
         render: (sub: Subscription) => {
             const s = statusMap[sub.status];
-            return s ? <StatusBadge status={s.variant}>{s.label}</StatusBadge> : <span>{sub.status}</span>;
+            return s ? (
+                <StatusBadge status={s.variant}>{s.label}</StatusBadge>
+            ) : (
+                <span>{sub.status}</span>
+            );
         },
     },
 ];
@@ -140,7 +168,9 @@ const hostingColumns = [
         label: 'Zákazník',
         render: (sub: Subscription) => (
             <span className="text-gray-300">
-                {sub.customer ? (sub.customer.company || sub.customer.name) : '—'}
+                {sub.customer
+                    ? sub.customer.company || sub.customer.name
+                    : '—'}
             </span>
         ),
     },
@@ -158,7 +188,9 @@ const hostingColumns = [
         render: (sub: Subscription) => (
             <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-400">
-                    {format(new Date(sub.expires_at), 'd. M. yyyy', { locale: cs })}
+                    {format(new Date(sub.expires_at), 'd. M. yyyy', {
+                        locale: cs,
+                    })}
                 </span>
                 <ExpirationBadge expiresAt={sub.expires_at} />
             </div>
@@ -168,7 +200,9 @@ const hostingColumns = [
         key: 'auto_renew' as const,
         label: 'Auto-renew',
         render: (sub: Subscription) => (
-            <span className={`text-sm ${sub.auto_renew ? 'text-green-400' : 'text-gray-500'}`}>
+            <span
+                className={`text-sm ${sub.auto_renew ? 'text-green-400' : 'text-gray-500'}`}
+            >
                 {sub.auto_renew ? 'Ano' : 'Ne'}
             </span>
         ),
@@ -179,7 +213,11 @@ const hostingColumns = [
         sortable: true,
         render: (sub: Subscription) => (
             <span className="text-sm text-gray-300">
-                {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(sub.price_yearly)}
+                {new Intl.NumberFormat('cs-CZ', {
+                    style: 'currency',
+                    currency: 'CZK',
+                    maximumFractionDigits: 0,
+                }).format(sub.price_yearly)}
             </span>
         ),
     },
@@ -188,13 +226,43 @@ const hostingColumns = [
         label: 'Stav',
         render: (sub: Subscription) => {
             const s = statusMap[sub.status];
-            return s ? <StatusBadge status={s.variant}>{s.label}</StatusBadge> : <span>{sub.status}</span>;
+            return s ? (
+                <StatusBadge status={s.variant}>{s.label}</StatusBadge>
+            ) : (
+                <span>{sub.status}</span>
+            );
         },
     },
 ];
 
-export default function NeniwebIndex({ domains, hostings, filters }: Props) {
+export default function NeniwebIndex({
+    domains,
+    hostings,
+    customers,
+    filters,
+}: Props) {
     const [activeTab, setActiveTab] = useState(filters.tab || 'domeny');
+    const [showCreate, setShowCreate] = useState(false);
+
+    const form = useForm<NeniwebFormData>({
+        ...defaultNeniwebData,
+        type: activeTab === 'domeny' ? 'domena' : 'hosting',
+    });
+
+    const handleCreateSubmit = (e: FormEvent) => {
+        e.preventDefault();
+        form.post('/neniweb', {
+            onSuccess: () => {
+                setShowCreate(false);
+                form.reset();
+            },
+        });
+    };
+
+    const handleOpenCreate = () => {
+        form.setData('type', activeTab === 'domeny' ? 'domena' : 'hosting');
+        setShowCreate(true);
+    };
 
     function navigate(params: Record<string, string>) {
         const merged: Record<string, string> = { tab: activeTab, ...params };
@@ -212,7 +280,10 @@ export default function NeniwebIndex({ domains, hostings, filters }: Props) {
             <div className="p-6">
                 <Tabs
                     value={activeTab}
-                    onValueChange={(v) => { setActiveTab(v); navigate({ tab: v }); }}
+                    onValueChange={(v) => {
+                        setActiveTab(v);
+                        navigate({ tab: v });
+                    }}
                 >
                     <div className="flex items-center justify-between mb-6">
                         <TabsList className="bg-[#111116] border border-white/5">
@@ -232,11 +303,13 @@ export default function NeniwebIndex({ domains, hostings, filters }: Props) {
                             </TabsTrigger>
                         </TabsList>
                         <Button
-                            onClick={() => router.visit(`/neniweb/create?type=${activeTab === 'domeny' ? 'domena' : 'hosting'}`)}
+                            onClick={handleOpenCreate}
                             className="bg-[#D97706] hover:bg-[#B45309] text-white"
                         >
                             <Plus className="h-4 w-4 mr-2" />
-                            {activeTab === 'domeny' ? 'Nová doména' : 'Nový hosting'}
+                            {activeTab === 'domeny'
+                                ? 'Nová doména'
+                                : 'Nový hosting'}
                         </Button>
                     </div>
 
@@ -251,12 +324,23 @@ export default function NeniwebIndex({ domains, hostings, filters }: Props) {
                                 total: domains.total,
                             }}
                             searchValue={filters.search}
-                            onSearch={(search) => navigate({ search, tab: 'domeny' })}
+                            onSearch={(search) =>
+                                navigate({ search, tab: 'domeny' })
+                            }
                             sortBy={filters.sort_by}
                             sortDir={filters.sort_dir as 'asc' | 'desc'}
-                            onSort={(sort_by, sort_dir) => navigate({ sort_by, sort_dir, tab: 'domeny' })}
-                            onPageChange={(page) => navigate({ page: String(page), tab: 'domeny' })}
-                            onRowClick={(sub) => router.visit(`/neniweb/${sub.id}/edit`)}
+                            onSort={(sort_by, sort_dir) =>
+                                navigate({ sort_by, sort_dir, tab: 'domeny' })
+                            }
+                            onPageChange={(page) =>
+                                navigate({
+                                    page: String(page),
+                                    tab: 'domeny',
+                                })
+                            }
+                            onRowClick={(sub) =>
+                                router.visit(`/neniweb/${sub.id}/edit`)
+                            }
                             emptyMessage="Žádné domény"
                         />
                     </TabsContent>
@@ -272,17 +356,49 @@ export default function NeniwebIndex({ domains, hostings, filters }: Props) {
                                 total: hostings.total,
                             }}
                             searchValue={filters.search}
-                            onSearch={(search) => navigate({ search, tab: 'hostingy' })}
+                            onSearch={(search) =>
+                                navigate({ search, tab: 'hostingy' })
+                            }
                             sortBy={filters.sort_by}
                             sortDir={filters.sort_dir as 'asc' | 'desc'}
-                            onSort={(sort_by, sort_dir) => navigate({ sort_by, sort_dir, tab: 'hostingy' })}
-                            onPageChange={(page) => navigate({ page: String(page), tab: 'hostingy' })}
-                            onRowClick={(sub) => router.visit(`/neniweb/${sub.id}/edit`)}
+                            onSort={(sort_by, sort_dir) =>
+                                navigate({
+                                    sort_by,
+                                    sort_dir,
+                                    tab: 'hostingy',
+                                })
+                            }
+                            onPageChange={(page) =>
+                                navigate({
+                                    page: String(page),
+                                    tab: 'hostingy',
+                                })
+                            }
+                            onRowClick={(sub) =>
+                                router.visit(`/neniweb/${sub.id}/edit`)
+                            }
                             emptyMessage="Žádné hostingy"
                         />
                     </TabsContent>
                 </Tabs>
             </div>
+
+            <GlassModal
+                open={showCreate}
+                onClose={() => setShowCreate(false)}
+                title={
+                    activeTab === 'domeny' ? 'Nová doména' : 'Nový hosting'
+                }
+                maxWidth="max-w-2xl"
+            >
+                <NeniwebForm
+                    form={form}
+                    onSubmit={handleCreateSubmit}
+                    submitLabel="Uložit"
+                    customers={customers}
+                    onCancel={() => setShowCreate(false)}
+                />
+            </GlassModal>
         </AuthenticatedLayout>
     );
 }
