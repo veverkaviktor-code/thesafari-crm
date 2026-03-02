@@ -8,12 +8,12 @@ use Inertia\Inertia;
 
 class SettingsController extends Controller
 {
-    public function index(Request )
+    public function index(Request $request)
     {
-        return Inertia::render('Settings/Index', [
-            'user' => ->user()->only('id', 'name', 'email', 'avatar_path'),
-            'company' => CompanySetting::get(),
-            'tab' => ->query('tab', 'profile'),
+        return Inertia::render("Settings/Index", [
+            "user" => $request->user()->only("id", "name", "email", "avatar_path"),
+            "company" => CompanySetting::get(),
+            "tab" => $request->query("tab", "profile"),
         ]);
     }
 }
