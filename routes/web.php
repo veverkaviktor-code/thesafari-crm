@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\TimeEntryController;
 use Illuminate\Support\Facades\Route;
@@ -19,4 +20,9 @@ Route::middleware('auth')->group(function () {
     Route::post('zakazky/{order}/time/start', [TimeEntryController::class, 'start'])->name('time.start');
     Route::post('time/{timeEntry}/stop', [TimeEntryController::class, 'stop'])->name('time.stop');
     Route::delete('time/{timeEntry}', [TimeEntryController::class, 'destroy'])->name('time.destroy');
+
+    Route::resource('faktury', InvoiceController::class);
+    Route::get('faktury/{invoice}/pdf', [InvoiceController::class, 'downloadPdf'])->name('faktury.pdf');
+    Route::post('faktury/{invoice}/send', [InvoiceController::class, 'sendEmail'])->name('faktury.send');
+    Route::post('faktury/{invoice}/paid', [InvoiceController::class, 'markAsPaid'])->name('faktury.paid');
 });
