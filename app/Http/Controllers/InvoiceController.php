@@ -50,29 +50,18 @@ class InvoiceController extends Controller
     public function create(Request $request)
     {
         $customers = Customer::select('id', 'name', 'company', 'ico', 'dic', 'billing_address')->orderBy('name')->get();
-        $prefill = null;
+        $orders = Order::select('id', 'title', 'price', 'customer_id')->orderBy('title')->get();
+        $prefillOrder = null;
 
         if ($orderId = $request->input('order_id')) {
-            $order = Order::with('customer', 'costs')->find($orderId);
-            if ($order) {
-                $prefill = [
-                    'customer_id' => $order->customer_id,
-                    'order_id' => $order->id,
-                    'items' => $order->price ? [[
-                        'description' => $order->title,
-                        'quantity' => 1,
-                        'unit' => 'komplet',
-                        'unit_price' => $order->price,
-                        'total_price' => $order->price,
-                    ]] : [],
-                ];
-            }
+            $prefillOrder = Order::select('id', 'title', 'price', 'customer_id')->find($orderId);
         }
 
         return Inertia::render('Invoices/Create', [
             'customers' => $customers,
-            'prefill' => $prefill,
-            'nextNumber' => Invoice::getNextInvoiceNumber(),
+            'orders' => $orders,
+            'prefill_order' => $prefillOrder,
+            'next_number' => Invoice::getNextInvoiceNumber(),
         ]);
     }
 
