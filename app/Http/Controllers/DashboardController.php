@@ -17,6 +17,10 @@ class DashboardController extends Controller
     {
         return Inertia::render('Dashboard', [
             'stats' => $this->getStats(),
+            'mrr' => $this->getMRR(),
+            'financialSummary' => $this->getFinancialSummary(),
+            'revenueByDivision' => $this->getRevenueByDivision(),
+            'expiringSubscriptions' => $this->getExpiringSubscriptions(),
             'revenueData' => $this->getRevenueData($request->input('period', '6m')),
             'recentActivity' => $this->getRecentActivity(),
             'recentTickets' => $this->getRecentTickets(),
@@ -44,6 +48,62 @@ class DashboardController extends Controller
             'open_tickets' => $openTickets,
             'upcoming_deadlines' => $upcomingDeadlines,
         ];
+    }
+
+    private function getMRR(): array
+    {
+        $activeSubscriptions = Subscription::where('status', 'aktivni')->get();
+        $totalMRR = $activeSubscriptions->sum(fn($s) => $s->price_yearly / 12);
+        $hostingMRR = $activeSubscriptions->where('type', 'hosting')->sum(fn($s) => $s->price_yearly / 12);
+        $domainMRR = $activeSubscriptions->where('type', 'domena')->sum(fn($s) => $s->price_yearly / 12);
+
+        return [
+            'total' => round($totalMRR),
+            'hosting' => round($hostingMRR),
+            'domain' => round($domainMRR),
+            'count' => $activeSubscriptions->count(),
+        ];
+    }
+
+    private function getFinancialSummary(): array
+    {
+        $totalRevenue = (float) Invoice::where('status', 'zaplacena')->sum('total');
+        $totalCosts = (float) DB::table('order_costs')->sum('amount');
+        $profit = $totalRevenue - $totalCosts;
+        $margin = $totalRevenue > 0 ? round(($profit / $totalRevenue) * 100) : 0;
+
+        return [
+            'revenue' => $totalRevenue,
+            'costs' => $totalCosts,
+            'profit' => $profit,
+            'margin' => $margin,
+        ];
+    }
+
+    private function getRevenueByDivision(): array
+    {
+        return Order::where('status', 'fakturovano')
+            ->selectRaw("division, COUNT(*) as count, COALESCE(SUM(price), 0) as total")
+            ->groupBy('division')
+            ->get()
+            ->map(fn($r) => [
+                'division' => $r->division,
+                'count' => $r->count,
+                'total' => (float) $r->total,
+            ])
+            ->toArray();
+    }
+
+    private function getExpiringSubscriptions(): array
+    {
+        return Subscription::where('status', 'aktivni')
+            ->where('expires_at', '<=', now()->addDays(30))
+            ->where('expires_at', '>=', now())
+            ->with('customer:id,name,company')
+            ->orderBy('expires_at')
+            ->limit(5)
+            ->get()
+            ->toArray();
     }
 
     private function getRevenueData(string $period): array

@@ -1,19 +1,20 @@
 import {
-    AlertTriangle,
     ClipboardList,
     CreditCard,
     MessageSquare,
+    TrendingUp,
 } from 'lucide-react';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import StatCard from '@/components/dashboard/StatCard';
 import RevenueChart from '@/components/dashboard/RevenueChart';
 import ActivityTimeline from '@/components/dashboard/ActivityTimeline';
 import RecentTickets from '@/components/dashboard/RecentTickets';
+import DivisionChart from '@/components/dashboard/DivisionChart';
+import { cn } from '@/lib/utils';
 
 interface Props {
     stats?: {
         active_orders: number;
-        unpaid_invoices: number;
         unpaid_amount: number;
         open_tickets: number;
         upcoming_deadlines: number;
@@ -21,6 +22,24 @@ interface Props {
         invoices_trend?: { value: string; positive: boolean };
         tickets_trend?: { value: string; positive: boolean };
     };
+    mrr?: {
+        total: number;
+        hosting: number;
+        domain: number;
+        count: number;
+    };
+    financialSummary?: {
+        revenue: number;
+        costs: number;
+        profit: number;
+        margin: number;
+    };
+    revenueByDivision?: {
+        division: string;
+        count: number;
+        total: number;
+    }[];
+    expiringSubscriptions?: unknown[];
 }
 
 const formatCurrency = (v: number | null | undefined) =>
@@ -30,16 +49,33 @@ const formatCurrency = (v: number | null | undefined) =>
         maximumFractionDigits: 0,
     }).format(v ?? 0);
 
-export default function Dashboard({ stats }: Props) {
+function FinancialMetric({ label, value, color }: { label: string; value: string; color: string }) {
+    return (
+        <div className="text-center">
+            <p className="text-xs text-[#6B6560]">{label}</p>
+            <p className={cn('mt-1 text-2xl font-bold tracking-tight', color)}>{value}</p>
+        </div>
+    );
+}
+
+export default function Dashboard({ stats, mrr, financialSummary, revenueByDivision }: Props) {
     const s = stats ?? {
         active_orders: 12,
-        unpaid_invoices: 5,
         unpaid_amount: 45000,
         open_tickets: 3,
         upcoming_deadlines: 2,
         orders_trend: { value: '12%', positive: true },
         invoices_trend: { value: '8%', positive: false },
         tickets_trend: { value: '25%', positive: true },
+    };
+
+    const mrrData = mrr ?? { total: 8500, hosting: 6200, domain: 2300, count: 12 };
+
+    const fin = financialSummary ?? {
+        revenue: 590000,
+        costs: 234000,
+        profit: 356000,
+        margin: 60,
     };
 
     return (
@@ -81,104 +117,42 @@ export default function Dashboard({ stats }: Props) {
                         subtitle="vyřešeno tento týden"
                     />
                     <StatCard
-                        label="Blížící se deadlines"
-                        value={String(s.upcoming_deadlines)}
-                        icon={AlertTriangle}
-                        iconColor="text-orange-500"
-                        iconBg="bg-orange-500/10"
-                        gradient="bg-gradient-to-br from-[#16140f] to-[#1a1208]"
+                        label="Měsíční MRR"
+                        value={formatCurrency(mrrData.total)}
+                        icon={TrendingUp}
+                        iconColor="text-[#D97706]"
+                        iconBg="bg-[#D97706]/10"
+                        gradient="bg-gradient-to-br from-[#16140f] to-[#1a1508]"
+                        subtitle="z aktivních subscriptions"
                     />
                 </div>
 
-                {/* Row 2: Chart + side stats */}
+                {/* Row 2: Revenue chart + Division donut */}
                 <div className="grid gap-6 lg:grid-cols-3">
                     <div className="lg:col-span-2">
                         <RevenueChart />
                     </div>
-                    <div className="space-y-6">
-                        {/* Profitability mini cards */}
-                        <div className="rounded-xl border border-[#F5F0E8]/[0.06] bg-gradient-to-br from-[#16140f] to-[#141414] p-5">
-                            <h3 className="mb-4 text-sm font-semibold text-[#9C9585]">
-                                Profitabilita
-                            </h3>
-                            <div className="space-y-4">
-                                <MiniStat
-                                    label="Celkové příjmy"
-                                    value="590 000 Kč"
-                                    bar={85}
-                                    color="bg-[#D97706]"
-                                />
-                                <MiniStat
-                                    label="Celkové náklady"
-                                    value="234 000 Kč"
-                                    bar={40}
-                                    color="bg-[#6B6560]"
-                                />
-                                <MiniStat
-                                    label="Čistý zisk"
-                                    value="356 000 Kč"
-                                    bar={60}
-                                    color="bg-[#65A30D]"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Quick info */}
-                        <div className="rounded-xl border border-[#F5F0E8]/[0.06] bg-gradient-to-br from-[#16140f] to-[#141414] p-5">
-                            <h3 className="mb-3 text-sm font-semibold text-[#9C9585]">
-                                Tento měsíc
-                            </h3>
-                            <div className="space-y-2">
-                                <QuickStat label="Noví zákazníci" value="4" />
-                                <QuickStat label="Dokončené zakázky" value="8" />
-                                <QuickStat label="Vystavené faktury" value="12" />
-                            </div>
-                        </div>
+                    <div>
+                        <DivisionChart data={revenueByDivision} mrr={mrr} />
                     </div>
                 </div>
 
-                {/* Row 3: Activity + Tickets */}
+                {/* Row 3: Financial Summary Bar */}
+                <div className="rounded-xl border border-[#F5F0E8]/[0.06] bg-gradient-to-br from-[#16140f] to-[#1a1508] p-5">
+                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                        <FinancialMetric label="Celkové příjmy" value={formatCurrency(fin.revenue)} color="text-[#D97706]" />
+                        <FinancialMetric label="Celkové náklady" value={formatCurrency(fin.costs)} color="text-[#9C9585]" />
+                        <FinancialMetric label="Čistý zisk" value={formatCurrency(fin.profit)} color="text-[#65A30D]" />
+                        <FinancialMetric label="Marže" value={`${fin.margin} %`} color={fin.margin >= 50 ? 'text-[#65A30D]' : 'text-amber-500'} />
+                    </div>
+                </div>
+
+                {/* Row 4: Activity + Tickets */}
                 <div className="grid gap-6 lg:grid-cols-2">
                     <ActivityTimeline />
                     <RecentTickets />
                 </div>
             </div>
         </AuthenticatedLayout>
-    );
-}
-
-function MiniStat({
-    label,
-    value,
-    bar,
-    color,
-}: {
-    label: string;
-    value: string;
-    bar: number;
-    color: string;
-}) {
-    return (
-        <div>
-            <div className="flex items-center justify-between text-sm">
-                <span className="text-[#9C9585]">{label}</span>
-                <span className="font-medium text-[#F5F0E8]">{value}</span>
-            </div>
-            <div className="mt-1.5 h-1.5 w-full rounded-full bg-[#F5F0E8]/[0.05]">
-                <div
-                    className={`h-full rounded-full ${color}`}
-                    style={{ width: `${bar}%` }}
-                />
-            </div>
-        </div>
-    );
-}
-
-function QuickStat({ label, value }: { label: string; value: string }) {
-    return (
-        <div className="flex items-center justify-between rounded-lg bg-[#F5F0E8]/[0.03] px-3 py-2">
-            <span className="text-sm text-[#9C9585]">{label}</span>
-            <span className="text-sm font-semibold text-[#F5F0E8]">{value}</span>
-        </div>
     );
 }
