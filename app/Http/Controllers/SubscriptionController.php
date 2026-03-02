@@ -11,16 +11,25 @@ class SubscriptionController extends Controller
 {
     public function index(Request $request)
     {
-        $subscriptions = Subscription::query()
+        $baseQuery = Subscription::query()
             ->with('customer:id,name,company')
             ->when($request->input('search'), function ($q, $term) {
                 $q->where('name', 'ilike', "%{$term}%")
                   ->orWhereHas('customer', fn ($cq) => $cq->where('name', 'ilike', "%{$term}%"));
             })
-            ->when($request->input('type'), fn ($q, $t) => $q->where('type', $t))
             ->when($request->input('status'), fn ($q, $s) => $q->where('status', $s))
-            ->orderBy('expires_at')
-            ->paginate(25)
+            ->orderBy('expires_at');
+
+        $domains = (clone $baseQuery)->where('type', 'domena')
+            ->paginate(25, ['*'], 'domains_page')
+            ->withQueryString()
+            ->through(fn ($sub) => array_merge($sub->toArray(), [
+                'days_until_expiry' => $sub->daysUntilExpiry(),
+                'urgency' => $sub->expiryUrgency(),
+            ]));
+
+        $hostings = (clone $baseQuery)->where('type', 'hosting')
+            ->paginate(25, ['*'], 'hostings_page')
             ->withQueryString()
             ->through(fn ($sub) => array_merge($sub->toArray(), [
                 'days_until_expiry' => $sub->daysUntilExpiry(),
@@ -28,8 +37,9 @@ class SubscriptionController extends Controller
             ]));
 
         return Inertia::render('Neniweb/Index', [
-            'subscriptions' => $subscriptions,
-            'filters' => $request->only(['search', 'type', 'status']),
+            'domains' => $domains,
+            'hostings' => $hostings,
+            'filters' => $request->only(['search', 'tab', 'status', 'sort_by', 'sort_dir']),
         ]);
     }
 
