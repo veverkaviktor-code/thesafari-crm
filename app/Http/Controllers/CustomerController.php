@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\CustomerRequest;
 use App\Models\Customer;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 
 class CustomerController extends Controller
@@ -27,14 +28,34 @@ class CustomerController extends Controller
     public function show(Customer $zakaznici)
     {
         $customer = $zakaznici;
-        $customer->load(['orders', 'invoices', 'subscriptions', 'tickets']);
 
         $stats = [
-            'orders_count' => $customer->orders()->count(),
-            'invoices_total' => $customer->invoices()->sum('total'),
-            'active_subscriptions' => $customer->subscriptions()->where('status', 'aktivni')->count(),
-            'open_tickets' => $customer->tickets()->whereNotIn('status', ['vyreseno'])->count(),
+            'orders_count' => 0,
+            'revenue' => 0,
+            'costs' => 0,
+            'active_subscriptions' => 0,
         ];
+
+        if (Schema::hasTable('orders')) {
+            $customer->load('orders');
+            $stats['orders_count'] = $customer->orders()->count();
+        }
+
+        if (Schema::hasTable('invoices')) {
+            $customer->load('invoices');
+            $stats['revenue'] = (float) $customer->invoices()->where('status', 'zaplacena')->sum('total');
+        }
+
+        if (Schema::hasTable('order_costs') && Schema::hasTable('orders')) {
+            $stats['costs'] = (float) $customer->orders()
+                ->join('order_costs', 'orders.id', '=', 'order_costs.order_id')
+                ->sum('order_costs.amount');
+        }
+
+        if (Schema::hasTable('subscriptions')) {
+            $customer->load('subscriptions');
+            $stats['active_subscriptions'] = $customer->subscriptions()->where('status', 'aktivni')->count();
+        }
 
         return Inertia::render('Customers/Show', [
             'customer' => $customer,
