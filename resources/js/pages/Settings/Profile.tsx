@@ -11,12 +11,12 @@ interface Props {
         id: number;
         name: string;
         email: string;
-        avatar: string | null;
+        avatar_path: string | null;
     };
 }
 
 export default function Profile({ user }: Props) {
-    const [avatarPreview, setAvatarPreview] = useState<string | null>(user.avatar);
+    const [avatarPreview, setAvatarPreview] = useState<string | null>(user.avatar_path ? `/storage/${user.avatar_path}` : null);
 
     const profileForm = useForm({
         name: user.name,
@@ -42,12 +42,12 @@ export default function Profile({ user }: Props) {
 
     function handleProfileSubmit(e: React.FormEvent) {
         e.preventDefault();
-        profileForm.post('/nastaveni/profile', { preserveScroll: true });
+        profileForm.put('/nastaveni/profil', { preserveScroll: true, forceFormData: true });
     }
 
     function handlePasswordSubmit(e: React.FormEvent) {
         e.preventDefault();
-        passwordForm.put('/nastaveni/password', {
+        passwordForm.put('/nastaveni/profil/heslo', {
             preserveScroll: true,
             onSuccess: () => passwordForm.reset(),
         });

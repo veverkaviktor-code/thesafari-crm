@@ -10,6 +10,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\TimeEntryController;
@@ -50,7 +51,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('attachments/{attachment}', [AttachmentController::class, 'destroy'])->name('attachments.destroy');
 
     // Settings
-    Route::prefix('nastaveni')->group(function () {
+    Route::get("nastaveni", [SettingsController::class, "index"])->name("settings.index");
+    Route::prefix("nastaveni")->group(function () {
         Route::get('profil', [ProfileController::class, 'edit'])->name('settings.profile');
         Route::put('profil', [ProfileController::class, 'update'])->name('settings.profile.update');
         Route::put('profil/heslo', [ProfileController::class, 'updatePassword'])->name('settings.password.update');
