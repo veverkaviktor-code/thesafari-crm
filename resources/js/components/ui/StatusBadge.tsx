@@ -9,7 +9,7 @@ const statusConfig: Record<Status, { label: string; className: string }> = {
     },
     inactive: {
         label: 'Neaktivní',
-        className: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
+        className: 'bg-gray-500/20 text-[#9C9585] border-gray-500/30',
     },
     pending: {
         label: 'Čekající',

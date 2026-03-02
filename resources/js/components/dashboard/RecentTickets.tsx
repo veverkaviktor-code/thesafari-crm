@@ -11,13 +11,12 @@ interface Ticket {
 }
 
 const priorityConfig = {
-    low: { label: 'Nízká', className: 'bg-gray-500/20 text-gray-400 border-gray-500/30' },
-    medium: { label: 'Střední', className: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
-    high: { label: 'Vysoká', className: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
-    urgent: { label: 'Urgentní', className: 'bg-red-500/20 text-red-400 border-red-500/30' },
+    low: { label: 'Nízká', className: 'bg-[#F5F0E8]/[0.05] text-[#9C9585] border-[#F5F0E8]/[0.08]' },
+    medium: { label: 'Střední', className: 'bg-[#D4A574]/10 text-[#D4A574] border-[#D4A574]/20' },
+    high: { label: 'Vysoká', className: 'bg-amber-500/10 text-amber-500 border-amber-500/20' },
+    urgent: { label: 'Urgentní', className: 'bg-red-500/10 text-red-500 border-red-500/20' },
 };
 
-// Placeholder data
 const placeholderTickets: Ticket[] = [
     { id: 1, subject: 'Nefunguje kontaktní formulář', customer: 'Studio Grafika', priority: 'high', created_at: 'Před 1 hodinou' },
     { id: 2, subject: 'Aktualizace ceníku na webu', customer: 'Jan Procházka', priority: 'medium', created_at: 'Před 3 hodinami' },
@@ -34,14 +33,14 @@ export default function RecentTickets({ tickets }: Props) {
     const items = tickets ?? placeholderTickets;
 
     return (
-        <div className="rounded-xl border border-white/5 bg-[#1a1a22] p-5">
+        <div className="rounded-xl border border-[#F5F0E8]/[0.06] bg-gradient-to-br from-[#16140f] to-[#14170f] p-5">
             <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-300">
+                <h3 className="text-sm font-semibold text-[#9C9585]">
                     Požadavky k řešení
                 </h3>
                 <Link
                     href="/pozadavky"
-                    className="flex items-center gap-1 text-xs text-[#D97706] hover:underline"
+                    className="flex items-center gap-1 text-xs text-[#D97706] hover:text-[#B45309] transition-colors"
                 >
                     Zobrazit vše
                     <ArrowRight className="h-3 w-3" />
@@ -53,13 +52,13 @@ export default function RecentTickets({ tickets }: Props) {
                     return (
                         <div
                             key={ticket.id}
-                            className="flex items-center gap-3 rounded-lg bg-white/[0.03] p-3 transition-colors hover:bg-white/5"
+                            className="flex items-center gap-3 rounded-lg bg-[#F5F0E8]/[0.02] p-3 transition-colors hover:bg-[#F5F0E8]/[0.04]"
                         >
                             <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-medium text-gray-300">
+                                <p className="truncate text-sm font-medium text-[#F5F0E8]/80">
                                     {ticket.subject}
                                 </p>
-                                <p className="text-xs text-gray-500">
+                                <p className="text-xs text-[#6B6560]">
                                     {ticket.customer} &middot; {ticket.created_at}
                                 </p>
                             </div>

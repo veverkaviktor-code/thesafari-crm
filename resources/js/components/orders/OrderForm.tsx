@@ -85,27 +85,27 @@ export default function OrderForm({
     return (
         <form onSubmit={onSubmit} className="space-y-6">
             {/* Customer + Division */}
-            <div className="rounded-xl border border-white/5 bg-[#1a1a22] p-6">
-                <h3 className="mb-4 text-sm font-semibold text-gray-300">
+            <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-6">
+                <h3 className="mb-4 text-sm font-semibold text-[#F5F0E8]/70">
                     Základní údaje
                 </h3>
                 <div className="grid gap-4 md:grid-cols-2">
                     {/* Customer select */}
                     <div className="space-y-1.5">
-                        <Label className="text-gray-400">Zákazník *</Label>
+                        <Label className="text-[#9C9585]">Zákazník *</Label>
                         <Select
                             value={data.customer_id}
                             onValueChange={(v) => setData('customer_id', v)}
                         >
-                            <SelectTrigger className="w-full border-white/10 bg-white/5">
+                            <SelectTrigger className="w-full border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]">
                                 <SelectValue placeholder="Vyberte zákazníka..." />
                             </SelectTrigger>
-                            <SelectContent className="border-white/10 bg-[#1a1a22]">
+                            <SelectContent className="border-[#F5F0E8]/[0.06] bg-[#16140f]">
                                 {customers.map((c) => (
                                     <SelectItem
                                         key={c.id}
                                         value={String(c.id)}
-                                        className="focus:bg-white/5"
+                                        className="focus:bg-[#F5F0E8]/[0.04]"
                                     >
                                         {c.name}
                                         {c.company ? ` (${c.company})` : ''}
@@ -118,20 +118,20 @@ export default function OrderForm({
 
                     {/* Division select */}
                     <div className="space-y-1.5">
-                        <Label className="text-gray-400">Divize *</Label>
+                        <Label className="text-[#9C9585]">Divize *</Label>
                         <Select
                             value={data.division}
                             onValueChange={(v) => setData('division', v)}
                         >
-                            <SelectTrigger className="w-full border-white/10 bg-white/5">
+                            <SelectTrigger className="w-full border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]">
                                 <SelectValue placeholder="Vyberte divizi..." />
                             </SelectTrigger>
-                            <SelectContent className="border-white/10 bg-[#1a1a22]">
+                            <SelectContent className="border-[#F5F0E8]/[0.06] bg-[#16140f]">
                                 {divisions.map((d) => (
                                     <SelectItem
                                         key={d.value}
                                         value={d.value}
-                                        className="focus:bg-white/5"
+                                        className="focus:bg-[#F5F0E8]/[0.04]"
                                     >
                                         {d.label}
                                     </SelectItem>
@@ -144,31 +144,31 @@ export default function OrderForm({
             </div>
 
             {/* Title + Description */}
-            <div className="rounded-xl border border-white/5 bg-[#1a1a22] p-6">
-                <h3 className="mb-4 text-sm font-semibold text-gray-300">
+            <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-6">
+                <h3 className="mb-4 text-sm font-semibold text-[#F5F0E8]/70">
                     Detail zakázky
                 </h3>
                 <div className="space-y-4">
                     <div className="space-y-1.5">
-                        <Label className="text-gray-400">Název zakázky *</Label>
+                        <Label className="text-[#9C9585]">Název zakázky *</Label>
                         <Input
                             value={data.title}
                             onChange={(e) => setData('title', e.target.value)}
                             placeholder="Např. Polep firemní dodávky"
-                            className="border-white/10 bg-white/5"
+                            className="border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]"
                             aria-invalid={!!errors.title}
                         />
                         <FieldError error={errors.title} />
                     </div>
                     <div className="space-y-1.5">
-                        <Label className="text-gray-400">Popis</Label>
+                        <Label className="text-[#9C9585]">Popis</Label>
                         <Textarea
                             value={data.description}
                             onChange={(e) =>
                                 setData('description', e.target.value)
                             }
                             placeholder="Podrobnosti k zakázce..."
-                            className="min-h-24 border-white/10 bg-white/5"
+                            className="min-h-24 border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]"
                         />
                         <FieldError error={errors.description} />
                     </div>
@@ -176,13 +176,13 @@ export default function OrderForm({
             </div>
 
             {/* Price + Deadline */}
-            <div className="rounded-xl border border-white/5 bg-[#1a1a22] p-6">
-                <h3 className="mb-4 text-sm font-semibold text-gray-300">
+            <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-6">
+                <h3 className="mb-4 text-sm font-semibold text-[#F5F0E8]/70">
                     Cena a termín
                 </h3>
                 <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-1.5">
-                        <Label className="text-gray-400">Cena (Kč)</Label>
+                        <Label className="text-[#9C9585]">Cena (Kč)</Label>
                         <div className="relative">
                             <Input
                                 value={data.price}
@@ -193,10 +193,10 @@ export default function OrderForm({
                                 min="0"
                                 step="1"
                                 placeholder="0"
-                                className="border-white/10 bg-white/5 pr-10"
+                                className="border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04] pr-10"
                                 aria-invalid={!!errors.price}
                             />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#6B6560]">
                                 Kč
                             </span>
                         </div>
@@ -204,17 +204,17 @@ export default function OrderForm({
                     </div>
 
                     <div className="space-y-1.5">
-                        <Label className="text-gray-400">Deadline</Label>
+                        <Label className="text-[#9C9585]">Deadline</Label>
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button
                                     variant="outline"
                                     className={cn(
-                                        'w-full justify-start border-white/10 bg-white/5 text-left font-normal',
-                                        !data.deadline && 'text-gray-500',
+                                        'w-full justify-start border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04] text-left font-normal',
+                                        !data.deadline && 'text-[#6B6560]',
                                     )}
                                 >
-                                    <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
+                                    <CalendarIcon className="mr-2 h-4 w-4 text-[#6B6560]" />
                                     {deadlineDate
                                         ? format(deadlineDate, 'd. MMMM yyyy', {
                                               locale: cs,
@@ -223,7 +223,7 @@ export default function OrderForm({
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent
-                                className="w-auto border-white/10 bg-[#1a1a22] p-0"
+                                className="w-auto border-[#F5F0E8]/[0.06] bg-[#16140f] p-0"
                                 align="start"
                             >
                                 <Calendar
@@ -251,7 +251,7 @@ export default function OrderForm({
                 <Button
                     type="button"
                     variant="ghost"
-                    className="text-gray-400 hover:text-white"
+                    className="text-[#9C9585] hover:text-[#F5F0E8]"
                     onClick={handleCancel}
                 >
                     Zrušit

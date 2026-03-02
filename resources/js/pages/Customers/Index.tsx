@@ -97,7 +97,7 @@ export default function Index({ customers, filters }: Props) {
             <div className="space-y-6">
                 {/* Header */}
                 <div className="flex items-center justify-between">
-                    <h1 className="text-2xl font-semibold text-white">
+                    <h1 className="text-2xl font-semibold text-[#F5F0E8]">
                         Zákazníci
                     </h1>
                     <Button

@@ -79,7 +79,7 @@ export default function NeniwebEdit({ subscription, customers }: Props) {
                     <Button
                         variant="ghost"
                         onClick={() => router.visit('/neniweb')}
-                        className="text-gray-400 hover:text-gray-200"
+                        className="text-[#9C9585] hover:text-[#F5F0E8]/85"
                     >
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         Zpět
@@ -94,16 +94,16 @@ export default function NeniwebEdit({ subscription, customers }: Props) {
                     </Button>
                 </div>
 
-                <div className="bg-[#1a1a22] rounded-xl border border-white/5 p-6">
+                <div className="bg-[#16140f] rounded-xl border border-[#F5F0E8]/[0.05] p-6">
                     <form onSubmit={handleSubmit} className="space-y-5">
                         {/* Type */}
                         <div>
-                            <Label className="text-gray-300">Typ</Label>
+                            <Label className="text-[#F5F0E8]/70">Typ</Label>
                             <Select value={data.type} onValueChange={(v) => setData('type', v)}>
-                                <SelectTrigger className="mt-1.5 bg-[#111116] border-white/10 text-gray-200">
+                                <SelectTrigger className="mt-1.5 bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/85">
                                     <SelectValue />
                                 </SelectTrigger>
-                                <SelectContent className="bg-[#1a1a22] border-white/10">
+                                <SelectContent className="bg-[#16140f] border-[#F5F0E8]/[0.06]">
                                     <SelectItem value="domena">Doména</SelectItem>
                                     <SelectItem value="hosting">Hosting</SelectItem>
                                 </SelectContent>
@@ -112,12 +112,12 @@ export default function NeniwebEdit({ subscription, customers }: Props) {
 
                         {/* Customer */}
                         <div>
-                            <Label className="text-gray-300">Zákazník</Label>
+                            <Label className="text-[#F5F0E8]/70">Zákazník</Label>
                             <Select value={data.customer_id} onValueChange={(v) => setData('customer_id', v)}>
-                                <SelectTrigger className="mt-1.5 bg-[#111116] border-white/10 text-gray-200">
+                                <SelectTrigger className="mt-1.5 bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/85">
                                     <SelectValue placeholder="Vyberte zákazníka" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-[#1a1a22] border-white/10">
+                                <SelectContent className="bg-[#16140f] border-[#F5F0E8]/[0.06]">
                                     {customers.map((c) => (
                                         <SelectItem key={c.id} value={String(c.id)}>
                                             {c.company || c.name}
@@ -130,11 +130,11 @@ export default function NeniwebEdit({ subscription, customers }: Props) {
 
                         {/* Name */}
                         <div>
-                            <Label className="text-gray-300">{isDomain ? 'Název domény' : 'Název hostingu'}</Label>
+                            <Label className="text-[#F5F0E8]/70">{isDomain ? 'Název domény' : 'Název hostingu'}</Label>
                             <Input
                                 value={data.name}
                                 onChange={(e) => setData('name', e.target.value)}
-                                className="mt-1.5 bg-[#111116] border-white/10 text-gray-200"
+                                className="mt-1.5 bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/85"
                             />
                             {errors.name && <p className="mt-1 text-xs text-red-400">{errors.name}</p>}
                         </div>
@@ -142,27 +142,27 @@ export default function NeniwebEdit({ subscription, customers }: Props) {
                         {/* Provider / Server */}
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <Label className="text-gray-300">{isDomain ? 'Registrár' : 'Poskytovatel'}</Label>
+                                <Label className="text-[#F5F0E8]/70">{isDomain ? 'Registrár' : 'Poskytovatel'}</Label>
                                 <Input
                                     value={data.provider}
                                     onChange={(e) => setData('provider', e.target.value)}
-                                    className="mt-1.5 bg-[#111116] border-white/10 text-gray-200"
+                                    className="mt-1.5 bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/85"
                                 />
                             </div>
                             <div>
-                                <Label className="text-gray-300">{isDomain ? 'Roční cena (Kč)' : 'Server'}</Label>
+                                <Label className="text-[#F5F0E8]/70">{isDomain ? 'Roční cena (Kč)' : 'Server'}</Label>
                                 {isDomain ? (
                                     <Input
                                         type="number"
                                         value={data.price_yearly}
                                         onChange={(e) => setData('price_yearly', e.target.value)}
-                                        className="mt-1.5 bg-[#111116] border-white/10 text-gray-200"
+                                        className="mt-1.5 bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/85"
                                     />
                                 ) : (
                                     <Input
                                         value={data.server}
                                         onChange={(e) => setData('server', e.target.value)}
-                                        className="mt-1.5 bg-[#111116] border-white/10 text-gray-200"
+                                        className="mt-1.5 bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/85"
                                     />
                                 )}
                             </div>
@@ -170,12 +170,12 @@ export default function NeniwebEdit({ subscription, customers }: Props) {
 
                         {!isDomain && (
                             <div>
-                                <Label className="text-gray-300">Roční cena (Kč)</Label>
+                                <Label className="text-[#F5F0E8]/70">Roční cena (Kč)</Label>
                                 <Input
                                     type="number"
                                     value={data.price_yearly}
                                     onChange={(e) => setData('price_yearly', e.target.value)}
-                                    className="mt-1.5 bg-[#111116] border-white/10 text-gray-200"
+                                    className="mt-1.5 bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/85"
                                 />
                             </div>
                         )}
@@ -183,20 +183,20 @@ export default function NeniwebEdit({ subscription, customers }: Props) {
                         {/* Dates */}
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <Label className="text-gray-300">Začátek</Label>
+                                <Label className="text-[#F5F0E8]/70">Začátek</Label>
                                 <Popover>
                                     <PopoverTrigger asChild>
                                         <Button
                                             variant="outline"
-                                            className="mt-1.5 w-full justify-start text-left bg-[#111116] border-white/10 text-gray-200 hover:bg-[#111116]"
+                                            className="mt-1.5 w-full justify-start text-left bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/85 hover:bg-[#0f0e0c]"
                                         >
-                                            <CalendarIcon className="h-4 w-4 mr-2 text-gray-500" />
+                                            <CalendarIcon className="h-4 w-4 mr-2 text-[#6B6560]" />
                                             {data.starts_at
                                                 ? format(new Date(data.starts_at), 'd. M. yyyy', { locale: cs })
                                                 : 'Vyberte datum'}
                                         </Button>
                                     </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0 bg-[#1a1a22] border-white/10">
+                                    <PopoverContent className="w-auto p-0 bg-[#16140f] border-[#F5F0E8]/[0.06]">
                                         <Calendar
                                             mode="single"
                                             selected={data.starts_at ? new Date(data.starts_at) : undefined}
@@ -207,20 +207,20 @@ export default function NeniwebEdit({ subscription, customers }: Props) {
                                 </Popover>
                             </div>
                             <div>
-                                <Label className="text-gray-300">Expirace</Label>
+                                <Label className="text-[#F5F0E8]/70">Expirace</Label>
                                 <Popover>
                                     <PopoverTrigger asChild>
                                         <Button
                                             variant="outline"
-                                            className="mt-1.5 w-full justify-start text-left bg-[#111116] border-white/10 text-gray-200 hover:bg-[#111116]"
+                                            className="mt-1.5 w-full justify-start text-left bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/85 hover:bg-[#0f0e0c]"
                                         >
-                                            <CalendarIcon className="h-4 w-4 mr-2 text-gray-500" />
+                                            <CalendarIcon className="h-4 w-4 mr-2 text-[#6B6560]" />
                                             {data.expires_at
                                                 ? format(new Date(data.expires_at), 'd. M. yyyy', { locale: cs })
                                                 : 'Vyberte datum'}
                                         </Button>
                                     </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0 bg-[#1a1a22] border-white/10">
+                                    <PopoverContent className="w-auto p-0 bg-[#16140f] border-[#F5F0E8]/[0.06]">
                                         <Calendar
                                             mode="single"
                                             selected={data.expires_at ? new Date(data.expires_at) : undefined}
@@ -240,15 +240,15 @@ export default function NeniwebEdit({ subscription, customers }: Props) {
                                     checked={data.auto_renew}
                                     onCheckedChange={(v) => setData('auto_renew', v)}
                                 />
-                                <Label className="text-gray-300">Auto-renew</Label>
+                                <Label className="text-[#F5F0E8]/70">Auto-renew</Label>
                             </div>
                             <div>
-                                <Label className="text-gray-300">Stav</Label>
+                                <Label className="text-[#F5F0E8]/70">Stav</Label>
                                 <Select value={data.status} onValueChange={(v) => setData('status', v)}>
-                                    <SelectTrigger className="mt-1.5 bg-[#111116] border-white/10 text-gray-200">
+                                    <SelectTrigger className="mt-1.5 bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/85">
                                         <SelectValue />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-[#1a1a22] border-white/10">
+                                    <SelectContent className="bg-[#16140f] border-[#F5F0E8]/[0.06]">
                                         <SelectItem value="aktivni">Aktivní</SelectItem>
                                         <SelectItem value="neaktivni">Neaktivní</SelectItem>
                                         <SelectItem value="expirovana">Expirovaná</SelectItem>
@@ -259,12 +259,12 @@ export default function NeniwebEdit({ subscription, customers }: Props) {
 
                         {/* Notes */}
                         <div>
-                            <Label className="text-gray-300">Poznámky</Label>
+                            <Label className="text-[#F5F0E8]/70">Poznámky</Label>
                             <Textarea
                                 value={data.notes}
                                 onChange={(e) => setData('notes', e.target.value)}
                                 rows={3}
-                                className="mt-1.5 bg-[#111116] border-white/10 text-gray-200 resize-none"
+                                className="mt-1.5 bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/85 resize-none"
                             />
                         </div>
 
@@ -273,7 +273,7 @@ export default function NeniwebEdit({ subscription, customers }: Props) {
                                 type="button"
                                 variant="ghost"
                                 onClick={() => router.visit('/neniweb')}
-                                className="text-gray-400"
+                                className="text-[#9C9585]"
                             >
                                 Zrušit
                             </Button>

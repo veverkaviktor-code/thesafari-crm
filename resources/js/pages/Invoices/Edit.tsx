@@ -126,13 +126,13 @@ export default function Edit({ invoice, customers, orders }: Props) {
                 <div className="grid gap-6 lg:grid-cols-3">
                     <div className="space-y-6 lg:col-span-2">
                         {/* Basic info */}
-                        <div className="rounded-xl border border-white/5 bg-[#1a1a22] p-6">
-                            <h3 className="mb-4 text-sm font-semibold text-gray-300">
+                        <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-6">
+                            <h3 className="mb-4 text-sm font-semibold text-[#F5F0E8]/70">
                                 Základní údaje
                             </h3>
                             <div className="grid gap-4 md:grid-cols-2">
                                 <div className="space-y-1.5">
-                                    <Label className="text-gray-400">Zákazník *</Label>
+                                    <Label className="text-[#9C9585]">Zákazník *</Label>
                                     <Select
                                         value={data.customer_id}
                                         onValueChange={(v) => {
@@ -140,12 +140,12 @@ export default function Edit({ invoice, customers, orders }: Props) {
                                             setData('order_id', '');
                                         }}
                                     >
-                                        <SelectTrigger className="w-full border-white/10 bg-white/5">
+                                        <SelectTrigger className="w-full border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]">
                                             <SelectValue placeholder="Vyberte zákazníka..." />
                                         </SelectTrigger>
-                                        <SelectContent className="border-white/10 bg-[#1a1a22]">
+                                        <SelectContent className="border-[#F5F0E8]/[0.06] bg-[#16140f]">
                                             {customers.map((c) => (
-                                                <SelectItem key={c.id} value={String(c.id)} className="focus:bg-white/5">
+                                                <SelectItem key={c.id} value={String(c.id)} className="focus:bg-[#F5F0E8]/[0.04]">
                                                     {c.name}{c.company ? ` (${c.company})` : ''}
                                                 </SelectItem>
                                             ))}
@@ -155,17 +155,17 @@ export default function Edit({ invoice, customers, orders }: Props) {
                                 </div>
 
                                 <div className="space-y-1.5">
-                                    <Label className="text-gray-400">Zakázka</Label>
+                                    <Label className="text-[#9C9585]">Zakázka</Label>
                                     <Select
                                         value={data.order_id}
                                         onValueChange={(v) => setData('order_id', v)}
                                     >
-                                        <SelectTrigger className="w-full border-white/10 bg-white/5">
+                                        <SelectTrigger className="w-full border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]">
                                             <SelectValue placeholder="Bez zakázky" />
                                         </SelectTrigger>
-                                        <SelectContent className="border-white/10 bg-[#1a1a22]">
+                                        <SelectContent className="border-[#F5F0E8]/[0.06] bg-[#16140f]">
                                             {filteredOrders.map((o) => (
-                                                <SelectItem key={o.id} value={String(o.id)} className="focus:bg-white/5">
+                                                <SelectItem key={o.id} value={String(o.id)} className="focus:bg-[#F5F0E8]/[0.04]">
                                                     {o.title}
                                                 </SelectItem>
                                             ))}
@@ -174,51 +174,51 @@ export default function Edit({ invoice, customers, orders }: Props) {
                                 </div>
 
                                 <div className="space-y-1.5">
-                                    <Label className="text-gray-400">Datum vystavení</Label>
+                                    <Label className="text-[#9C9585]">Datum vystavení</Label>
                                     <Popover>
                                         <PopoverTrigger asChild>
-                                            <Button variant="outline" className={cn('w-full justify-start border-white/10 bg-white/5 text-left font-normal', !data.issue_date && 'text-gray-500')}>
-                                                <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
+                                            <Button variant="outline" className={cn('w-full justify-start border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04] text-left font-normal', !data.issue_date && 'text-[#6B6560]')}>
+                                                <CalendarIcon className="mr-2 h-4 w-4 text-[#6B6560]" />
                                                 {issueDateObj ? format(issueDateObj, 'd. MMMM yyyy', { locale: cs }) : 'Vyberte datum...'}
                                             </Button>
                                         </PopoverTrigger>
-                                        <PopoverContent className="w-auto border-white/10 bg-[#1a1a22] p-0" align="start">
+                                        <PopoverContent className="w-auto border-[#F5F0E8]/[0.06] bg-[#16140f] p-0" align="start">
                                             <Calendar mode="single" selected={issueDateObj} onSelect={(date) => setData('issue_date', date ? format(date, 'yyyy-MM-dd') : '')} initialFocus />
                                         </PopoverContent>
                                     </Popover>
                                 </div>
 
                                 <div className="space-y-1.5">
-                                    <Label className="text-gray-400">Datum splatnosti</Label>
+                                    <Label className="text-[#9C9585]">Datum splatnosti</Label>
                                     <Popover>
                                         <PopoverTrigger asChild>
-                                            <Button variant="outline" className={cn('w-full justify-start border-white/10 bg-white/5 text-left font-normal', !data.due_date && 'text-gray-500')}>
-                                                <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
+                                            <Button variant="outline" className={cn('w-full justify-start border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04] text-left font-normal', !data.due_date && 'text-[#6B6560]')}>
+                                                <CalendarIcon className="mr-2 h-4 w-4 text-[#6B6560]" />
                                                 {dueDateObj ? format(dueDateObj, 'd. MMMM yyyy', { locale: cs }) : 'Vyberte datum...'}
                                             </Button>
                                         </PopoverTrigger>
-                                        <PopoverContent className="w-auto border-white/10 bg-[#1a1a22] p-0" align="start">
+                                        <PopoverContent className="w-auto border-[#F5F0E8]/[0.06] bg-[#16140f] p-0" align="start">
                                             <Calendar mode="single" selected={dueDateObj} onSelect={(date) => setData('due_date', date ? format(date, 'yyyy-MM-dd') : '')} initialFocus />
                                         </PopoverContent>
                                     </Popover>
                                 </div>
 
                                 <div className="space-y-1.5">
-                                    <Label className="text-gray-400">Způsob platby</Label>
+                                    <Label className="text-[#9C9585]">Způsob platby</Label>
                                     <Select value={data.payment_method} onValueChange={(v) => setData('payment_method', v)}>
-                                        <SelectTrigger className="w-full border-white/10 bg-white/5">
+                                        <SelectTrigger className="w-full border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]">
                                             <SelectValue />
                                         </SelectTrigger>
-                                        <SelectContent className="border-white/10 bg-[#1a1a22]">
-                                            <SelectItem value="banka" className="focus:bg-white/5">Bankovní převod</SelectItem>
-                                            <SelectItem value="hotovost" className="focus:bg-white/5">Hotovost</SelectItem>
+                                        <SelectContent className="border-[#F5F0E8]/[0.06] bg-[#16140f]">
+                                            <SelectItem value="banka" className="focus:bg-[#F5F0E8]/[0.04]">Bankovní převod</SelectItem>
+                                            <SelectItem value="hotovost" className="focus:bg-[#F5F0E8]/[0.04]">Hotovost</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
 
                                 <div className="space-y-1.5 md:col-span-2">
-                                    <Label className="text-gray-400">Poznámky</Label>
-                                    <Textarea value={data.notes} onChange={(e) => setData('notes', e.target.value)} placeholder="Poznámky k faktuře..." className="min-h-16 border-white/10 bg-white/5" />
+                                    <Label className="text-[#9C9585]">Poznámky</Label>
+                                    <Textarea value={data.notes} onChange={(e) => setData('notes', e.target.value)} placeholder="Poznámky k faktuře..." className="min-h-16 border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]" />
                                 </div>
                             </div>
                         </div>
@@ -229,7 +229,7 @@ export default function Edit({ invoice, customers, orders }: Props) {
                         />
 
                         <div className="flex items-center justify-end gap-3">
-                            <Button type="button" variant="ghost" className="text-gray-400 hover:text-white" onClick={() => window.history.back()}>
+                            <Button type="button" variant="ghost" className="text-[#9C9585] hover:text-[#F5F0E8]" onClick={() => window.history.back()}>
                                 Zrušit
                             </Button>
                             <Separator orientation="vertical" className="h-6 bg-white/10" />

@@ -15,14 +15,13 @@ interface Activity {
 }
 
 const iconMap = {
-    customer: { icon: UserPlus, color: 'text-blue-400', bg: 'bg-blue-500/20' },
-    order: { icon: FileText, color: 'text-amber-400', bg: 'bg-amber-500/20' },
-    invoice: { icon: FileText, color: 'text-violet-400', bg: 'bg-violet-500/20' },
-    payment: { icon: CreditCard, color: 'text-emerald-400', bg: 'bg-emerald-500/20' },
-    ticket: { icon: MessageSquare, color: 'text-rose-400', bg: 'bg-rose-500/20' },
+    customer: { icon: UserPlus, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+    order: { icon: FileText, color: 'text-[#D97706]', bg: 'bg-[#D97706]/10' },
+    invoice: { icon: FileText, color: 'text-[#D4A574]', bg: 'bg-[#D4A574]/10' },
+    payment: { icon: CreditCard, color: 'text-[#65A30D]', bg: 'bg-[#65A30D]/10' },
+    ticket: { icon: MessageSquare, color: 'text-orange-500', bg: 'bg-orange-500/10' },
 };
 
-// Placeholder data
 const placeholderActivities: Activity[] = [
     { id: 1, icon: 'customer', text: 'Nový zákazník: Studio Grafika s.r.o.', time: 'Před 2 hodinami' },
     { id: 2, icon: 'payment', text: 'Faktura #2024-0042 zaplacena (12 500 Kč)', time: 'Před 3 hodinami' },
@@ -40,8 +39,8 @@ export default function ActivityTimeline({ activities }: Props) {
     const items = activities ?? placeholderActivities;
 
     return (
-        <div className="rounded-xl border border-white/5 bg-[#1a1a22] p-5">
-            <h3 className="mb-4 text-sm font-semibold text-gray-300">
+        <div className="rounded-xl border border-[#F5F0E8]/[0.06] bg-gradient-to-br from-[#16140f] to-[#141414] p-5">
+            <h3 className="mb-4 text-sm font-semibold text-[#9C9585]">
                 Poslední aktivita
             </h3>
             <div className="space-y-4">
@@ -62,14 +61,14 @@ export default function ActivityTimeline({ activities }: Props) {
                                     />
                                 </div>
                                 {index < items.length - 1 && (
-                                    <div className="mt-1 h-full w-px bg-white/5" />
+                                    <div className="mt-1 h-full w-px bg-[#F5F0E8]/[0.05]" />
                                 )}
                             </div>
                             <div className="pb-4">
-                                <p className="text-sm text-gray-300">
+                                <p className="text-sm text-[#F5F0E8]/80">
                                     {activity.text}
                                 </p>
-                                <p className="mt-0.5 text-xs text-gray-500">
+                                <p className="mt-0.5 text-xs text-[#6B6560]">
                                     {activity.time}
                                 </p>
                             </div>

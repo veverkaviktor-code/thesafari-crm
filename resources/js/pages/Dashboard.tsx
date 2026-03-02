@@ -54,8 +54,9 @@ export default function Dashboard({ stats }: Props) {
                         label="Aktivní zakázky"
                         value={String(s.active_orders)}
                         icon={ClipboardList}
-                        iconColor="text-blue-400"
-                        iconBg="bg-blue-500/10"
+                        iconColor="text-amber-500"
+                        iconBg="bg-amber-500/10"
+                        gradient="bg-gradient-to-br from-[#16140f] to-[#1a1508]"
                         trend={s.orders_trend}
                         subtitle="od minulého týdne"
                     />
@@ -63,8 +64,9 @@ export default function Dashboard({ stats }: Props) {
                         label="Nezaplacené faktury"
                         value={formatCurrency(s.unpaid_amount)}
                         icon={CreditCard}
-                        iconColor="text-amber-400"
-                        iconBg="bg-amber-500/10"
+                        iconColor="text-red-500"
+                        iconBg="bg-red-500/10"
+                        gradient="bg-gradient-to-br from-[#16140f] to-[#1a0f0f]"
                         trend={s.invoices_trend}
                         subtitle="od minulého měsíce"
                     />
@@ -72,8 +74,9 @@ export default function Dashboard({ stats }: Props) {
                         label="Otevřené požadavky"
                         value={String(s.open_tickets)}
                         icon={MessageSquare}
-                        iconColor="text-violet-400"
-                        iconBg="bg-violet-500/10"
+                        iconColor="text-emerald-500"
+                        iconBg="bg-emerald-500/10"
+                        gradient="bg-gradient-to-br from-[#16140f] to-[#14170f]"
                         trend={s.tickets_trend}
                         subtitle="vyřešeno tento týden"
                     />
@@ -81,8 +84,9 @@ export default function Dashboard({ stats }: Props) {
                         label="Blížící se deadlines"
                         value={String(s.upcoming_deadlines)}
                         icon={AlertTriangle}
-                        iconColor="text-rose-400"
-                        iconBg="bg-rose-500/10"
+                        iconColor="text-orange-500"
+                        iconBg="bg-orange-500/10"
+                        gradient="bg-gradient-to-br from-[#16140f] to-[#1a1208]"
                     />
                 </div>
 
@@ -93,8 +97,8 @@ export default function Dashboard({ stats }: Props) {
                     </div>
                     <div className="space-y-6">
                         {/* Profitability mini cards */}
-                        <div className="rounded-xl border border-white/5 bg-[#1a1a22] p-5">
-                            <h3 className="mb-4 text-sm font-semibold text-gray-300">
+                        <div className="rounded-xl border border-[#F5F0E8]/[0.06] bg-gradient-to-br from-[#16140f] to-[#141414] p-5">
+                            <h3 className="mb-4 text-sm font-semibold text-[#9C9585]">
                                 Profitabilita
                             </h3>
                             <div className="space-y-4">
@@ -108,20 +112,20 @@ export default function Dashboard({ stats }: Props) {
                                     label="Celkové náklady"
                                     value="234 000 Kč"
                                     bar={40}
-                                    color="bg-gray-500"
+                                    color="bg-[#6B6560]"
                                 />
                                 <MiniStat
                                     label="Čistý zisk"
                                     value="356 000 Kč"
                                     bar={60}
-                                    color="bg-emerald-500"
+                                    color="bg-[#65A30D]"
                                 />
                             </div>
                         </div>
 
                         {/* Quick info */}
-                        <div className="rounded-xl border border-white/5 bg-[#1a1a22] p-5">
-                            <h3 className="mb-3 text-sm font-semibold text-gray-300">
+                        <div className="rounded-xl border border-[#F5F0E8]/[0.06] bg-gradient-to-br from-[#16140f] to-[#141414] p-5">
+                            <h3 className="mb-3 text-sm font-semibold text-[#9C9585]">
                                 Tento měsíc
                             </h3>
                             <div className="space-y-2">
@@ -157,10 +161,10 @@ function MiniStat({
     return (
         <div>
             <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-400">{label}</span>
-                <span className="font-medium text-white">{value}</span>
+                <span className="text-[#9C9585]">{label}</span>
+                <span className="font-medium text-[#F5F0E8]">{value}</span>
             </div>
-            <div className="mt-1.5 h-1.5 w-full rounded-full bg-white/5">
+            <div className="mt-1.5 h-1.5 w-full rounded-full bg-[#F5F0E8]/[0.05]">
                 <div
                     className={`h-full rounded-full ${color}`}
                     style={{ width: `${bar}%` }}
@@ -172,9 +176,9 @@ function MiniStat({
 
 function QuickStat({ label, value }: { label: string; value: string }) {
     return (
-        <div className="flex items-center justify-between rounded-lg bg-white/[0.03] px-3 py-2">
-            <span className="text-sm text-gray-400">{label}</span>
-            <span className="text-sm font-semibold text-white">{value}</span>
+        <div className="flex items-center justify-between rounded-lg bg-[#F5F0E8]/[0.03] px-3 py-2">
+            <span className="text-sm text-[#9C9585]">{label}</span>
+            <span className="text-sm font-semibold text-[#F5F0E8]">{value}</span>
         </div>
     );
 }

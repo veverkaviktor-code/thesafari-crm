@@ -43,33 +43,33 @@ export default function InvoicePreview({
     }, 0);
 
     return (
-        <div className="sticky top-6 rounded-xl border border-white/5 bg-[#1a1a22] p-5">
-            <h3 className="mb-4 text-sm font-semibold text-gray-300">
+        <div className="sticky top-6 rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-5">
+            <h3 className="mb-4 text-sm font-semibold text-[#F5F0E8]/70">
                 Náhled faktury
             </h3>
 
             {/* Mini invoice card */}
-            <div className="rounded-lg border border-white/10 bg-white/[0.02] p-4">
+            <div className="rounded-lg border border-[#F5F0E8]/[0.06] bg-white/[0.02] p-4">
                 {/* Header */}
                 <div className="mb-3 flex items-start justify-between">
                     <div>
-                        <p className="text-xs text-gray-500">FAKTURA</p>
+                        <p className="text-xs text-[#6B6560]">FAKTURA</p>
                         <p className="text-sm font-semibold text-white">
                             {invoiceNumber || '—'}
                         </p>
                     </div>
                     <div className="text-right">
-                        <p className="text-xs text-gray-500">The Safari s.r.o.</p>
-                        <p className="text-[10px] text-gray-600">Dodavatel</p>
+                        <p className="text-xs text-[#6B6560]">The Safari s.r.o.</p>
+                        <p className="text-[10px] text-[#6B6560]">Dodavatel</p>
                     </div>
                 </div>
 
-                <Separator className="my-2 bg-white/5" />
+                <Separator className="my-2 bg-[#F5F0E8]/[0.04]" />
 
                 {/* Customer */}
                 <div className="mb-3">
-                    <p className="text-[10px] text-gray-600">Odběratel</p>
-                    <p className="text-sm text-gray-300">
+                    <p className="text-[10px] text-[#6B6560]">Odběratel</p>
+                    <p className="text-sm text-[#F5F0E8]/70">
                         {customerName || '—'}
                     </p>
                 </div>
@@ -77,20 +77,20 @@ export default function InvoicePreview({
                 {/* Dates */}
                 <div className="mb-3 grid grid-cols-2 gap-2 text-xs">
                     <div>
-                        <p className="text-gray-600">Datum vystavení</p>
-                        <p className="text-gray-400">
+                        <p className="text-[#6B6560]">Datum vystavení</p>
+                        <p className="text-[#9C9585]">
                             {issueDate ? formatDate(issueDate) : '—'}
                         </p>
                     </div>
                     <div>
-                        <p className="text-gray-600">Datum splatnosti</p>
-                        <p className="text-gray-400">
+                        <p className="text-[#6B6560]">Datum splatnosti</p>
+                        <p className="text-[#9C9585]">
                             {dueDate ? formatDate(dueDate) : '—'}
                         </p>
                     </div>
                     <div>
-                        <p className="text-gray-600">Platba</p>
-                        <p className="text-gray-400">
+                        <p className="text-[#6B6560]">Platba</p>
+                        <p className="text-[#9C9585]">
                             {paymentMethod === 'banka'
                                 ? 'Převodem'
                                 : paymentMethod === 'hotovost'
@@ -99,14 +99,14 @@ export default function InvoicePreview({
                         </p>
                     </div>
                     <div>
-                        <p className="text-gray-600">VS</p>
-                        <p className="text-gray-400">
+                        <p className="text-[#6B6560]">VS</p>
+                        <p className="text-[#9C9585]">
                             {variableSymbol || '—'}
                         </p>
                     </div>
                 </div>
 
-                <Separator className="my-2 bg-white/5" />
+                <Separator className="my-2 bg-[#F5F0E8]/[0.04]" />
 
                 {/* Items */}
                 {items.length > 0 && (
@@ -122,10 +122,10 @@ export default function InvoicePreview({
                                         key={i}
                                         className="flex items-center justify-between text-xs"
                                     >
-                                        <span className="truncate text-gray-400">
+                                        <span className="truncate text-[#9C9585]">
                                             {item.description}
                                         </span>
-                                        <span className="shrink-0 text-gray-300">
+                                        <span className="shrink-0 text-[#F5F0E8]/70">
                                             {formatCurrency(total)}
                                         </span>
                                     </div>
@@ -134,11 +134,11 @@ export default function InvoicePreview({
                     </div>
                 )}
 
-                <Separator className="my-2 bg-white/5" />
+                <Separator className="my-2 bg-[#F5F0E8]/[0.04]" />
 
                 {/* Total */}
                 <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-gray-400">
+                    <span className="text-xs font-medium text-[#9C9585]">
                         Celkem k úhradě
                     </span>
                     <span className="text-sm font-bold text-[#D97706]">
@@ -148,7 +148,7 @@ export default function InvoicePreview({
 
                 {/* Notes */}
                 {notes && (
-                    <p className="mt-2 text-[10px] text-gray-600">{notes}</p>
+                    <p className="mt-2 text-[10px] text-[#6B6560]">{notes}</p>
                 )}
             </div>
         </div>

@@ -61,18 +61,18 @@ export default function DataTable<T>({
     emptyMessage = 'Žádné záznamy',
 }: DataTableProps<T>) {
     return (
-        <div className="rounded-xl border border-white/5 bg-[#1a1a22]">
+        <div className="rounded-xl border border-[#F5F0E8]/[0.06] bg-gradient-to-br from-[#16140f] to-[#141414]">
             {/* Toolbar */}
             {(onSearchChange || toolbar) && (
-                <div className="flex items-center gap-3 border-b border-white/5 p-4">
+                <div className="flex items-center gap-3 border-b border-[#F5F0E8]/[0.06] p-4">
                     {onSearchChange && (
                         <div className="relative w-full max-w-sm">
-                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B6560]" />
                             <Input
                                 value={searchValue ?? ''}
                                 onChange={(e) => onSearchChange(e.target.value)}
                                 placeholder={searchPlaceholder}
-                                className="border-white/10 bg-white/5 pl-9"
+                                className="border-[#F5F0E8]/[0.06] bg-[#0f0e0c] pl-9 text-[#F5F0E8] placeholder:text-[#6B6560] focus-visible:ring-[#D97706]/30"
                             />
                         </div>
                     )}
@@ -83,13 +83,13 @@ export default function DataTable<T>({
             {/* Table */}
             <Table>
                 <TableHeader>
-                    <TableRow className="border-white/5 hover:bg-transparent">
+                    <TableRow className="border-[#F5F0E8]/[0.06] hover:bg-transparent">
                         {columns.map((col) => (
                             <TableHead
                                 key={col.key}
                                 className={cn(
-                                    'text-gray-400',
-                                    col.sortable && 'cursor-pointer select-none',
+                                    'text-[#6B6560]',
+                                    col.sortable && 'cursor-pointer select-none hover:text-[#9C9585]',
                                     col.className,
                                 )}
                                 onClick={
@@ -116,7 +116,7 @@ export default function DataTable<T>({
                         <TableRow className="hover:bg-transparent">
                             <TableCell
                                 colSpan={columns.length}
-                                className="h-32 text-center text-gray-500"
+                                className="h-32 text-center text-[#6B6560]"
                             >
                                 {emptyMessage}
                             </TableCell>
@@ -126,9 +126,9 @@ export default function DataTable<T>({
                             <TableRow
                                 key={i}
                                 className={cn(
-                                    'border-white/5',
+                                    'border-[#F5F0E8]/[0.04]',
                                     onRowClick &&
-                                        'cursor-pointer hover:bg-white/5',
+                                        'cursor-pointer hover:bg-[#F5F0E8]/[0.03]',
                                 )}
                                 onClick={
                                     onRowClick
@@ -152,8 +152,8 @@ export default function DataTable<T>({
 
             {/* Pagination */}
             {pagination && pagination.last_page > 1 && (
-                <div className="flex items-center justify-between border-t border-white/5 px-4 py-3">
-                    <span className="text-sm text-gray-500">
+                <div className="flex items-center justify-between border-t border-[#F5F0E8]/[0.06] px-4 py-3">
+                    <span className="text-sm text-[#6B6560]">
                         {pagination.from}–{pagination.to} z {pagination.total}
                     </span>
                     <div className="flex items-center gap-1">
@@ -164,7 +164,7 @@ export default function DataTable<T>({
                             onClick={() =>
                                 onPageChange?.(pagination.current_page - 1)
                             }
-                            className="text-gray-400 hover:text-white"
+                            className="text-[#9C9585] hover:text-[#F5F0E8]"
                         >
                             <ChevronLeft className="h-4 w-4" />
                         </Button>
@@ -175,7 +175,7 @@ export default function DataTable<T>({
                             page === null ? (
                                 <span
                                     key={`dots-${idx}`}
-                                    className="px-1 text-gray-600"
+                                    className="px-1 text-[#6B6560]"
                                 >
                                     ...
                                 </span>
@@ -186,9 +186,9 @@ export default function DataTable<T>({
                                     size="icon-sm"
                                     onClick={() => onPageChange?.(page)}
                                     className={cn(
-                                        'text-gray-400 hover:text-white',
+                                        'text-[#9C9585] hover:text-[#F5F0E8]',
                                         page === pagination.current_page &&
-                                            'bg-white/5 text-white',
+                                            'bg-[#F5F0E8]/[0.06] text-[#F5F0E8]',
                                     )}
                                 >
                                     {page}
@@ -205,7 +205,7 @@ export default function DataTable<T>({
                             onClick={() =>
                                 onPageChange?.(pagination.current_page + 1)
                             }
-                            className="text-gray-400 hover:text-white"
+                            className="text-[#9C9585] hover:text-[#F5F0E8]"
                         >
                             <ChevronRight className="h-4 w-4" />
                         </Button>

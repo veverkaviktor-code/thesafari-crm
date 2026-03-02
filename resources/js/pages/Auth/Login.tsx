@@ -19,8 +19,8 @@ export default function Login() {
     return (
         <>
             <Head title="Prihlaseni" />
-            <div className="flex min-h-screen items-center justify-center bg-[#0a0a0f]">
-                <Card className="w-full max-w-sm border-white/10 bg-white/5 backdrop-blur-xl">
+            <div className="flex min-h-screen items-center justify-center bg-[#0a0a08]">
+                <Card className="w-full max-w-sm border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04] backdrop-blur-xl">
                     <CardHeader className="text-center">
                         <CardTitle className="text-2xl font-bold text-white">
                             The Safari HQ
@@ -41,7 +41,7 @@ export default function Login() {
                                     value={data.email}
                                     onChange={(e) => setData('email', e.target.value)}
                                     placeholder="admin@thesafari.cz"
-                                    className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                                    className="border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04] text-white placeholder:text-white/30"
                                     autoFocus
                                 />
                                 {errors.email && (
@@ -57,7 +57,7 @@ export default function Login() {
                                     type="password"
                                     value={data.password}
                                     onChange={(e) => setData('password', e.target.value)}
-                                    className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                                    className="border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04] text-white placeholder:text-white/30"
                                 />
                                 {errors.password && (
                                     <p className="text-sm text-red-400">{errors.password}</p>

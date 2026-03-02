@@ -41,33 +41,29 @@ export default function GlassModal({
                 if (e.target === overlayRef.current) onClose();
             }}
         >
-            {/* Backdrop */}
-            <div className="absolute inset-0 bg-black/50 backdrop-blur-md" />
+            {/* Overlay */}
+            <div className="absolute inset-0 bg-black/60" />
 
-            {/* Modal — Liquid Glass */}
+            {/* Modal */}
             <div
-                className={`relative w-full ${maxWidth} max-h-[90vh] flex flex-col rounded-3xl overflow-hidden
-                    border border-white/[0.08]
-                    bg-gradient-to-b from-white/[0.07] to-white/[0.03]
-                    backdrop-blur-3xl
-                    shadow-[0_8px_64px_-16px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.05),inset_0_1px_0_0_rgba(255,255,255,0.1)]
+                className={`relative w-full ${maxWidth} max-h-[90vh] flex flex-col rounded-2xl overflow-hidden
+                    border border-[#F5F0E8]/[0.06]
+                    bg-[#16140f]
+                    shadow-2xl shadow-black/50
                 `}
             >
-                {/* Top highlight line — liquid glass shine */}
-                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
-
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-white/[0.06] px-8 py-5">
-                    <h2 className="text-lg font-semibold text-white">{title}</h2>
+                <div className="flex items-center justify-between border-b border-[#F5F0E8]/[0.06] px-8 py-5">
+                    <h2 className="text-lg font-semibold text-[#F5F0E8]">{title}</h2>
                     <button
                         onClick={onClose}
-                        className="rounded-xl p-2 text-gray-400 transition-all hover:bg-white/[0.06] hover:text-white"
+                        className="rounded-xl p-2 text-[#9C9585] transition-all hover:bg-[#F5F0E8]/[0.05] hover:text-[#F5F0E8]"
                     >
                         <X className="h-5 w-5" />
                     </button>
                 </div>
 
-                {/* Body (scrollable) */}
+                {/* Body */}
                 <div className="overflow-y-auto px-8 py-6">{children}</div>
             </div>
         </div>

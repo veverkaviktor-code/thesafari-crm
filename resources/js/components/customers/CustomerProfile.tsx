@@ -82,7 +82,7 @@ export default function CustomerProfile({ customer }: Props) {
           );
 
     return (
-        <div className="rounded-xl border border-white/5 bg-[#1a1a22] overflow-hidden">
+        <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] overflow-hidden">
             {/* Banner + Avatar */}
             <div className="relative h-24 bg-gradient-to-r from-[#D97706]/20 via-[#1a1a22] to-[#1a1a22]">
                 <div className="absolute -bottom-8 left-6">
@@ -100,11 +100,11 @@ export default function CustomerProfile({ customer }: Props) {
                             {customer.name}
                         </h2>
                         {customer.company && (
-                            <p className="text-sm text-gray-400">
+                            <p className="text-sm text-[#9C9585]">
                                 {customer.company}
                             </p>
                         )}
-                        <p className="mt-1 text-xs text-gray-500">
+                        <p className="mt-1 text-xs text-[#6B6560]">
                             Zákazník od{' '}
                             {new Date(customer.created_at).toLocaleDateString(
                                 'cs-CZ',
@@ -116,7 +116,7 @@ export default function CustomerProfile({ customer }: Props) {
                             asChild
                             variant="ghost"
                             size="icon-sm"
-                            className="text-gray-400 hover:text-white"
+                            className="text-[#9C9585] hover:text-[#F5F0E8]"
                         >
                             <Link href={`/zakaznici/${customer.id}/upravit`}>
                                 <Pencil className="h-4 w-4" />
@@ -125,7 +125,7 @@ export default function CustomerProfile({ customer }: Props) {
                         <Button
                             variant="ghost"
                             size="icon-sm"
-                            className="text-gray-400 hover:text-red-400"
+                            className="text-[#9C9585] hover:text-red-400"
                             onClick={handleDelete}
                         >
                             <Trash2 className="h-4 w-4" />
@@ -152,12 +152,12 @@ export default function CustomerProfile({ customer }: Props) {
 
                 {/* Notes */}
                 {customer.notes && (
-                    <p className="mt-4 rounded-lg bg-white/5 p-3 text-sm text-gray-400">
+                    <p className="mt-4 rounded-lg bg-[#F5F0E8]/[0.04] p-3 text-sm text-[#9C9585]">
                         {customer.notes}
                     </p>
                 )}
 
-                <Separator className="my-5 bg-white/5" />
+                <Separator className="my-5 bg-[#F5F0E8]/[0.04]" />
 
                 {/* Contact info grid */}
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -190,7 +190,7 @@ export default function CustomerProfile({ customer }: Props) {
                 {/* Business info */}
                 {(customer.ico || customer.dic) && (
                     <>
-                        <Separator className="my-5 bg-white/5" />
+                        <Separator className="my-5 bg-[#F5F0E8]/[0.04]" />
                         <div className="grid gap-3 sm:grid-cols-2">
                             <InfoItem
                                 icon={Building2}
@@ -209,7 +209,7 @@ export default function CustomerProfile({ customer }: Props) {
                 {/* Addresses */}
                 {billingAddress && (
                     <>
-                        <Separator className="my-5 bg-white/5" />
+                        <Separator className="my-5 bg-[#F5F0E8]/[0.04]" />
                         <div className="grid gap-3 sm:grid-cols-2">
                             <InfoItem
                                 icon={MapPin}
@@ -246,9 +246,9 @@ function InfoItem({
 }) {
     return (
         <div className="flex items-start gap-3 rounded-lg bg-white/[0.03] p-3">
-            <Icon className="mt-0.5 h-4 w-4 shrink-0 text-gray-500" />
+            <Icon className="mt-0.5 h-4 w-4 shrink-0 text-[#6B6560]" />
             <div className="min-w-0">
-                <p className="text-xs text-gray-500">{label}</p>
+                <p className="text-xs text-[#6B6560]">{label}</p>
                 {value ? (
                     href ? (
                         <a
@@ -261,10 +261,10 @@ function InfoItem({
                             {value}
                         </a>
                     ) : (
-                        <p className="text-sm text-gray-300">{value}</p>
+                        <p className="text-sm text-[#F5F0E8]/70">{value}</p>
                     )
                 ) : (
-                    <p className="text-sm text-gray-600">—</p>
+                    <p className="text-sm text-[#6B6560]">—</p>
                 )}
             </div>
         </div>

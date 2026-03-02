@@ -56,11 +56,11 @@ const formatCurrency = (v: number) =>
 const formatDate = (d: string) => new Date(d).toLocaleDateString('cs-CZ');
 
 function dueDateClass(dueDate: string, status: string): string {
-    if (status === 'zaplacena') return 'text-gray-500';
+    if (status === 'zaplacena') return 'text-[#6B6560]';
     const diff = new Date(dueDate).getTime() - Date.now();
     if (diff < 0) return 'text-red-400';
     if (diff < 7 * 24 * 60 * 60 * 1000) return 'text-amber-400';
-    return 'text-gray-400';
+    return 'text-[#9C9585]';
 }
 
 const columns: Column<Invoice>[] = [
@@ -76,7 +76,7 @@ const columns: Column<Invoice>[] = [
         key: 'customer',
         label: 'Zákazník',
         render: (i) => (
-            <span className="text-gray-300">{i.customer.name}</span>
+            <span className="text-[#F5F0E8]/70">{i.customer.name}</span>
         ),
     },
     {
@@ -84,7 +84,7 @@ const columns: Column<Invoice>[] = [
         label: 'Vystaveno',
         sortable: true,
         render: (i) => (
-            <span className="text-gray-400">{formatDate(i.issue_date)}</span>
+            <span className="text-[#9C9585]">{formatDate(i.issue_date)}</span>
         ),
     },
     {
@@ -116,7 +116,7 @@ const columns: Column<Invoice>[] = [
         key: 'payment_method',
         label: 'Platba',
         render: (i) => (
-            <span className="text-gray-500">
+            <span className="text-[#6B6560]">
                 {i.payment_method === 'banka' ? 'Převodem' : 'Hotově'}
             </span>
         ),
@@ -156,7 +156,7 @@ export default function Index({ invoices, filters }: Props) {
         >
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                    <h1 className="text-2xl font-semibold text-white">
+                    <h1 className="text-2xl font-semibold text-[#F5F0E8]">
                         Faktury
                     </h1>
                     <Button
@@ -205,23 +205,23 @@ export default function Index({ invoices, filters }: Props) {
                                 })
                             }
                         >
-                            <SelectTrigger className="w-[140px] border-white/10 bg-white/5">
+                            <SelectTrigger className="w-[140px] border-[#F5F0E8]/[0.06] bg-[#0f0e0c]">
                                 <SelectValue placeholder="Stav" />
                             </SelectTrigger>
-                            <SelectContent className="border-white/10 bg-[#1a1a22]">
-                                <SelectItem value="all" className="focus:bg-white/5">
+                            <SelectContent className="border-[#F5F0E8]/[0.06] bg-[#16140f]">
+                                <SelectItem value="all" className="focus:bg-[#0f0e0c]">
                                     Všechny stavy
                                 </SelectItem>
-                                <SelectItem value="vystavena" className="focus:bg-white/5">
+                                <SelectItem value="vystavena" className="focus:bg-[#0f0e0c]">
                                     Vystavena
                                 </SelectItem>
-                                <SelectItem value="odeslana" className="focus:bg-white/5">
+                                <SelectItem value="odeslana" className="focus:bg-[#0f0e0c]">
                                     Odeslaná
                                 </SelectItem>
-                                <SelectItem value="zaplacena" className="focus:bg-white/5">
+                                <SelectItem value="zaplacena" className="focus:bg-[#0f0e0c]">
                                     Zaplacena
                                 </SelectItem>
-                                <SelectItem value="po_splatnosti" className="focus:bg-white/5">
+                                <SelectItem value="po_splatnosti" className="focus:bg-[#0f0e0c]">
                                     Po splatnosti
                                 </SelectItem>
                             </SelectContent>

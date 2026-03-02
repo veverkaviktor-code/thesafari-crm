@@ -52,8 +52,8 @@ export default function CustomerMiniDashboard({ stats }: Props) {
     ];
 
     return (
-        <div className="rounded-xl border border-white/5 bg-[#1a1a22] p-5">
-            <h3 className="mb-4 text-sm font-semibold text-gray-300">
+        <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-5">
+            <h3 className="mb-4 text-sm font-semibold text-[#F5F0E8]/70">
                 Přehled
             </h3>
             <div className="grid grid-cols-2 gap-3">
@@ -77,7 +77,7 @@ export default function CustomerMiniDashboard({ stats }: Props) {
                         <p className="mt-2 text-lg font-semibold text-white">
                             {item.value}
                         </p>
-                        <p className="text-xs text-gray-500">{item.label}</p>
+                        <p className="text-xs text-[#6B6560]">{item.label}</p>
                     </div>
                 ))}
             </div>

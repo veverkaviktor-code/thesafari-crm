@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import {
     ChevronLeft,
+    ChevronRight,
     ClipboardList,
     FileText,
     Globe,
@@ -50,29 +51,43 @@ export default function Sidebar() {
         <TooltipProvider>
             <aside
                 className={cn(
-                    'flex h-screen flex-col border-r border-white/5 bg-[#111116] transition-all duration-300 ease-in-out',
+                    'flex h-screen flex-col border-r border-[#F5F0E8]/[0.05] bg-[#0f0e0c] transition-all duration-300 ease-in-out',
                     collapsed ? 'w-[68px]' : 'w-[240px]',
                 )}
             >
-                {/* Logo */}
-                <div className="flex h-16 items-center border-b border-white/5 px-4">
-                    <div className="flex items-center gap-3 overflow-hidden">
+                {/* Logo + collapse button */}
+                <div className="flex h-16 items-center border-b border-[#F5F0E8]/[0.05] px-4">
+                    <div className="flex flex-1 items-center gap-3 overflow-hidden">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#D97706] text-sm font-bold text-white">
                             S
                         </div>
                         <span
                             className={cn(
-                                'whitespace-nowrap text-sm font-semibold text-white transition-all duration-300',
+                                'whitespace-nowrap text-sm font-semibold text-[#F5F0E8] transition-all duration-300',
                                 collapsed && 'w-0 opacity-0',
                             )}
                         >
                             The Safari HQ
                         </span>
                     </div>
+                    <button
+                        onClick={() => setCollapsed(!collapsed)}
+                        className={cn(
+                            'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[#6B6560] transition-colors hover:bg-[#F5F0E8]/[0.05] hover:text-[#9C9585]',
+                            collapsed && 'mx-auto',
+                        )}
+                        title={collapsed ? 'Rozbalit' : 'Sbalit'}
+                    >
+                        {collapsed ? (
+                            <ChevronRight className="h-4 w-4" />
+                        ) : (
+                            <ChevronLeft className="h-4 w-4" />
+                        )}
+                    </button>
                 </div>
 
                 {/* Main navigation */}
-                <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+                <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
                     {mainNav.map((item) => (
                         <NavLink
                             key={item.href}
@@ -84,7 +99,7 @@ export default function Sidebar() {
                 </nav>
 
                 {/* Bottom section */}
-                <div className="space-y-1 border-t border-white/5 px-3 py-4">
+                <div className="space-y-0.5 border-t border-[#F5F0E8]/[0.05] px-3 py-4">
                     {bottomNav.map((item) => (
                         <NavLink
                             key={item.href}
@@ -93,27 +108,6 @@ export default function Sidebar() {
                             collapsed={collapsed}
                         />
                     ))}
-
-                    {/* Collapse toggle */}
-                    <button
-                        onClick={() => setCollapsed(!collapsed)}
-                        className="flex h-9 w-full items-center gap-3 rounded-lg px-3 text-gray-500 transition-colors hover:bg-white/5 hover:text-gray-300"
-                    >
-                        <ChevronLeft
-                            className={cn(
-                                'h-4 w-4 shrink-0 transition-transform duration-300',
-                                collapsed && 'rotate-180',
-                            )}
-                        />
-                        <span
-                            className={cn(
-                                'whitespace-nowrap text-sm transition-all duration-300',
-                                collapsed && 'w-0 opacity-0',
-                            )}
-                        >
-                            Sbalit
-                        </span>
-                    </button>
                 </div>
             </aside>
         </TooltipProvider>
@@ -137,8 +131,8 @@ function NavLink({
             className={cn(
                 'group relative flex h-9 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors',
                 active
-                    ? 'bg-white/5 text-white'
-                    : 'text-gray-400 hover:bg-white/5 hover:text-white',
+                    ? 'bg-[#F5F0E8]/[0.06] text-[#F5F0E8]'
+                    : 'text-[#9C9585] hover:bg-[#F5F0E8]/[0.04] hover:text-[#F5F0E8]',
             )}
         >
             {/* Active indicator */}

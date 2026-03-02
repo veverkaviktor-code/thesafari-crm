@@ -53,8 +53,8 @@ const columns = [
         sortable: true,
         render: (ticket: Ticket) => (
             <div>
-                <p className="font-medium text-gray-200">{ticket.subject}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{ticket.source_email}</p>
+                <p className="font-medium text-[#F5F0E8]/85">{ticket.subject}</p>
+                <p className="text-xs text-[#6B6560] mt-0.5">{ticket.source_email}</p>
             </div>
         ),
     },
@@ -62,7 +62,7 @@ const columns = [
         key: 'customer' as const,
         label: 'Zákazník',
         render: (ticket: Ticket) => (
-            <span className="text-gray-300">
+            <span className="text-[#F5F0E8]/80">
                 {ticket.customer ? (ticket.customer.company || ticket.customer.name) : '—'}
             </span>
         ),
@@ -86,7 +86,7 @@ const columns = [
         key: 'messages_count' as const,
         label: 'Zprávy',
         render: (ticket: Ticket) => (
-            <div className="flex items-center gap-1.5 text-gray-400">
+            <div className="flex items-center gap-1.5 text-[#9C9585]">
                 <MessageSquare className="h-3.5 w-3.5" />
                 <span className="text-sm">{ticket.messages_count ?? 0}</span>
             </div>
@@ -97,7 +97,7 @@ const columns = [
         label: 'Vytvořeno',
         sortable: true,
         render: (ticket: Ticket) => (
-            <span className="text-sm text-gray-400">
+            <span className="text-sm text-[#9C9585]">
                 {format(new Date(ticket.created_at), 'd. M. yyyy', { locale: cs })}
             </span>
         ),
@@ -129,7 +129,7 @@ export default function TicketsIndex({ tickets, filters }: Props) {
             <div className="space-y-6">
                 {/* Header */}
                 <div className="flex items-center justify-between">
-                    <h1 className="text-2xl font-semibold text-white">
+                    <h1 className="text-2xl font-semibold text-[#F5F0E8]">
                         Požadavky
                     </h1>
                 </div>
@@ -156,10 +156,10 @@ export default function TicketsIndex({ tickets, filters }: Props) {
                                 value={statusFilter}
                                 onValueChange={(v) => { setStatusFilter(v); applyFilters({ status: v }); }}
                             >
-                                <SelectTrigger className="w-[160px] bg-[#111116] border-white/10 text-gray-300">
+                                <SelectTrigger className="w-[160px] bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/80">
                                     <SelectValue placeholder="Stav" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-[#1a1a22] border-white/10">
+                                <SelectContent className="bg-[#16140f] border-[#F5F0E8]/[0.06]">
                                     <SelectItem value="all">Všechny stavy</SelectItem>
                                     <SelectItem value="novy">Nový</SelectItem>
                                     <SelectItem value="v_reseni">V řešení</SelectItem>
@@ -171,10 +171,10 @@ export default function TicketsIndex({ tickets, filters }: Props) {
                                 value={priorityFilter}
                                 onValueChange={(v) => { setPriorityFilter(v); applyFilters({ priority: v }); }}
                             >
-                                <SelectTrigger className="w-[140px] bg-[#111116] border-white/10 text-gray-300">
+                                <SelectTrigger className="w-[140px] bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/80">
                                     <SelectValue placeholder="Priorita" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-[#1a1a22] border-white/10">
+                                <SelectContent className="bg-[#16140f] border-[#F5F0E8]/[0.06]">
                                     <SelectItem value="all">Všechny</SelectItem>
                                     <SelectItem value="low">Nízká</SelectItem>
                                     <SelectItem value="medium">Střední</SelectItem>

@@ -125,10 +125,10 @@ export default function CustomerForm({
     return (
         <form onSubmit={onSubmit} className="space-y-8">
             {/* Type toggle + Avatar */}
-            <div className="rounded-xl border border-white/5 bg-[#1a1a22] p-6">
+            <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-6">
                 <div className="flex items-start justify-between gap-6">
                     <div className="flex-1 space-y-4">
-                        <Label className="text-gray-300">Typ zákazníka</Label>
+                        <Label className="text-[#F5F0E8]/70">Typ zákazníka</Label>
                         <div className="flex gap-2">
                             {(
                                 [
@@ -144,7 +144,7 @@ export default function CustomerForm({
                                         'rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
                                         data.type === opt.value
                                             ? 'border-[#D97706] bg-[#D97706]/10 text-[#D97706]'
-                                            : 'border-white/10 text-gray-400 hover:border-white/20 hover:text-gray-300',
+                                            : 'border-[#F5F0E8]/[0.06] text-[#9C9585] hover:border-white/20 hover:text-[#F5F0E8]/70',
                                     )}
                                 >
                                     {opt.label}
@@ -159,7 +159,7 @@ export default function CustomerForm({
                         <button
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
-                            className="group flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-white/10 transition-colors hover:border-white/20"
+                            className="group flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-[#F5F0E8]/[0.06] transition-colors hover:border-white/20"
                         >
                             {avatarPreview ? (
                                 <img
@@ -168,7 +168,7 @@ export default function CustomerForm({
                                     className="h-full w-full object-cover"
                                 />
                             ) : (
-                                <Upload className="h-5 w-5 text-gray-500 transition-colors group-hover:text-gray-400" />
+                                <Upload className="h-5 w-5 text-[#6B6560] transition-colors group-hover:text-[#9C9585]" />
                             )}
                         </button>
                         <input
@@ -178,14 +178,14 @@ export default function CustomerForm({
                             className="hidden"
                             onChange={handleAvatarChange}
                         />
-                        <span className="text-xs text-gray-500">Avatar</span>
+                        <span className="text-xs text-[#6B6560]">Avatar</span>
                     </div>
                 </div>
             </div>
 
             {/* Basic info */}
-            <div className="rounded-xl border border-white/5 bg-[#1a1a22] p-6">
-                <h3 className="mb-4 text-sm font-semibold text-gray-300">
+            <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-6">
+                <h3 className="mb-4 text-sm font-semibold text-[#F5F0E8]/70">
                     Základní údaje
                 </h3>
                 <div className="grid gap-4 md:grid-cols-2">
@@ -228,8 +228,8 @@ export default function CustomerForm({
             </div>
 
             {/* Contact info */}
-            <div className="rounded-xl border border-white/5 bg-[#1a1a22] p-6">
-                <h3 className="mb-4 text-sm font-semibold text-gray-300">
+            <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-6">
+                <h3 className="mb-4 text-sm font-semibold text-[#F5F0E8]/70">
                     Kontaktní údaje
                 </h3>
                 <div className="grid gap-4 md:grid-cols-2">
@@ -268,8 +268,8 @@ export default function CustomerForm({
             </div>
 
             {/* Billing address */}
-            <div className="rounded-xl border border-white/5 bg-[#1a1a22] p-6">
-                <h3 className="mb-4 text-sm font-semibold text-gray-300">
+            <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-6">
+                <h3 className="mb-4 text-sm font-semibold text-[#F5F0E8]/70">
                     Fakturační adresa
                 </h3>
                 <AddressFields
@@ -281,12 +281,12 @@ export default function CustomerForm({
             </div>
 
             {/* Delivery address */}
-            <div className="rounded-xl border border-white/5 bg-[#1a1a22] p-6">
+            <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-6">
                 <div className="mb-4 flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-gray-300">
+                    <h3 className="text-sm font-semibold text-[#F5F0E8]/70">
                         Doručovací adresa
                     </h3>
-                    <label className="flex items-center gap-2 text-sm text-gray-400">
+                    <label className="flex items-center gap-2 text-sm text-[#9C9585]">
                         <Checkbox
                             checked={data.delivery_same}
                             onCheckedChange={(checked) =>
@@ -307,15 +307,15 @@ export default function CustomerForm({
             </div>
 
             {/* Tags */}
-            <div className="rounded-xl border border-white/5 bg-[#1a1a22] p-6">
-                <h3 className="mb-4 text-sm font-semibold text-gray-300">Štítky</h3>
+            <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-6">
+                <h3 className="mb-4 text-sm font-semibold text-[#F5F0E8]/70">Štítky</h3>
                 <div className="space-y-3">
                     <Input
                         value={tagInput}
                         onChange={(e) => setTagInput(e.target.value)}
                         onKeyDown={handleTagKeyDown}
                         placeholder="Napište štítek a stiskněte Enter..."
-                        className="border-white/10 bg-white/5"
+                        className="border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]"
                     />
                     {data.tags.length > 0 && (
                         <div className="flex flex-wrap gap-2">
@@ -343,15 +343,15 @@ export default function CustomerForm({
             </div>
 
             {/* Notes */}
-            <div className="rounded-xl border border-white/5 bg-[#1a1a22] p-6">
-                <h3 className="mb-4 text-sm font-semibold text-gray-300">
+            <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-6">
+                <h3 className="mb-4 text-sm font-semibold text-[#F5F0E8]/70">
                     Poznámky
                 </h3>
                 <Textarea
                     value={data.notes}
                     onChange={(e) => setData('notes', e.target.value)}
                     placeholder="Interní poznámky k zákazníkovi..."
-                    className="min-h-24 border-white/10 bg-white/5"
+                    className="min-h-24 border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]"
                 />
                 <FieldError error={errors.notes} />
             </div>
@@ -361,7 +361,7 @@ export default function CustomerForm({
                 <Button
                     type="button"
                     variant="ghost"
-                    className="text-gray-400 hover:text-white"
+                    className="text-[#9C9585] hover:text-[#F5F0E8]"
                     onClick={handleCancel}
                 >
                     Zrušit
@@ -400,14 +400,14 @@ function Field({
 }) {
     return (
         <div className="space-y-1.5">
-            <Label className="text-gray-400">{label}</Label>
+            <Label className="text-[#9C9585]">{label}</Label>
             <Input
                 type={type}
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}
                 maxLength={maxLength}
-                className="border-white/10 bg-white/5"
+                className="border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]"
                 aria-invalid={!!error}
             />
             <FieldError error={error} />

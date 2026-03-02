@@ -53,8 +53,8 @@ export default function CostsList({ orderId, costs, totalCosts }: Props) {
     };
 
     return (
-        <div className="rounded-xl border border-white/5 bg-[#1a1a22] p-5">
-            <h3 className="mb-4 text-sm font-semibold text-gray-300">Náklady</h3>
+        <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-5">
+            <h3 className="mb-4 text-sm font-semibold text-[#F5F0E8]/70">Náklady</h3>
 
             {/* Add form */}
             <form onSubmit={handleAdd} className="mb-4 flex gap-2">
@@ -62,7 +62,7 @@ export default function CostsList({ orderId, costs, totalCosts }: Props) {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="Název nákladu..."
-                    className="border-white/10 bg-white/5"
+                    className="border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]"
                 />
                 <Input
                     value={amount}
@@ -71,7 +71,7 @@ export default function CostsList({ orderId, costs, totalCosts }: Props) {
                     type="number"
                     min="0"
                     step="1"
-                    className="w-32 shrink-0 border-white/10 bg-white/5"
+                    className="w-32 shrink-0 border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]"
                 />
                 <Button
                     type="submit"
@@ -85,7 +85,7 @@ export default function CostsList({ orderId, costs, totalCosts }: Props) {
 
             {/* List */}
             {costs.length === 0 ? (
-                <p className="text-sm text-gray-500">Žádné náklady</p>
+                <p className="text-sm text-[#6B6560]">Žádné náklady</p>
             ) : (
                 <div className="space-y-2">
                     {costs.map((cost) => (
@@ -94,17 +94,17 @@ export default function CostsList({ orderId, costs, totalCosts }: Props) {
                             className="flex items-center justify-between rounded-lg bg-white/[0.03] p-3"
                         >
                             <div>
-                                <p className="text-sm text-gray-300">
+                                <p className="text-sm text-[#F5F0E8]/70">
                                     {cost.title}
                                 </p>
-                                <p className="text-xs text-gray-500">
+                                <p className="text-xs text-[#6B6560]">
                                     {formatCurrency(cost.amount)}
                                 </p>
                             </div>
                             <Button
                                 variant="ghost"
                                 size="icon-xs"
-                                className="text-gray-500 hover:text-red-400"
+                                className="text-[#6B6560] hover:text-red-400"
                                 onClick={() => handleDelete(cost.id)}
                             >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -115,8 +115,8 @@ export default function CostsList({ orderId, costs, totalCosts }: Props) {
             )}
 
             {/* Total */}
-            <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-3">
-                <span className="text-sm text-gray-400">Celkem náklady</span>
+            <div className="mt-4 flex items-center justify-between border-t border-[#F5F0E8]/[0.05] pt-3">
+                <span className="text-sm text-[#9C9585]">Celkem náklady</span>
                 <span className="text-sm font-semibold text-white">
                     {formatCurrency(totalCosts)}
                 </span>

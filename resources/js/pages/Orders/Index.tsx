@@ -71,12 +71,12 @@ const formatCurrency = (v: number) =>
     }).format(v);
 
 function deadlineClass(deadline: string | null): string {
-    if (!deadline) return 'text-gray-500';
+    if (!deadline) return 'text-[#6B6560]';
     const diff = new Date(deadline).getTime() - Date.now();
     const days = diff / (1000 * 60 * 60 * 24);
     if (days < 0) return 'text-red-400';
     if (days < 7) return 'text-amber-400';
-    return 'text-gray-400';
+    return 'text-[#9C9585]';
 }
 
 const columns: Column<Order>[] = [
@@ -87,7 +87,7 @@ const columns: Column<Order>[] = [
         render: (o) => (
             <div>
                 <p className="font-medium text-white">{o.title}</p>
-                <p className="text-xs text-gray-500">{o.customer.name}</p>
+                <p className="text-xs text-[#6B6560]">{o.customer.name}</p>
             </div>
         ),
     },
@@ -106,7 +106,7 @@ const columns: Column<Order>[] = [
         label: 'Cena',
         sortable: true,
         render: (o) => (
-            <span className="text-gray-300">{formatCurrency(o.price)}</span>
+            <span className="text-[#F5F0E8]/70">{formatCurrency(o.price)}</span>
         ),
     },
     {
@@ -126,7 +126,7 @@ const columns: Column<Order>[] = [
         label: 'Vytvořeno',
         sortable: true,
         render: (o) => (
-            <span className="text-gray-500">
+            <span className="text-[#6B6560]">
                 {new Date(o.created_at).toLocaleDateString('cs-CZ')}
             </span>
         ),
@@ -179,7 +179,7 @@ export default function Index({ orders, customers, filters }: Props) {
         >
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                    <h1 className="text-2xl font-semibold text-white">
+                    <h1 className="text-2xl font-semibold text-[#F5F0E8]">
                         Zakázky
                     </h1>
                     <Button
@@ -228,23 +228,23 @@ export default function Index({ orders, customers, filters }: Props) {
                                     })
                                 }
                             >
-                                <SelectTrigger className="w-[130px] border-white/10 bg-white/5">
+                                <SelectTrigger className="w-[130px] border-[#F5F0E8]/[0.06] bg-[#0f0e0c]">
                                     <SelectValue placeholder="Stav" />
                                 </SelectTrigger>
-                                <SelectContent className="border-white/10 bg-[#1a1a22]">
-                                    <SelectItem value="all" className="focus:bg-white/5">
+                                <SelectContent className="border-[#F5F0E8]/[0.06] bg-[#16140f]">
+                                    <SelectItem value="all" className="focus:bg-[#0f0e0c]">
                                         Všechny stavy
                                     </SelectItem>
-                                    <SelectItem value="nova" className="focus:bg-white/5">
+                                    <SelectItem value="nova" className="focus:bg-[#0f0e0c]">
                                         Nová
                                     </SelectItem>
-                                    <SelectItem value="v_reseni" className="focus:bg-white/5">
+                                    <SelectItem value="v_reseni" className="focus:bg-[#0f0e0c]">
                                         V řešení
                                     </SelectItem>
-                                    <SelectItem value="hotovo" className="focus:bg-white/5">
+                                    <SelectItem value="hotovo" className="focus:bg-[#0f0e0c]">
                                         Hotovo
                                     </SelectItem>
-                                    <SelectItem value="fakturovano" className="focus:bg-white/5">
+                                    <SelectItem value="fakturovano" className="focus:bg-[#0f0e0c]">
                                         Fakturováno
                                     </SelectItem>
                                 </SelectContent>
@@ -258,26 +258,26 @@ export default function Index({ orders, customers, filters }: Props) {
                                     })
                                 }
                             >
-                                <SelectTrigger className="w-[130px] border-white/10 bg-white/5">
+                                <SelectTrigger className="w-[130px] border-[#F5F0E8]/[0.06] bg-[#0f0e0c]">
                                     <SelectValue placeholder="Divize" />
                                 </SelectTrigger>
-                                <SelectContent className="border-white/10 bg-[#1a1a22]">
-                                    <SelectItem value="all" className="focus:bg-white/5">
+                                <SelectContent className="border-[#F5F0E8]/[0.06] bg-[#16140f]">
+                                    <SelectItem value="all" className="focus:bg-[#0f0e0c]">
                                         Všechny divize
                                     </SelectItem>
-                                    <SelectItem value="tisk" className="focus:bg-white/5">
+                                    <SelectItem value="tisk" className="focus:bg-[#0f0e0c]">
                                         Tisk
                                     </SelectItem>
-                                    <SelectItem value="reklama" className="focus:bg-white/5">
+                                    <SelectItem value="reklama" className="focus:bg-[#0f0e0c]">
                                         Reklama
                                     </SelectItem>
-                                    <SelectItem value="polepy" className="focus:bg-white/5">
+                                    <SelectItem value="polepy" className="focus:bg-[#0f0e0c]">
                                         Polepy
                                     </SelectItem>
-                                    <SelectItem value="montaze" className="focus:bg-white/5">
+                                    <SelectItem value="montaze" className="focus:bg-[#0f0e0c]">
                                         Montáže
                                     </SelectItem>
-                                    <SelectItem value="weby" className="focus:bg-white/5">
+                                    <SelectItem value="weby" className="focus:bg-[#0f0e0c]">
                                         Weby
                                     </SelectItem>
                                 </SelectContent>

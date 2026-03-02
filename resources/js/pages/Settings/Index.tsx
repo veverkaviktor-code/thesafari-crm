@@ -45,14 +45,14 @@ export default function SettingsIndex({ user, company, tab }: Props) {
                     <TabsList className="flex flex-col h-auto bg-transparent border-0 w-[200px] shrink-0 gap-1">
                         <TabsTrigger
                             value="profile"
-                            className="w-full justify-start px-3 py-2.5 text-gray-400 data-[state=active]:bg-[#1a1a22] data-[state=active]:text-gray-100 data-[state=active]:border data-[state=active]:border-white/5 rounded-lg"
+                            className="w-full justify-start px-3 py-2.5 text-[#9C9585] data-[state=active]:bg-[#16140f] data-[state=active]:text-[#F5F0E8] data-[state=active]:border data-[state=active]:border-[#F5F0E8]/[0.05] rounded-lg"
                         >
                             <User className="h-4 w-4 mr-2" />
                             Profil
                         </TabsTrigger>
                         <TabsTrigger
                             value="company"
-                            className="w-full justify-start px-3 py-2.5 text-gray-400 data-[state=active]:bg-[#1a1a22] data-[state=active]:text-gray-100 data-[state=active]:border data-[state=active]:border-white/5 rounded-lg"
+                            className="w-full justify-start px-3 py-2.5 text-[#9C9585] data-[state=active]:bg-[#16140f] data-[state=active]:text-[#F5F0E8] data-[state=active]:border data-[state=active]:border-[#F5F0E8]/[0.05] rounded-lg"
                         >
                             <Building2 className="h-4 w-4 mr-2" />
                             Firma

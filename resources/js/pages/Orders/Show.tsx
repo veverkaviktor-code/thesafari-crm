@@ -74,7 +74,7 @@ const formatCurrency = (v: number) =>
     }).format(v);
 
 function deadlineInfo(deadline: string | null) {
-    if (!deadline) return { text: 'Bez termínu', className: 'text-gray-500' };
+    if (!deadline) return { text: 'Bez termínu', className: 'text-[#6B6560]' };
     const diff = new Date(deadline).getTime() - Date.now();
     const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
     const formatted = format(new Date(deadline), 'd. MMMM yyyy', { locale: cs });
@@ -88,7 +88,7 @@ function deadlineInfo(deadline: string | null) {
             text: `${formatted} (za ${days} ${days === 1 ? 'den' : days < 5 ? 'dny' : 'dní'})`,
             className: 'text-amber-400',
         };
-    return { text: formatted, className: 'text-gray-300' };
+    return { text: formatted, className: 'text-[#F5F0E8]/70' };
 }
 
 export default function Show({ order }: Props) {
@@ -150,21 +150,21 @@ export default function Show({ order }: Props) {
                             value={order.status}
                             onValueChange={handleStatusChange}
                         >
-                            <SelectTrigger className="w-[140px] border-white/10 bg-white/5">
+                            <SelectTrigger className="w-[140px] border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]">
                                 <SelectValue />
                             </SelectTrigger>
-                            <SelectContent className="border-white/10 bg-[#1a1a22]">
-                                <SelectItem value="nova" className="focus:bg-white/5">Nová</SelectItem>
-                                <SelectItem value="v_reseni" className="focus:bg-white/5">V řešení</SelectItem>
-                                <SelectItem value="hotovo" className="focus:bg-white/5">Hotovo</SelectItem>
-                                <SelectItem value="fakturovano" className="focus:bg-white/5">Fakturováno</SelectItem>
+                            <SelectContent className="border-[#F5F0E8]/[0.06] bg-[#16140f]">
+                                <SelectItem value="nova" className="focus:bg-[#F5F0E8]/[0.04]">Nová</SelectItem>
+                                <SelectItem value="v_reseni" className="focus:bg-[#F5F0E8]/[0.04]">V řešení</SelectItem>
+                                <SelectItem value="hotovo" className="focus:bg-[#F5F0E8]/[0.04]">Hotovo</SelectItem>
+                                <SelectItem value="fakturovano" className="focus:bg-[#F5F0E8]/[0.04]">Fakturováno</SelectItem>
                             </SelectContent>
                         </Select>
                         <Button
                             asChild
                             variant="ghost"
                             size="icon"
-                            className="text-gray-400 hover:text-white"
+                            className="text-[#9C9585] hover:text-[#F5F0E8]"
                         >
                             <Link href={`/zakazky/${order.id}/upravit`}>
                                 <Pencil className="h-4 w-4" />
@@ -173,7 +173,7 @@ export default function Show({ order }: Props) {
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="text-gray-400 hover:text-red-400"
+                            className="text-[#9C9585] hover:text-red-400"
                             onClick={handleDelete}
                         >
                             <Trash2 className="h-4 w-4" />
@@ -186,9 +186,9 @@ export default function Show({ order }: Props) {
                     {/* Left: Details */}
                     <div className="space-y-6 lg:col-span-2">
                         {/* Description + Price */}
-                        <div className="rounded-xl border border-white/5 bg-[#1a1a22] p-5">
+                        <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-5">
                             {order.description && (
-                                <p className="mb-4 text-sm leading-relaxed text-gray-400">
+                                <p className="mb-4 text-sm leading-relaxed text-[#9C9585]">
                                     {order.description}
                                 </p>
                             )}
@@ -204,7 +204,7 @@ export default function Show({ order }: Props) {
                                         order.total_time_cost +
                                             order.total_costs,
                                     )}
-                                    className="text-gray-300"
+                                    className="text-[#F5F0E8]/70"
                                 />
                                 <InfoBox
                                     label="Zisk"
@@ -251,14 +251,14 @@ export default function Show({ order }: Props) {
                         </Button>
 
                         {/* Order info card */}
-                        <div className="rounded-xl border border-white/5 bg-[#1a1a22] p-5">
-                            <h3 className="mb-3 text-sm font-semibold text-gray-300">
+                        <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-5">
+                            <h3 className="mb-3 text-sm font-semibold text-[#F5F0E8]/70">
                                 Info
                             </h3>
                             <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
-                                    <span className="text-gray-500">Vytvořeno</span>
-                                    <span className="text-gray-300">
+                                    <span className="text-[#6B6560]">Vytvořeno</span>
+                                    <span className="text-[#F5F0E8]/70">
                                         {format(
                                             new Date(order.created_at),
                                             'd. M. yyyy',
@@ -266,14 +266,14 @@ export default function Show({ order }: Props) {
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-gray-500">Časové záznamy</span>
-                                    <span className="text-gray-300">
+                                    <span className="text-[#6B6560]">Časové záznamy</span>
+                                    <span className="text-[#F5F0E8]/70">
                                         {order.time_entries.length}
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-gray-500">Materiálové náklady</span>
-                                    <span className="text-gray-300">
+                                    <span className="text-[#6B6560]">Materiálové náklady</span>
+                                    <span className="text-[#F5F0E8]/70">
                                         {order.costs.length}
                                     </span>
                                 </div>
@@ -297,7 +297,7 @@ function InfoBox({
 }) {
     return (
         <div className="rounded-lg bg-white/[0.03] p-3">
-            <p className="text-xs text-gray-500">{label}</p>
+            <p className="text-xs text-[#6B6560]">{label}</p>
             <p className={cn('mt-1 text-lg font-semibold', className)}>
                 {value}
             </p>

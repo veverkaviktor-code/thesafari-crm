@@ -12,7 +12,6 @@ import { cn } from '@/lib/utils';
 
 type Period = '1M' | '3M' | '6M' | '1Y';
 
-// Placeholder demo data
 const demoData: Record<Period, { month: string; revenue: number; costs: number }[]> = {
     '1M': [
         { month: '1. týden', revenue: 45000, costs: 18000 },
@@ -72,17 +71,17 @@ export default function RevenueChart({ data }: Props) {
     const chartData = (data ?? demoData)[period];
 
     return (
-        <div className="rounded-xl border border-white/5 bg-[#1a1a22] p-5">
+        <div className="rounded-xl border border-[#F5F0E8]/[0.06] bg-gradient-to-br from-[#16140f] to-[#1a1508] p-5">
             <div className="mb-4 flex items-center justify-between">
                 <div>
-                    <h3 className="text-sm font-semibold text-gray-300">
+                    <h3 className="text-sm font-semibold text-[#9C9585]">
                         Příjmy vs Náklady
                     </h3>
-                    <p className="mt-0.5 text-xs text-gray-500">
+                    <p className="mt-0.5 text-xs text-[#6B6560]">
                         Přehled financí za období
                     </p>
                 </div>
-                <div className="flex gap-1 rounded-lg bg-white/5 p-1">
+                <div className="flex gap-1 rounded-lg bg-[#F5F0E8]/[0.04] p-1">
                     {periods.map((p) => (
                         <button
                             key={p.value}
@@ -91,7 +90,7 @@ export default function RevenueChart({ data }: Props) {
                                 'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
                                 period === p.value
                                     ? 'bg-[#D97706] text-white'
-                                    : 'text-gray-400 hover:text-gray-300',
+                                    : 'text-[#9C9585] hover:text-[#F5F0E8]',
                             )}
                         >
                             {p.label}
@@ -104,11 +103,11 @@ export default function RevenueChart({ data }: Props) {
             <div className="mb-3 flex gap-4">
                 <div className="flex items-center gap-1.5">
                     <div className="h-2 w-2 rounded-full bg-[#D97706]" />
-                    <span className="text-xs text-gray-400">Příjmy</span>
+                    <span className="text-xs text-[#9C9585]">Příjmy</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                    <div className="h-2 w-2 rounded-full bg-gray-500" />
-                    <span className="text-xs text-gray-400">Náklady</span>
+                    <div className="h-2 w-2 rounded-full bg-[#6B6560]" />
+                    <span className="text-xs text-[#9C9585]">Náklady</span>
                 </div>
             </div>
 
@@ -126,7 +125,7 @@ export default function RevenueChart({ data }: Props) {
                                 <stop
                                     offset="0%"
                                     stopColor="#D97706"
-                                    stopOpacity={0.3}
+                                    stopOpacity={0.25}
                                 />
                                 <stop
                                     offset="100%"
@@ -143,29 +142,29 @@ export default function RevenueChart({ data }: Props) {
                             >
                                 <stop
                                     offset="0%"
-                                    stopColor="#6b7280"
-                                    stopOpacity={0.2}
+                                    stopColor="#6B6560"
+                                    stopOpacity={0.15}
                                 />
                                 <stop
                                     offset="100%"
-                                    stopColor="#6b7280"
+                                    stopColor="#6B6560"
                                     stopOpacity={0}
                                 />
                             </linearGradient>
                         </defs>
                         <CartesianGrid
-                            stroke="#ffffff10"
+                            stroke="#F5F0E808"
                             strokeDasharray="3 3"
                             vertical={false}
                         />
                         <XAxis
                             dataKey="month"
-                            tick={{ fill: '#9ca3af', fontSize: 12 }}
+                            tick={{ fill: '#6B6560', fontSize: 12 }}
                             axisLine={false}
                             tickLine={false}
                         />
                         <YAxis
-                            tick={{ fill: '#9ca3af', fontSize: 12 }}
+                            tick={{ fill: '#6B6560', fontSize: 12 }}
                             axisLine={false}
                             tickLine={false}
                             tickFormatter={(v) =>
@@ -175,17 +174,17 @@ export default function RevenueChart({ data }: Props) {
                         />
                         <Tooltip
                             contentStyle={{
-                                backgroundColor: '#1a1a22',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                borderRadius: '8px',
-                                color: '#e5e7eb',
+                                backgroundColor: '#16140f',
+                                border: '1px solid rgba(245,240,232,0.08)',
+                                borderRadius: '10px',
+                                color: '#F5F0E8',
                                 fontSize: '13px',
                             }}
                             formatter={(value: number, name: string) => [
                                 formatCurrency(value),
                                 name === 'revenue' ? 'Příjmy' : 'Náklady',
                             ]}
-                            labelStyle={{ color: '#9ca3af', marginBottom: 4 }}
+                            labelStyle={{ color: '#9C9585', marginBottom: 4 }}
                         />
                         <Area
                             type="monotone"
@@ -197,7 +196,7 @@ export default function RevenueChart({ data }: Props) {
                         <Area
                             type="monotone"
                             dataKey="costs"
-                            stroke="#6b7280"
+                            stroke="#6B6560"
                             strokeWidth={2}
                             fill="url(#costsGradient)"
                         />

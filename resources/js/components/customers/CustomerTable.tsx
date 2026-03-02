@@ -44,7 +44,7 @@ export const customerColumns: Column<CustomerRow>[] = [
                 <div>
                     <p className="font-medium text-white">{c.name}</p>
                     {c.company && (
-                        <p className="text-xs text-gray-500">{c.company}</p>
+                        <p className="text-xs text-[#6B6560]">{c.company}</p>
                     )}
                 </div>
             </div>
@@ -55,14 +55,14 @@ export const customerColumns: Column<CustomerRow>[] = [
         label: 'E-mail',
         sortable: true,
         render: (c) => (
-            <span className="text-gray-400">{c.email ?? '—'}</span>
+            <span className="text-[#9C9585]">{c.email ?? '—'}</span>
         ),
     },
     {
         key: 'phone',
         label: 'Telefon',
         render: (c) => (
-            <span className="text-gray-400">{c.phone ?? '—'}</span>
+            <span className="text-[#9C9585]">{c.phone ?? '—'}</span>
         ),
     },
     {
@@ -89,7 +89,7 @@ export const customerColumns: Column<CustomerRow>[] = [
         label: 'Vytvořeno',
         sortable: true,
         render: (c) => (
-            <span className="text-gray-500">
+            <span className="text-[#6B6560]">
                 {new Date(c.created_at).toLocaleDateString('cs-CZ')}
             </span>
         ),

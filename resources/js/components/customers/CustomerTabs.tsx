@@ -69,12 +69,12 @@ const orderColumns: Column<Order>[] = [
     {
         key: 'total_price',
         label: 'Cena',
-        render: (o) => <span className="text-gray-400">{formatCurrency(o.total_price)}</span>,
+        render: (o) => <span className="text-[#9C9585]">{formatCurrency(o.total_price)}</span>,
     },
     {
         key: 'created_at',
         label: 'Vytvořeno',
-        render: (o) => <span className="text-gray-500">{formatDate(o.created_at)}</span>,
+        render: (o) => <span className="text-[#6B6560]">{formatDate(o.created_at)}</span>,
     },
 ];
 
@@ -92,12 +92,12 @@ const invoiceColumns: Column<Invoice>[] = [
     {
         key: 'amount',
         label: 'Částka',
-        render: (i) => <span className="text-gray-400">{formatCurrency(i.amount)}</span>,
+        render: (i) => <span className="text-[#9C9585]">{formatCurrency(i.amount)}</span>,
     },
     {
         key: 'due_date',
         label: 'Splatnost',
-        render: (i) => <span className="text-gray-500">{formatDate(i.due_date)}</span>,
+        render: (i) => <span className="text-[#6B6560]">{formatDate(i.due_date)}</span>,
     },
 ];
 
@@ -115,12 +115,12 @@ const requirementColumns: Column<Requirement>[] = [
     {
         key: 'priority',
         label: 'Priorita',
-        render: (r) => <span className="text-gray-400">{r.priority}</span>,
+        render: (r) => <span className="text-[#9C9585]">{r.priority}</span>,
     },
     {
         key: 'created_at',
         label: 'Vytvořeno',
-        render: (r) => <span className="text-gray-500">{formatDate(r.created_at)}</span>,
+        render: (r) => <span className="text-[#6B6560]">{formatDate(r.created_at)}</span>,
     },
 ];
 
@@ -133,12 +133,12 @@ const fileColumns: Column<FileItem>[] = [
     {
         key: 'size',
         label: 'Velikost',
-        render: (f) => <span className="text-gray-400">{f.size}</span>,
+        render: (f) => <span className="text-[#9C9585]">{f.size}</span>,
     },
     {
         key: 'uploaded_at',
         label: 'Nahráno',
-        render: (f) => <span className="text-gray-500">{formatDate(f.uploaded_at)}</span>,
+        render: (f) => <span className="text-[#6B6560]">{formatDate(f.uploaded_at)}</span>,
     },
 ];
 
@@ -149,29 +149,29 @@ export default function CustomerTabs({
     files,
 }: Props) {
     return (
-        <Tabs defaultValue="orders" className="rounded-xl border border-white/5 bg-[#1a1a22]">
-            <TabsList className="w-full justify-start border-b border-white/5 bg-transparent px-4 pt-2">
+        <Tabs defaultValue="orders" className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f]">
+            <TabsList className="w-full justify-start border-b border-[#F5F0E8]/[0.05] bg-transparent px-4 pt-2">
                 <TabsTrigger
                     value="orders"
-                    className="text-gray-400 data-[state=active]:border-b-2 data-[state=active]:border-[#D97706] data-[state=active]:text-white data-[state=active]:shadow-none"
+                    className="text-[#9C9585] data-[state=active]:border-b-2 data-[state=active]:border-[#D97706] data-[state=active]:text-white data-[state=active]:shadow-none"
                 >
                     Zakázky ({orders.length})
                 </TabsTrigger>
                 <TabsTrigger
                     value="invoices"
-                    className="text-gray-400 data-[state=active]:border-b-2 data-[state=active]:border-[#D97706] data-[state=active]:text-white data-[state=active]:shadow-none"
+                    className="text-[#9C9585] data-[state=active]:border-b-2 data-[state=active]:border-[#D97706] data-[state=active]:text-white data-[state=active]:shadow-none"
                 >
                     Faktury ({invoices.length})
                 </TabsTrigger>
                 <TabsTrigger
                     value="requirements"
-                    className="text-gray-400 data-[state=active]:border-b-2 data-[state=active]:border-[#D97706] data-[state=active]:text-white data-[state=active]:shadow-none"
+                    className="text-[#9C9585] data-[state=active]:border-b-2 data-[state=active]:border-[#D97706] data-[state=active]:text-white data-[state=active]:shadow-none"
                 >
                     Požadavky ({requirements.length})
                 </TabsTrigger>
                 <TabsTrigger
                     value="files"
-                    className="text-gray-400 data-[state=active]:border-b-2 data-[state=active]:border-[#D97706] data-[state=active]:text-white data-[state=active]:shadow-none"
+                    className="text-[#9C9585] data-[state=active]:border-b-2 data-[state=active]:border-[#D97706] data-[state=active]:text-white data-[state=active]:shadow-none"
                 >
                     Soubory ({files.length})
                 </TabsTrigger>

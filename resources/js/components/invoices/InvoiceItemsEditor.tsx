@@ -63,13 +63,13 @@ export default function InvoiceItemsEditor({ items, onChange }: Props) {
     const grandTotal = items.reduce((sum, item) => sum + getRowTotal(item), 0);
 
     return (
-        <div className="rounded-xl border border-white/5 bg-[#1a1a22] p-5">
-            <h3 className="mb-4 text-sm font-semibold text-gray-300">
+        <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-5">
+            <h3 className="mb-4 text-sm font-semibold text-[#F5F0E8]/70">
                 Položky faktury
             </h3>
 
             {/* Header */}
-            <div className="mb-2 grid grid-cols-[1fr_80px_90px_100px_90px_36px] gap-2 text-xs font-medium text-gray-500">
+            <div className="mb-2 grid grid-cols-[1fr_80px_90px_100px_90px_36px] gap-2 text-xs font-medium text-[#6B6560]">
                 <span>Popis</span>
                 <span>Množství</span>
                 <span>Jednotka</span>
@@ -91,7 +91,7 @@ export default function InvoiceItemsEditor({ items, onChange }: Props) {
                                 updateItem(i, 'description', e.target.value)
                             }
                             placeholder="Popis položky..."
-                            className="border-white/10 bg-white/5"
+                            className="border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]"
                         />
                         <Input
                             value={item.quantity}
@@ -101,21 +101,21 @@ export default function InvoiceItemsEditor({ items, onChange }: Props) {
                             type="number"
                             min="0"
                             step="0.01"
-                            className="border-white/10 bg-white/5"
+                            className="border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]"
                         />
                         <Select
                             value={item.unit}
                             onValueChange={(v) => updateItem(i, 'unit', v)}
                         >
-                            <SelectTrigger className="border-white/10 bg-white/5">
+                            <SelectTrigger className="border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]">
                                 <SelectValue />
                             </SelectTrigger>
-                            <SelectContent className="border-white/10 bg-[#1a1a22]">
+                            <SelectContent className="border-[#F5F0E8]/[0.06] bg-[#16140f]">
                                 {units.map((u) => (
                                     <SelectItem
                                         key={u.value}
                                         value={u.value}
-                                        className="focus:bg-white/5"
+                                        className="focus:bg-[#F5F0E8]/[0.04]"
                                     >
                                         {u.label}
                                     </SelectItem>
@@ -131,16 +131,16 @@ export default function InvoiceItemsEditor({ items, onChange }: Props) {
                             min="0"
                             step="1"
                             placeholder="0"
-                            className="border-white/10 bg-white/5"
+                            className="border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]"
                         />
-                        <span className="text-right text-sm font-medium text-gray-300">
+                        <span className="text-right text-sm font-medium text-[#F5F0E8]/70">
                             {formatCurrency(getRowTotal(item))}
                         </span>
                         <Button
                             type="button"
                             variant="ghost"
                             size="icon-xs"
-                            className="text-gray-500 hover:text-red-400"
+                            className="text-[#6B6560] hover:text-red-400"
                             onClick={() => removeItem(i)}
                         >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -155,14 +155,14 @@ export default function InvoiceItemsEditor({ items, onChange }: Props) {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="text-gray-400 hover:text-white"
+                    className="text-[#9C9585] hover:text-[#F5F0E8]"
                     onClick={addItem}
                 >
                     <Plus className="h-4 w-4" />
                     Přidat položku
                 </Button>
                 <div className="text-right">
-                    <span className="text-sm text-gray-400">Celkem: </span>
+                    <span className="text-sm text-[#9C9585]">Celkem: </span>
                     <span className="text-lg font-bold text-[#D97706]">
                         {formatCurrency(grandTotal)}
                     </span>
