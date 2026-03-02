@@ -126,7 +126,14 @@ export default function TicketsIndex({ tickets, filters }: Props) {
             title="Požadavky"
             breadcrumbs={[{ label: 'Požadavky' }]}
         >
-            <div className="p-6">
+            <div className="space-y-6">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                    <h1 className="text-2xl font-semibold text-white">
+                        Požadavky
+                    </h1>
+                </div>
+
                 <DataTable
                     data={tickets.data}
                     columns={columns}

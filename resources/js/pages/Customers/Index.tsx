@@ -87,7 +87,7 @@ export default function Index({ customers, filters }: Props) {
                         asChild
                         className="bg-[#D97706] text-white hover:bg-[#B45309]"
                     >
-                        <Link href="/zakaznici/vytvorit">
+                        <Link href="/zakaznici/create">
                             <Plus className="h-4 w-4" />
                             Nový zákazník
                         </Link>

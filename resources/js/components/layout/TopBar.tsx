@@ -1,4 +1,5 @@
 import { Search } from 'lucide-react';
+import { Link } from '@inertiajs/react';
 import NotificationBell from '@/components/layout/NotificationBell';
 import UserMenu from '@/components/layout/UserMenu';
 
@@ -20,12 +21,12 @@ export default function TopBar({ breadcrumbs = [] }: TopBarProps) {
                     <span key={i} className="flex items-center gap-1.5">
                         {i > 0 && <span className="text-gray-600">/</span>}
                         {crumb.href ? (
-                            <a
-                                href={crumb.href}
+                            <Link
+                                href={crumb.href!}
                                 className="text-gray-400 transition-colors hover:text-white"
                             >
                                 {crumb.label}
-                            </a>
+                            </Link>
                         ) : (
                             <span className="text-gray-300">{crumb.label}</span>
                         )}

@@ -243,7 +243,7 @@ export default function Show({ order }: Props) {
                             className="w-full bg-[#D97706] text-white hover:bg-[#B45309]"
                         >
                             <Link
-                                href={`/faktury/vytvorit?order_id=${order.id}`}
+                                href={`/faktury/create?order_id=${order.id}`}
                             >
                                 <FileText className="h-4 w-4" />
                                 Vystavit fakturu

@@ -161,7 +161,7 @@ export default function Index({ orders, filters }: Props) {
                         asChild
                         className="bg-[#D97706] text-white hover:bg-[#B45309]"
                     >
-                        <Link href="/zakazky/vytvorit">
+                        <Link href="/zakazky/create">
                             <Plus className="h-4 w-4" />
                             Nová zakázka
                         </Link>
