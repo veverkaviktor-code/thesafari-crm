@@ -16,7 +16,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('zakaznici', CustomerController::class);
     Route::resource('zakazky', OrderController::class);
 
-    Route::post('zakazky/{order}/time-entries/start', [TimeEntryController::class, 'start'])->name('time-entries.start');
-    Route::post('time-entries/{timeEntry}/stop', [TimeEntryController::class, 'stop'])->name('time-entries.stop');
-    Route::delete('time-entries/{timeEntry}', [TimeEntryController::class, 'destroy'])->name('time-entries.destroy');
+    Route::post('zakazky/{order}/time/start', [TimeEntryController::class, 'start'])->name('time.start');
+    Route::post('time/{timeEntry}/stop', [TimeEntryController::class, 'stop'])->name('time.stop');
+    Route::delete('time/{timeEntry}', [TimeEntryController::class, 'destroy'])->name('time.destroy');
 });

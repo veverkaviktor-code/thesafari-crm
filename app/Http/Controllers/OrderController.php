@@ -37,10 +37,20 @@ class OrderController extends Controller
             'costs',
         ]);
 
+        $timeEntries = $order->timeEntries;
+        $totalMinutes = $timeEntries->sum(fn ($e) => $e->duration_minutes ?? 0);
+        $totalTimeCost = $timeEntries->sum(function ($e) {
+            if (! $e->duration_minutes || ! $e->hourly_rate) {
+                return 0;
+            }
+            return ($e->duration_minutes / 60) * (float) $e->hourly_rate;
+        });
+
         $stats = [
-            'total_time' => $order->timeEntries->sum('duration_minutes'),
+            'total_time_minutes' => $totalMinutes,
+            'total_time_cost' => round($totalTimeCost, 2),
             'total_costs' => (float) $order->costs->sum('amount'),
-            'running_timer' => $order->timeEntries->first(fn ($e) => $e->isRunning()),
+            'running_timer' => $timeEntries->first(fn ($e) => $e->isRunning()),
         ];
 
         return Inertia::render('Orders/Show', [
