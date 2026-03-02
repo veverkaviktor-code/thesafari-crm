@@ -127,12 +127,12 @@ export default function Dashboard({ stats, mrr, financialSummary, revenueByDivis
                     />
                 </div>
 
-                {/* Row 2: Revenue chart + Division donut */}
+                {/* Row 2: Revenue chart + Division bars */}
                 <div className="grid gap-6 lg:grid-cols-3">
-                    <div className="lg:col-span-2">
+                    <div className="lg:col-span-2 h-full">
                         <RevenueChart />
                     </div>
-                    <div>
+                    <div className="h-full">
                         <DivisionChart data={revenueByDivision} mrr={mrr} />
                     </div>
                 </div>

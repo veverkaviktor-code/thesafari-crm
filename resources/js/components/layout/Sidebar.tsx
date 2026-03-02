@@ -56,38 +56,37 @@ export default function Sidebar() {
                 )}
             >
                 {/* Logo + collapse button */}
-                <div className="flex h-16 items-center border-b border-[#F5F0E8]/[0.05] px-4">
-                    <div className="flex flex-1 items-center gap-3 overflow-hidden">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#D97706] text-sm font-bold text-white">
-                            S
+                <div className={cn(
+                    'flex h-16 items-center border-b border-[#F5F0E8]/[0.05]',
+                    collapsed ? 'justify-center px-0' : 'px-4'
+                )}>
+                    {!collapsed && (
+                        <div className="flex flex-1 items-center gap-3 overflow-hidden">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#D97706] text-sm font-bold text-white">
+                                S
+                            </div>
+                            <span className="whitespace-nowrap text-sm font-semibold text-[#F5F0E8]">
+                                The Safari HQ
+                            </span>
                         </div>
-                        <span
-                            className={cn(
-                                'whitespace-nowrap text-sm font-semibold text-[#F5F0E8] transition-all duration-300',
-                                collapsed && 'w-0 opacity-0',
-                            )}
-                        >
-                            The Safari HQ
-                        </span>
-                    </div>
+                    )}
                     <button
                         onClick={() => setCollapsed(!collapsed)}
                         className={cn(
-                            'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[#6B6560] transition-colors hover:bg-[#F5F0E8]/[0.05] hover:text-[#9C9585]',
-                            collapsed && 'mx-auto',
+                            'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#F5F0E8]/[0.08] bg-[#F5F0E8]/[0.04] text-[#9C9585] transition-colors hover:bg-[#F5F0E8]/[0.08] hover:text-[#F5F0E8]',
                         )}
                         title={collapsed ? 'Rozbalit' : 'Sbalit'}
                     >
                         {collapsed ? (
-                            <ChevronRight className="h-4 w-4" />
+                            <ChevronRight className="h-3.5 w-3.5" />
                         ) : (
-                            <ChevronLeft className="h-4 w-4" />
+                            <ChevronLeft className="h-3.5 w-3.5" />
                         )}
                     </button>
                 </div>
 
                 {/* Main navigation */}
-                <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
+                <nav className="flex-1 space-y-0.5 overflow-hidden px-3 py-4">
                     {mainNav.map((item) => (
                         <NavLink
                             key={item.href}

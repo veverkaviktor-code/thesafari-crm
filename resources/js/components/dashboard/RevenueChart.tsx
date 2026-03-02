@@ -71,7 +71,7 @@ export default function RevenueChart({ data }: Props) {
     const chartData = (data ?? demoData)[period];
 
     return (
-        <div className="rounded-xl border border-[#F5F0E8]/[0.06] bg-gradient-to-br from-[#16140f] to-[#1a1508] p-5">
+        <div className="h-full flex flex-col rounded-xl border border-[#F5F0E8]/[0.06] bg-gradient-to-br from-[#16140f] to-[#1a1508] p-5">
             <div className="mb-4 flex items-center justify-between">
                 <div>
                     <h3 className="text-sm font-semibold text-[#9C9585]">
@@ -111,7 +111,7 @@ export default function RevenueChart({ data }: Props) {
                 </div>
             </div>
 
-            <div className="h-64">
+            <div className="flex-1 min-h-[256px]">
                 <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={chartData}>
                         <defs>

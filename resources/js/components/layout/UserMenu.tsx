@@ -46,11 +46,17 @@ export default function UserMenu() {
                 align="end"
                 className="w-48 border-[#F5F0E8]/[0.06] bg-[#16140f] text-[#F5F0E8]/70"
             >
-                <DropdownMenuItem className="cursor-pointer gap-2 focus:bg-[#F5F0E8]/[0.04] focus:text-white">
+                <DropdownMenuItem
+                    className="cursor-pointer gap-2 focus:bg-[#F5F0E8]/[0.04] focus:text-white"
+                    onClick={() => router.visit('/nastaveni/profil')}
+                >
                     <User className="h-4 w-4" />
                     Profil
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer gap-2 focus:bg-[#F5F0E8]/[0.04] focus:text-white">
+                <DropdownMenuItem
+                    className="cursor-pointer gap-2 focus:bg-[#F5F0E8]/[0.04] focus:text-white"
+                    onClick={() => router.visit('/nastaveni')}
+                >
                     <Settings className="h-4 w-4" />
                     Nastavení
                 </DropdownMenuItem>
