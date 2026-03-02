@@ -2,18 +2,21 @@
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\SubscriptionController;
+use App\Http\Controllers\TicketController;
 use App\Http\Controllers\TimeEntryController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 Route::get('/login', [LoginController::class, 'show'])->name('login');
 Route::post('/login', [LoginController::class, 'store']);
 Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
 Route::middleware('auth')->group(function () {
-    Route::get('/', fn () => Inertia::render('Dashboard'));
+    Route::get('/', DashboardController::class)->name('dashboard');
+
     Route::resource('zakaznici', CustomerController::class);
     Route::resource('zakazky', OrderController::class);
 
@@ -25,4 +28,9 @@ Route::middleware('auth')->group(function () {
     Route::get('faktury/{invoice}/pdf', [InvoiceController::class, 'downloadPdf'])->name('faktury.pdf');
     Route::post('faktury/{invoice}/send', [InvoiceController::class, 'sendEmail'])->name('faktury.send');
     Route::post('faktury/{invoice}/paid', [InvoiceController::class, 'markAsPaid'])->name('faktury.paid');
+
+    Route::resource('pozadavky', TicketController::class);
+    Route::post('pozadavky/{ticket}/reply', [TicketController::class, 'reply'])->name('pozadavky.reply');
+
+    Route::resource('neniweb', SubscriptionController::class);
 });
