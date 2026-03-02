@@ -27,6 +27,13 @@ class HandleInertiaRequests extends Middleware
                     'avatar_path' => $request->user()->avatar_path,
                 ] : null,
             ],
+            'notifications' => [
+                'unread_count' => $request->user()?->unreadNotifications()->count() ?? 0,
+            ],
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
+                'error' => fn () => $request->session()->get('error'),
+            ],
         ];
     }
 }

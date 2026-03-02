@@ -1,0 +1,149 @@
+import { router } from '@inertiajs/react';
+import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
+import PriorityBadge from '@/components/tickets/PriorityBadge';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import TicketThread from '@/components/tickets/TicketThread';
+import ReplyForm from '@/components/tickets/ReplyForm';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { format } from 'date-fns';
+import { cs } from 'date-fns/locale';
+import { ArrowLeft, User, Clock, Mail } from 'lucide-react';
+
+interface TicketMessage {
+    id: number;
+    direction: 'inbound' | 'outbound';
+    from_email: string;
+    content: string;
+    created_at: string;
+    attachments?: { id: number; filename: string; path: string }[];
+}
+
+interface Ticket {
+    id: number;
+    subject: string;
+    customer: { id: number; name: string; company: string | null; email: string } | null;
+    status: string;
+    priority: string;
+    source_email: string;
+    created_at: string;
+    resolved_at: string | null;
+    messages: TicketMessage[];
+}
+
+interface Props {
+    ticket: Ticket;
+}
+
+const statusMap: Record<string, { label: string; variant: string }> = {
+    novy: { label: 'Nový', variant: 'pending' },
+    v_reseni: { label: 'V řešení', variant: 'active' },
+    ceka_na_zakaznika: { label: 'Čeká na zákazníka', variant: 'inactive' },
+    vyreseno: { label: 'Vyřešeno', variant: 'completed' },
+};
+
+export default function TicketShow({ ticket }: Props) {
+    const statusInfo = statusMap[ticket.status];
+
+    function handleStatusChange(newStatus: string) {
+        router.put(`/pozadavky/${ticket.id}`, { status: newStatus }, { preserveScroll: true });
+    }
+
+    return (
+        <AuthenticatedLayout
+            title={ticket.subject}
+            breadcrumbs={[
+                { label: 'Požadavky', href: '/pozadavky' },
+                { label: ticket.subject },
+            ]}
+        >
+            <div className="p-6 max-w-5xl mx-auto">
+                {/* Header */}
+                <div className="flex items-start justify-between mb-6">
+                    <div className="flex items-start gap-4">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => router.visit('/pozadavky')}
+                            className="text-gray-400 hover:text-gray-200 mt-1"
+                        >
+                            <ArrowLeft className="h-5 w-5" />
+                        </Button>
+                        <div>
+                            <h1 className="text-xl font-semibold text-gray-100">{ticket.subject}</h1>
+                            <div className="flex items-center gap-3 mt-2">
+                                <PriorityBadge priority={ticket.priority} />
+                                {statusInfo && (
+                                    <StatusBadge status={statusInfo.variant}>{statusInfo.label}</StatusBadge>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                    <Select value={ticket.status} onValueChange={handleStatusChange}>
+                        <SelectTrigger className="w-[180px] bg-[#111116] border-white/10 text-gray-300">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#1a1a22] border-white/10">
+                            <SelectItem value="novy">Nový</SelectItem>
+                            <SelectItem value="v_reseni">V řešení</SelectItem>
+                            <SelectItem value="ceka_na_zakaznika">Čeká na zákazníka</SelectItem>
+                            <SelectItem value="vyreseno">Vyřešeno</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                {/* Info cards */}
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                    <div className="bg-[#1a1a22] rounded-xl border border-white/5 p-4">
+                        <div className="flex items-center gap-2 text-gray-500 mb-1">
+                            <User className="h-4 w-4" />
+                            <span className="text-xs font-medium uppercase tracking-wider">Zákazník</span>
+                        </div>
+                        {ticket.customer ? (
+                            <button
+                                onClick={() => router.visit(`/zakaznici/${ticket.customer!.id}`)}
+                                className="text-sm text-amber-400 hover:text-amber-300 font-medium"
+                            >
+                                {ticket.customer.company || ticket.customer.name}
+                            </button>
+                        ) : (
+                            <span className="text-sm text-gray-400">Nepřiřazen</span>
+                        )}
+                    </div>
+                    <div className="bg-[#1a1a22] rounded-xl border border-white/5 p-4">
+                        <div className="flex items-center gap-2 text-gray-500 mb-1">
+                            <Mail className="h-4 w-4" />
+                            <span className="text-xs font-medium uppercase tracking-wider">E-mail</span>
+                        </div>
+                        <span className="text-sm text-gray-300">{ticket.source_email}</span>
+                    </div>
+                    <div className="bg-[#1a1a22] rounded-xl border border-white/5 p-4">
+                        <div className="flex items-center gap-2 text-gray-500 mb-1">
+                            <Clock className="h-4 w-4" />
+                            <span className="text-xs font-medium uppercase tracking-wider">Vytvořeno</span>
+                        </div>
+                        <span className="text-sm text-gray-300">
+                            {format(new Date(ticket.created_at), 'd. MMMM yyyy HH:mm', { locale: cs })}
+                        </span>
+                        {ticket.resolved_at && (
+                            <p className="text-xs text-green-400 mt-1">
+                                Vyřešeno {format(new Date(ticket.resolved_at), 'd. M. yyyy', { locale: cs })}
+                            </p>
+                        )}
+                    </div>
+                </div>
+
+                {/* Thread */}
+                <div className="bg-[#1a1a22] rounded-xl border border-white/5 p-6">
+                    <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-4">Konverzace</h2>
+                    <TicketThread messages={ticket.messages} />
+                    {ticket.status !== 'vyreseno' && (
+                        <div className="mt-6">
+                            <ReplyForm ticketId={ticket.id} />
+                        </div>
+                    )}
+                </div>
+            </div>
+        </AuthenticatedLayout>
+    );
+}

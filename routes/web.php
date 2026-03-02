@@ -1,10 +1,15 @@
 <?php
 
+use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\CompanySettingsController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\TimeEntryController;
@@ -33,4 +38,26 @@ Route::middleware('auth')->group(function () {
     Route::post('pozadavky/{ticket}/reply', [TicketController::class, 'reply'])->name('pozadavky.reply');
 
     Route::resource('neniweb', SubscriptionController::class);
+
+    // Notifications
+    Route::get('notifikace', [NotificationController::class, 'index'])->name('notifikace.index');
+    Route::post('notifikace/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifikace.read');
+    Route::post('notifikace/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifikace.readAll');
+
+    // Attachments
+    Route::post('attachments', [AttachmentController::class, 'store'])->name('attachments.store');
+    Route::get('attachments/{attachment}/download', [AttachmentController::class, 'download'])->name('attachments.download');
+    Route::delete('attachments/{attachment}', [AttachmentController::class, 'destroy'])->name('attachments.destroy');
+
+    // Settings
+    Route::prefix('nastaveni')->group(function () {
+        Route::get('profil', [ProfileController::class, 'edit'])->name('settings.profile');
+        Route::put('profil', [ProfileController::class, 'update'])->name('settings.profile.update');
+        Route::put('profil/heslo', [ProfileController::class, 'updatePassword'])->name('settings.password.update');
+        Route::get('firma', [CompanySettingsController::class, 'edit'])->name('settings.company');
+        Route::put('firma', [CompanySettingsController::class, 'update'])->name('settings.company.update');
+    });
+
+    // Global search
+    Route::get('search', SearchController::class)->name('search');
 });

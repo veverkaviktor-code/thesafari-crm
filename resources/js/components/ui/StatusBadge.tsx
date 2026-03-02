@@ -51,3 +51,5 @@ export default function StatusBadge({
 }
 
 export type { Status };
+
+export { StatusBadge };
