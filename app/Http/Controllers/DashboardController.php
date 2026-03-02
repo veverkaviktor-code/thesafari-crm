@@ -40,7 +40,7 @@ class DashboardController extends Controller
 
         return [
             'active_orders' => $activeOrders,
-            'unpaid_invoices' => (float) $unpaidInvoices,
+            'unpaid_amount' => (float) $unpaidInvoices,
             'open_tickets' => $openTickets,
             'upcoming_deadlines' => $upcomingDeadlines,
         ];

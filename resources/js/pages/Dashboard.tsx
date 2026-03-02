@@ -23,12 +23,12 @@ interface Props {
     };
 }
 
-const formatCurrency = (v: number) =>
+const formatCurrency = (v: number | null | undefined) =>
     new Intl.NumberFormat('cs-CZ', {
         style: 'currency',
         currency: 'CZK',
         maximumFractionDigits: 0,
-    }).format(v);
+    }).format(v ?? 0);
 
 export default function Dashboard({ stats }: Props) {
     const s = stats ?? {
