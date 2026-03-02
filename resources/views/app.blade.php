@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     @viteReactRefresh
-    @vite(['resources/js/app.tsx', 'resources/css/app.css'])
+    @vite(['resources/js/app.tsx'])
     @inertiaHead
 </head>
 <body class="font-sans antialiased bg-background text-foreground">

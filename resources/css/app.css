@@ -11,11 +11,10 @@
 @source '../**/*.tsx';
 
 @theme {
-    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
     --color-safari-gold: #D97706;
     --color-safari-amber: #F59E0B;
     --color-safari-dark: #0A0A0A;
-        'Segoe UI Symbol', 'Noto Color Emoji';
 }
 
 @theme inline {
