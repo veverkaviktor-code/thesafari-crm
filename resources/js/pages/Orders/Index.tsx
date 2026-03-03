@@ -1,5 +1,5 @@
 import { type FormEvent, useCallback, useState } from 'react';
-import { router, useForm } from '@inertiajs/react';
+import { Link, router, useForm } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import DataTable, { type Column } from '@/components/ui/DataTable';
@@ -85,10 +85,20 @@ const columns: Column<Order>[] = [
         label: 'Zakázka',
         sortable: true,
         render: (o) => (
-            <div>
-                <p className="font-medium text-foreground">{o.title}</p>
-                <p className="text-xs text-muted-foreground">{o.customer.name}</p>
-            </div>
+            <span className="font-medium text-foreground">{o.title}</span>
+        ),
+    },
+    {
+        key: 'customer' as any,
+        label: 'Zákazník',
+        render: (o) => (
+            <Link
+                href={`/zakaznici/${o.customer.id}`}
+                className="text-primary hover:underline"
+                onClick={(e) => e.stopPropagation()}
+            >
+                {o.customer.name}
+            </Link>
         ),
     },
     {

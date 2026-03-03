@@ -118,7 +118,7 @@ export default function CostsList({ orderId, costs, totalCosts }: Props) {
             <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
                 <span className="text-sm text-muted-foreground">Celkem náklady</span>
                 <span className="text-sm font-semibold text-foreground">
-                    {formatCurrency(totalCosts)}
+                    {formatCurrency(totalCosts ?? 0)}
                 </span>
             </div>
         </div>

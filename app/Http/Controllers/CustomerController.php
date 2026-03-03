@@ -27,20 +27,42 @@ class CustomerController extends Controller
     public function show(Customer $zakaznici)
     {
         $customer = $zakaznici;
-        $customer->load(['orders', 'subscriptions']);
+        $customer->load(['subscriptions']);
+
+        $revenue = (float) $customer->invoices()->where('status', 'zaplacena')->sum('total');
+        $costs = (float) $customer->orders()
+            ->join('order_costs', 'orders.id', '=', 'order_costs.order_id')
+            ->sum('order_costs.amount');
 
         $stats = [
             'orders_count' => $customer->orders()->count(),
-            'revenue' => (float) $customer->invoices()->where('status', 'zaplacena')->sum('total'),
-            'costs' => (float) $customer->orders()
-                ->join('order_costs', 'orders.id', '=', 'order_costs.order_id')
-                ->sum('order_costs.amount'),
-            'active_subscriptions' => 0,
+            'total_revenue' => $revenue,
+            'total_costs' => $costs,
+            'profit' => round($revenue - $costs, 2),
+            'active_subscriptions' => $customer->subscriptions()->where('status', 'active')->count(),
         ];
+
+        $orders = $customer->orders()
+            ->select('id', 'customer_id', 'title', 'division', 'status', 'price', 'deadline', 'created_at')
+            ->latest()
+            ->get();
+
+        $invoices = $customer->invoices()
+            ->select('id', 'customer_id', 'invoice_number', 'status', 'total', 'due_date')
+            ->latest()
+            ->get();
+
+        $tickets = $customer->tickets()
+            ->select('id', 'customer_id', 'subject', 'status', 'priority', 'created_at')
+            ->latest()
+            ->get();
 
         return Inertia::render('Customers/Show', [
             'customer' => $customer,
             'stats' => $stats,
+            'orders' => $orders,
+            'invoices' => $invoices,
+            'tickets' => $tickets,
         ]);
     }
 

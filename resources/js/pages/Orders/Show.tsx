@@ -56,6 +56,9 @@ interface Order {
     created_at: string;
     time_entries: TimeEntry[];
     costs: OrderCost[];
+}
+
+interface Stats {
     total_time_minutes: number;
     total_time_cost: number;
     total_costs: number;
@@ -64,6 +67,7 @@ interface Order {
 
 interface Props {
     order: Order;
+    stats: Stats;
 }
 
 const formatCurrency = (v: number) =>
@@ -91,9 +95,9 @@ function deadlineInfo(deadline: string | null) {
     return { text: formatted, className: 'text-foreground/70' };
 }
 
-export default function Show({ order }: Props) {
+export default function Show({ order, stats }: Props) {
     const deadline = deadlineInfo(order.deadline);
-    const profit = order.price - order.total_time_cost - order.total_costs;
+    const profit = order.price - (stats.total_time_cost ?? 0) - (stats.total_costs ?? 0);
 
     const handleStatusChange = (status: string) => {
         router.put(
@@ -200,10 +204,7 @@ export default function Show({ order }: Props) {
                                 />
                                 <InfoBox
                                     label="Náklady celkem"
-                                    value={formatCurrency(
-                                        order.total_time_cost +
-                                            order.total_costs,
-                                    )}
+                                    value={formatCurrency((stats.total_time_cost ?? 0) + (stats.total_costs ?? 0))}
                                     className="text-foreground/70"
                                 />
                                 <InfoBox
@@ -222,9 +223,9 @@ export default function Show({ order }: Props) {
                         <TimeTracker
                             orderId={order.id}
                             timeEntries={completedEntries}
-                            runningTimer={order.running_timer}
-                            totalTimeMinutes={order.total_time_minutes}
-                            totalTimeCost={order.total_time_cost}
+                            runningTimer={stats.running_timer ?? null}
+                            totalTimeMinutes={stats.total_time_minutes ?? 0}
+                            totalTimeCost={stats.total_time_cost ?? 0}
                         />
                     </div>
 
@@ -234,7 +235,7 @@ export default function Show({ order }: Props) {
                         <CostsList
                             orderId={order.id}
                             costs={order.costs}
-                            totalCosts={order.total_costs}
+                            totalCosts={stats.total_costs ?? 0}
                         />
 
                         {/* Invoice button */}

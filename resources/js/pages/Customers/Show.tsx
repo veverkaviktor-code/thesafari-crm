@@ -45,29 +45,25 @@ interface Props {
     orders: {
         id: number;
         title: string;
-        status: 'active' | 'inactive' | 'pending' | 'completed' | 'cancelled';
-        total_price: number;
+        division: string;
+        status: string;
+        price: number;
+        deadline: string | null;
         created_at: string;
     }[];
     invoices: {
         id: number;
-        number: string;
-        status: 'active' | 'inactive' | 'pending' | 'completed' | 'cancelled';
-        amount: number;
+        invoice_number: string;
+        status: string;
+        total: number;
         due_date: string;
     }[];
-    requirements: {
+    tickets: {
         id: number;
         subject: string;
-        status: 'active' | 'inactive' | 'pending' | 'completed' | 'cancelled';
+        status: string;
         priority: string;
         created_at: string;
-    }[];
-    files: {
-        id: number;
-        name: string;
-        size: string;
-        uploaded_at: string;
     }[];
 }
 
@@ -76,8 +72,7 @@ export default function Show({
     stats,
     orders,
     invoices,
-    requirements,
-    files,
+    tickets,
 }: Props) {
     return (
         <AuthenticatedLayout
@@ -114,8 +109,7 @@ export default function Show({
                 <CustomerTabs
                     orders={orders ?? []}
                     invoices={invoices ?? []}
-                    requirements={requirements ?? []}
-                    files={files ?? []}
+                    tickets={tickets ?? []}
                 />
             </div>
         </AuthenticatedLayout>

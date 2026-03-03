@@ -223,7 +223,7 @@ export default function TimeTracker({
                 <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Celkem hodin</span>
                     <span className="text-sm font-medium text-foreground">
-                        {formatHoursMinutes(totalTimeMinutes)}
+                        {formatHoursMinutes(totalTimeMinutes ?? 0)}
                     </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -231,7 +231,7 @@ export default function TimeTracker({
                         Celkem za čas
                     </span>
                     <span className="text-sm font-semibold text-primary">
-                        {formatCurrency(totalTimeCost)}
+                        {formatCurrency(totalTimeCost ?? 0)}
                     </span>
                 </div>
             </div>

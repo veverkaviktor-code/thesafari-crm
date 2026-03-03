@@ -1,46 +1,38 @@
 import { router } from '@inertiajs/react';
+import { FileText, Package, Ticket, ChevronRight } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import DataTable, { type Column } from '@/components/ui/DataTable';
-import StatusBadge, { type Status } from '@/components/ui/StatusBadge';
-
-/* ──── Shared types ──── */
+import { cn } from '@/lib/utils';
 
 interface Order {
     id: number;
     title: string;
-    status: Status;
-    total_price: number;
+    division: string;
+    status: string;
+    price: number;
+    deadline: string | null;
     created_at: string;
 }
 
 interface Invoice {
     id: number;
-    number: string;
-    status: Status;
-    amount: number;
+    invoice_number: string;
+    status: string;
+    total: number;
     due_date: string;
 }
 
-interface Requirement {
+interface TicketItem {
     id: number;
     subject: string;
-    status: Status;
+    status: string;
     priority: string;
     created_at: string;
-}
-
-interface FileItem {
-    id: number;
-    name: string;
-    size: string;
-    uploaded_at: string;
 }
 
 interface Props {
     orders: Order[];
     invoices: Invoice[];
-    requirements: Requirement[];
-    files: FileItem[];
+    tickets: TicketItem[];
 }
 
 const formatCurrency = (v: number) =>
@@ -53,101 +45,75 @@ const formatCurrency = (v: number) =>
 const formatDate = (d: string) =>
     new Date(d).toLocaleDateString('cs-CZ');
 
-/* ──── Column definitions ──── */
+/* ── Status configs ── */
 
-const orderColumns: Column<Order>[] = [
-    {
-        key: 'title',
-        label: 'Název',
-        render: (o) => <span className="font-medium text-foreground">{o.title}</span>,
-    },
-    {
-        key: 'status',
-        label: 'Stav',
-        render: (o) => <StatusBadge status={o.status} />,
-    },
-    {
-        key: 'total_price',
-        label: 'Cena',
-        render: (o) => <span className="text-muted-foreground">{formatCurrency(o.total_price)}</span>,
-    },
-    {
-        key: 'created_at',
-        label: 'Vytvořeno',
-        render: (o) => <span className="text-muted-foreground">{formatDate(o.created_at)}</span>,
-    },
-];
+const orderStatusConfig: Record<string, { label: string; className: string }> = {
+    nova: { label: 'Nová', className: 'bg-blue-500/15 text-blue-500 border-blue-500/25' },
+    v_reseni: { label: 'V řešení', className: 'bg-amber-500/15 text-amber-500 border-amber-500/25' },
+    hotovo: { label: 'Hotovo', className: 'bg-emerald-500/15 text-emerald-500 border-emerald-500/25' },
+    fakturovano: { label: 'Fakturováno', className: 'bg-violet-500/15 text-violet-500 border-violet-500/25' },
+};
 
-const invoiceColumns: Column<Invoice>[] = [
-    {
-        key: 'number',
-        label: 'Číslo',
-        render: (i) => <span className="font-medium text-foreground">{i.number}</span>,
-    },
-    {
-        key: 'status',
-        label: 'Stav',
-        render: (i) => <StatusBadge status={i.status} />,
-    },
-    {
-        key: 'amount',
-        label: 'Částka',
-        render: (i) => <span className="text-muted-foreground">{formatCurrency(i.amount)}</span>,
-    },
-    {
-        key: 'due_date',
-        label: 'Splatnost',
-        render: (i) => <span className="text-muted-foreground">{formatDate(i.due_date)}</span>,
-    },
-];
+const divisionConfig: Record<string, { label: string; className: string }> = {
+    tisk: { label: 'Tisk', className: 'bg-gray-500/15 text-muted-foreground border-gray-500/25' },
+    reklama: { label: 'Reklama', className: 'bg-amber-500/15 text-amber-500 border-amber-500/25' },
+    polepy: { label: 'Polepy', className: 'bg-blue-500/15 text-blue-500 border-blue-500/25' },
+    montaze: { label: 'Montáže', className: 'bg-emerald-500/15 text-emerald-500 border-emerald-500/25' },
+    weby: { label: 'Weby', className: 'bg-violet-500/15 text-violet-500 border-violet-500/25' },
+};
 
-const requirementColumns: Column<Requirement>[] = [
-    {
-        key: 'subject',
-        label: 'Předmět',
-        render: (r) => <span className="font-medium text-foreground">{r.subject}</span>,
-    },
-    {
-        key: 'status',
-        label: 'Stav',
-        render: (r) => <StatusBadge status={r.status} />,
-    },
-    {
-        key: 'priority',
-        label: 'Priorita',
-        render: (r) => <span className="text-muted-foreground">{r.priority}</span>,
-    },
-    {
-        key: 'created_at',
-        label: 'Vytvořeno',
-        render: (r) => <span className="text-muted-foreground">{formatDate(r.created_at)}</span>,
-    },
-];
+const invoiceStatusConfig: Record<string, { label: string; className: string }> = {
+    nova: { label: 'Nová', className: 'bg-blue-500/15 text-blue-500 border-blue-500/25' },
+    odeslana: { label: 'Odeslaná', className: 'bg-amber-500/15 text-amber-500 border-amber-500/25' },
+    zaplacena: { label: 'Zaplacená', className: 'bg-emerald-500/15 text-emerald-500 border-emerald-500/25' },
+    po_splatnosti: { label: 'Po splatnosti', className: 'bg-red-500/15 text-red-500 border-red-500/25' },
+    storno: { label: 'Storno', className: 'bg-gray-500/15 text-muted-foreground border-gray-500/25' },
+};
 
-const fileColumns: Column<FileItem>[] = [
-    {
-        key: 'name',
-        label: 'Soubor',
-        render: (f) => <span className="font-medium text-foreground">{f.name}</span>,
-    },
-    {
-        key: 'size',
-        label: 'Velikost',
-        render: (f) => <span className="text-muted-foreground">{f.size}</span>,
-    },
-    {
-        key: 'uploaded_at',
-        label: 'Nahráno',
-        render: (f) => <span className="text-muted-foreground">{formatDate(f.uploaded_at)}</span>,
-    },
-];
+const ticketStatusConfig: Record<string, { label: string; className: string }> = {
+    novy: { label: 'Nový', className: 'bg-blue-500/15 text-blue-500 border-blue-500/25' },
+    v_reseni: { label: 'V řešení', className: 'bg-amber-500/15 text-amber-500 border-amber-500/25' },
+    ceka_na_zakaznika: { label: 'Čeká na zákazníka', className: 'bg-orange-500/15 text-orange-500 border-orange-500/25' },
+    vyreseno: { label: 'Vyřešeno', className: 'bg-emerald-500/15 text-emerald-500 border-emerald-500/25' },
+    uzavreno: { label: 'Uzavřeno', className: 'bg-gray-500/15 text-muted-foreground border-gray-500/25' },
+};
 
-export default function CustomerTabs({
-    orders,
-    invoices,
-    requirements,
-    files,
-}: Props) {
+const priorityConfig: Record<string, { label: string; className: string }> = {
+    nizka: { label: 'Nízká', className: 'bg-gray-500/15 text-muted-foreground border-gray-500/25' },
+    normalni: { label: 'Normální', className: 'bg-blue-500/15 text-blue-500 border-blue-500/25' },
+    vysoka: { label: 'Vysoká', className: 'bg-amber-500/15 text-amber-500 border-amber-500/25' },
+    kriticka: { label: 'Kritická', className: 'bg-red-500/15 text-red-500 border-red-500/25' },
+};
+
+function Badge({ label, className }: { label: string; className: string }) {
+    return (
+        <span className={cn('inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium', className)}>
+            {label}
+        </span>
+    );
+}
+
+function deadlineInfo(deadline: string | null) {
+    if (!deadline) return null;
+    const diff = new Date(deadline).getTime() - Date.now();
+    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+    if (days < 0) return { text: `Po termínu`, className: 'text-red-400' };
+    if (days < 7) return { text: `Za ${days} ${days === 1 ? 'den' : days < 5 ? 'dny' : 'dní'}`, className: 'text-amber-400' };
+    return { text: formatDate(deadline), className: 'text-muted-foreground' };
+}
+
+function EmptyState({ icon: Icon, message }: { icon: React.ElementType; message: string }) {
+    return (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent">
+                <Icon className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <p className="mt-3 text-sm text-muted-foreground">{message}</p>
+        </div>
+    );
+}
+
+export default function CustomerTabs({ orders, invoices, tickets }: Props) {
     return (
         <Tabs defaultValue="orders" className="rounded-xl border border-border bg-card">
             <TabsList className="w-full justify-start border-b border-border bg-transparent px-4 pt-2">
@@ -164,52 +130,128 @@ export default function CustomerTabs({
                     Faktury ({invoices.length})
                 </TabsTrigger>
                 <TabsTrigger
-                    value="requirements"
+                    value="tickets"
                     className="text-muted-foreground data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
                 >
-                    Požadavky ({requirements.length})
-                </TabsTrigger>
-                <TabsTrigger
-                    value="files"
-                    className="text-muted-foreground data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
-                >
-                    Soubory ({files.length})
+                    Požadavky ({tickets.length})
                 </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="orders" className="mt-0">
-                <DataTable<Order>
-                    columns={orderColumns}
-                    data={orders}
-                    onRowClick={(o) => router.visit(`/zakazky/${o.id}`)}
-                    emptyMessage="Žádné zakázky"
-                />
+            {/* Orders */}
+            <TabsContent value="orders" className="mt-0 p-4">
+                {orders.length === 0 ? (
+                    <EmptyState icon={Package} message="Žádné zakázky" />
+                ) : (
+                    <div className="space-y-3">
+                        {orders.map((order) => {
+                            const dl = deadlineInfo(order.deadline);
+                            const statusCfg = orderStatusConfig[order.status] ?? orderStatusConfig.nova;
+                            const divCfg = divisionConfig[order.division] ?? divisionConfig.tisk;
+                            return (
+                                <button
+                                    key={order.id}
+                                    onClick={() => router.visit(`/zakazky/${order.id}`)}
+                                    className="group flex w-full items-center justify-between rounded-lg border border-border bg-accent/50 p-4 text-left transition-colors hover:bg-accent"
+                                >
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className="truncate font-medium text-foreground">
+                                                {order.title}
+                                            </span>
+                                            <Badge {...statusCfg} />
+                                        </div>
+                                        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                                            <Badge {...divCfg} />
+                                            <span className="text-foreground/70">
+                                                {formatCurrency(order.price)}
+                                            </span>
+                                            {dl && (
+                                                <span className={dl.className}>
+                                                    {dl.text}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
             </TabsContent>
 
-            <TabsContent value="invoices" className="mt-0">
-                <DataTable<Invoice>
-                    columns={invoiceColumns}
-                    data={invoices}
-                    onRowClick={(i) => router.visit(`/faktury/${i.id}`)}
-                    emptyMessage="Žádné faktury"
-                />
+            {/* Invoices */}
+            <TabsContent value="invoices" className="mt-0 p-4">
+                {invoices.length === 0 ? (
+                    <EmptyState icon={FileText} message="Žádné faktury" />
+                ) : (
+                    <div className="space-y-3">
+                        {invoices.map((invoice) => {
+                            const statusCfg = invoiceStatusConfig[invoice.status] ?? invoiceStatusConfig.nova;
+                            const isOverdue = invoice.status !== 'zaplacena' && new Date(invoice.due_date) < new Date();
+                            return (
+                                <button
+                                    key={invoice.id}
+                                    onClick={() => router.visit(`/faktury/${invoice.id}`)}
+                                    className="group flex w-full items-center justify-between rounded-lg border border-border bg-accent/50 p-4 text-left transition-colors hover:bg-accent"
+                                >
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-medium text-foreground">
+                                                #{invoice.invoice_number}
+                                            </span>
+                                            <Badge {...statusCfg} />
+                                        </div>
+                                        <div className="mt-1.5 flex items-center gap-3 text-sm">
+                                            <span className="font-medium text-foreground/70">
+                                                {formatCurrency(invoice.total)}
+                                            </span>
+                                            <span className={isOverdue ? 'text-red-400' : 'text-muted-foreground'}>
+                                                Splatnost: {formatDate(invoice.due_date)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
             </TabsContent>
 
-            <TabsContent value="requirements" className="mt-0">
-                <DataTable<Requirement>
-                    columns={requirementColumns}
-                    data={requirements}
-                    onRowClick={(r) => router.visit(`/pozadavky/${r.id}`)}
-                    emptyMessage="Žádné požadavky"
-                />
-            </TabsContent>
-
-            <TabsContent value="files" className="mt-0">
-                <DataTable<FileItem>
-                    columns={fileColumns}
-                    data={files}
-                    emptyMessage="Žádné soubory"
-                />
+            {/* Tickets */}
+            <TabsContent value="tickets" className="mt-0 p-4">
+                {tickets.length === 0 ? (
+                    <EmptyState icon={Ticket} message="Žádné požadavky" />
+                ) : (
+                    <div className="space-y-3">
+                        {tickets.map((ticket) => {
+                            const statusCfg = ticketStatusConfig[ticket.status] ?? ticketStatusConfig.novy;
+                            const prioCfg = priorityConfig[ticket.priority] ?? priorityConfig.normalni;
+                            return (
+                                <button
+                                    key={ticket.id}
+                                    onClick={() => router.visit(`/pozadavky/${ticket.id}`)}
+                                    className="group flex w-full items-center justify-between rounded-lg border border-border bg-accent/50 p-4 text-left transition-colors hover:bg-accent"
+                                >
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className="truncate font-medium text-foreground">
+                                                {ticket.subject}
+                                            </span>
+                                            <Badge {...statusCfg} />
+                                            <Badge {...prioCfg} />
+                                        </div>
+                                        <div className="mt-1.5 text-sm text-muted-foreground">
+                                            {formatDate(ticket.created_at)}
+                                        </div>
+                                    </div>
+                                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
             </TabsContent>
         </Tabs>
     );
