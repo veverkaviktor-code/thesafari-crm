@@ -21,13 +21,13 @@ export default function ReplyForm({ ticketId }: ReplyFormProps) {
     }
 
     return (
-        <form onSubmit={handleSubmit} className="border-t border-[#F5F0E8]/[0.05] pt-4">
+        <form onSubmit={handleSubmit} className="border-t border-border pt-4">
             <Textarea
                 value={data.content}
                 onChange={(e) => setData('content', e.target.value)}
                 placeholder="Napište odpověď..."
                 rows={4}
-                className="bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/85 placeholder:text-[#6B6560] resize-none focus:border-[#D97706]/50 focus:ring-[#D97706]/20"
+                className="bg-muted border-border text-foreground placeholder:text-muted-foreground resize-none focus:border-primary/50 focus:ring-ring/20"
             />
             {errors.content && (
                 <p className="mt-1 text-xs text-red-400">{errors.content}</p>
@@ -36,7 +36,7 @@ export default function ReplyForm({ ticketId }: ReplyFormProps) {
                 <Button
                     type="submit"
                     disabled={processing || !data.content.trim()}
-                    className="bg-[#D97706] hover:bg-[#B45309] text-white"
+                    className="bg-primary hover:bg-primary/80 text-white"
                 >
                     <Send className="h-4 w-4 mr-2" />
                     Odeslat odpověď

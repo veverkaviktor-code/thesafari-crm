@@ -38,13 +38,13 @@ export const customerColumns: Column<CustomerRow>[] = [
         sortable: true,
         render: (c) => (
             <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#D97706]/20 text-xs font-semibold text-[#D97706]">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/20 text-xs font-semibold text-primary">
                     {getInitials(c.name)}
                 </div>
                 <div>
-                    <p className="font-medium text-white">{c.name}</p>
+                    <p className="font-medium text-foreground">{c.name}</p>
                     {c.company && (
-                        <p className="text-xs text-[#6B6560]">{c.company}</p>
+                        <p className="text-xs text-muted-foreground">{c.company}</p>
                     )}
                 </div>
             </div>
@@ -55,14 +55,14 @@ export const customerColumns: Column<CustomerRow>[] = [
         label: 'E-mail',
         sortable: true,
         render: (c) => (
-            <span className="text-[#9C9585]">{c.email ?? '—'}</span>
+            <span className="text-muted-foreground">{c.email ?? '—'}</span>
         ),
     },
     {
         key: 'phone',
         label: 'Telefon',
         render: (c) => (
-            <span className="text-[#9C9585]">{c.phone ?? '—'}</span>
+            <span className="text-muted-foreground">{c.phone ?? '—'}</span>
         ),
     },
     {
@@ -89,7 +89,7 @@ export const customerColumns: Column<CustomerRow>[] = [
         label: 'Vytvořeno',
         sortable: true,
         render: (c) => (
-            <span className="text-[#6B6560]">
+            <span className="text-muted-foreground">
                 {new Date(c.created_at).toLocaleDateString('cs-CZ')}
             </span>
         ),

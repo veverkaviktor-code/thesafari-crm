@@ -71,12 +71,12 @@ const formatCurrency = (v: number) =>
     }).format(v);
 
 function deadlineClass(deadline: string | null): string {
-    if (!deadline) return 'text-[#6B6560]';
+    if (!deadline) return 'text-muted-foreground';
     const diff = new Date(deadline).getTime() - Date.now();
     const days = diff / (1000 * 60 * 60 * 24);
     if (days < 0) return 'text-red-400';
     if (days < 7) return 'text-amber-400';
-    return 'text-[#9C9585]';
+    return 'text-muted-foreground';
 }
 
 const columns: Column<Order>[] = [
@@ -86,8 +86,8 @@ const columns: Column<Order>[] = [
         sortable: true,
         render: (o) => (
             <div>
-                <p className="font-medium text-white">{o.title}</p>
-                <p className="text-xs text-[#6B6560]">{o.customer.name}</p>
+                <p className="font-medium text-foreground">{o.title}</p>
+                <p className="text-xs text-muted-foreground">{o.customer.name}</p>
             </div>
         ),
     },
@@ -106,7 +106,7 @@ const columns: Column<Order>[] = [
         label: 'Cena',
         sortable: true,
         render: (o) => (
-            <span className="text-[#F5F0E8]/70">{formatCurrency(o.price)}</span>
+            <span className="text-foreground/70">{formatCurrency(o.price)}</span>
         ),
     },
     {
@@ -126,7 +126,7 @@ const columns: Column<Order>[] = [
         label: 'Vytvořeno',
         sortable: true,
         render: (o) => (
-            <span className="text-[#6B6560]">
+            <span className="text-muted-foreground">
                 {new Date(o.created_at).toLocaleDateString('cs-CZ')}
             </span>
         ),
@@ -179,11 +179,11 @@ export default function Index({ orders, customers, filters }: Props) {
         >
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                    <h1 className="text-2xl font-semibold text-[#F5F0E8]">
+                    <h1 className="text-2xl font-semibold text-foreground">
                         Zakázky
                     </h1>
                     <Button
-                        className="bg-[#D97706] text-white hover:bg-[#B45309]"
+                        className="bg-primary text-white hover:bg-primary/80"
                         onClick={() => setShowCreate(true)}
                     >
                         <Plus className="h-4 w-4" />
@@ -228,23 +228,23 @@ export default function Index({ orders, customers, filters }: Props) {
                                     })
                                 }
                             >
-                                <SelectTrigger className="w-[130px] border-[#F5F0E8]/[0.06] bg-[#0f0e0c]">
+                                <SelectTrigger className="w-[130px] border-border bg-muted">
                                     <SelectValue placeholder="Stav" />
                                 </SelectTrigger>
-                                <SelectContent className="border-[#F5F0E8]/[0.06] bg-[#16140f]">
-                                    <SelectItem value="all" className="focus:bg-[#0f0e0c]">
+                                <SelectContent className="border-border bg-card">
+                                    <SelectItem value="all" className="focus:bg-muted">
                                         Všechny stavy
                                     </SelectItem>
-                                    <SelectItem value="nova" className="focus:bg-[#0f0e0c]">
+                                    <SelectItem value="nova" className="focus:bg-muted">
                                         Nová
                                     </SelectItem>
-                                    <SelectItem value="v_reseni" className="focus:bg-[#0f0e0c]">
+                                    <SelectItem value="v_reseni" className="focus:bg-muted">
                                         V řešení
                                     </SelectItem>
-                                    <SelectItem value="hotovo" className="focus:bg-[#0f0e0c]">
+                                    <SelectItem value="hotovo" className="focus:bg-muted">
                                         Hotovo
                                     </SelectItem>
-                                    <SelectItem value="fakturovano" className="focus:bg-[#0f0e0c]">
+                                    <SelectItem value="fakturovano" className="focus:bg-muted">
                                         Fakturováno
                                     </SelectItem>
                                 </SelectContent>
@@ -258,26 +258,26 @@ export default function Index({ orders, customers, filters }: Props) {
                                     })
                                 }
                             >
-                                <SelectTrigger className="w-[130px] border-[#F5F0E8]/[0.06] bg-[#0f0e0c]">
+                                <SelectTrigger className="w-[130px] border-border bg-muted">
                                     <SelectValue placeholder="Divize" />
                                 </SelectTrigger>
-                                <SelectContent className="border-[#F5F0E8]/[0.06] bg-[#16140f]">
-                                    <SelectItem value="all" className="focus:bg-[#0f0e0c]">
+                                <SelectContent className="border-border bg-card">
+                                    <SelectItem value="all" className="focus:bg-muted">
                                         Všechny divize
                                     </SelectItem>
-                                    <SelectItem value="tisk" className="focus:bg-[#0f0e0c]">
+                                    <SelectItem value="tisk" className="focus:bg-muted">
                                         Tisk
                                     </SelectItem>
-                                    <SelectItem value="reklama" className="focus:bg-[#0f0e0c]">
+                                    <SelectItem value="reklama" className="focus:bg-muted">
                                         Reklama
                                     </SelectItem>
-                                    <SelectItem value="polepy" className="focus:bg-[#0f0e0c]">
+                                    <SelectItem value="polepy" className="focus:bg-muted">
                                         Polepy
                                     </SelectItem>
-                                    <SelectItem value="montaze" className="focus:bg-[#0f0e0c]">
+                                    <SelectItem value="montaze" className="focus:bg-muted">
                                         Montáže
                                     </SelectItem>
-                                    <SelectItem value="weby" className="focus:bg-[#0f0e0c]">
+                                    <SelectItem value="weby" className="focus:bg-muted">
                                         Weby
                                     </SelectItem>
                                 </SelectContent>

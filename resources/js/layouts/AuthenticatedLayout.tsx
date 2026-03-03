@@ -18,8 +18,10 @@ export default function AuthenticatedLayout({
     breadcrumbs = [],
 }: AuthenticatedLayoutProps) {
     return (
-        <div className="flex h-screen bg-[#0a0a08]">
-            <Sidebar />
+        <div className="flex h-screen bg-background">
+            <div className="dark">
+                <Sidebar />
+            </div>
             <div className="flex flex-1 flex-col overflow-hidden">
                 <TopBar breadcrumbs={breadcrumbs} />
                 <main className="flex-1 overflow-y-auto p-6">{children}</main>

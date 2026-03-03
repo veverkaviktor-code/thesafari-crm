@@ -52,7 +52,7 @@ const formatCurrency = (v: number | null | undefined) =>
 function FinancialMetric({ label, value, color }: { label: string; value: string; color: string }) {
     return (
         <div className="text-center">
-            <p className="text-xs text-[#6B6560]">{label}</p>
+            <p className="text-xs text-muted-foreground">{label}</p>
             <p className={cn('mt-1 text-2xl font-bold tracking-tight', color)}>{value}</p>
         </div>
     );
@@ -92,7 +92,6 @@ export default function Dashboard({ stats, mrr, financialSummary, revenueByDivis
                         icon={ClipboardList}
                         iconColor="text-amber-500"
                         iconBg="bg-amber-500/10"
-                        gradient="bg-gradient-to-br from-[#16140f] to-[#1a1508]"
                         trend={s.orders_trend}
                         subtitle="od minulého týdne"
                     />
@@ -102,7 +101,6 @@ export default function Dashboard({ stats, mrr, financialSummary, revenueByDivis
                         icon={CreditCard}
                         iconColor="text-red-500"
                         iconBg="bg-red-500/10"
-                        gradient="bg-gradient-to-br from-[#16140f] to-[#1a0f0f]"
                         trend={s.invoices_trend}
                         subtitle="od minulého měsíce"
                     />
@@ -112,7 +110,6 @@ export default function Dashboard({ stats, mrr, financialSummary, revenueByDivis
                         icon={MessageSquare}
                         iconColor="text-emerald-500"
                         iconBg="bg-emerald-500/10"
-                        gradient="bg-gradient-to-br from-[#16140f] to-[#14170f]"
                         trend={s.tickets_trend}
                         subtitle="vyřešeno tento týden"
                     />
@@ -120,9 +117,8 @@ export default function Dashboard({ stats, mrr, financialSummary, revenueByDivis
                         label="Měsíční MRR"
                         value={formatCurrency(mrrData.total)}
                         icon={TrendingUp}
-                        iconColor="text-[#D97706]"
-                        iconBg="bg-[#D97706]/10"
-                        gradient="bg-gradient-to-br from-[#16140f] to-[#1a1508]"
+                        iconColor="text-primary"
+                        iconBg="bg-primary/10"
                         subtitle="z aktivních subscriptions"
                     />
                 </div>
@@ -138,12 +134,12 @@ export default function Dashboard({ stats, mrr, financialSummary, revenueByDivis
                 </div>
 
                 {/* Row 3: Financial Summary Bar */}
-                <div className="rounded-xl border border-[#F5F0E8]/[0.06] bg-gradient-to-br from-[#16140f] to-[#1a1508] p-5">
+                <div className="rounded-xl border border-border bg-card p-5">
                     <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                        <FinancialMetric label="Celkové příjmy" value={formatCurrency(fin.revenue)} color="text-[#D97706]" />
-                        <FinancialMetric label="Celkové náklady" value={formatCurrency(fin.costs)} color="text-[#9C9585]" />
-                        <FinancialMetric label="Čistý zisk" value={formatCurrency(fin.profit)} color="text-[#65A30D]" />
-                        <FinancialMetric label="Marže" value={`${fin.margin} %`} color={fin.margin >= 50 ? 'text-[#65A30D]' : 'text-amber-500'} />
+                        <FinancialMetric label="Celkové příjmy" value={formatCurrency(fin.revenue)} color="text-primary" />
+                        <FinancialMetric label="Celkové náklady" value={formatCurrency(fin.costs)} color="text-muted-foreground" />
+                        <FinancialMetric label="Čistý zisk" value={formatCurrency(fin.profit)} color="text-lime-600" />
+                        <FinancialMetric label="Marže" value={`${fin.margin} %`} color={fin.margin >= 50 ? 'text-lime-600' : 'text-amber-500'} />
                     </div>
                 </div>
 

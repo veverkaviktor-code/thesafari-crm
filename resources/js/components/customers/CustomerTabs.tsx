@@ -59,7 +59,7 @@ const orderColumns: Column<Order>[] = [
     {
         key: 'title',
         label: 'Název',
-        render: (o) => <span className="font-medium text-white">{o.title}</span>,
+        render: (o) => <span className="font-medium text-foreground">{o.title}</span>,
     },
     {
         key: 'status',
@@ -69,12 +69,12 @@ const orderColumns: Column<Order>[] = [
     {
         key: 'total_price',
         label: 'Cena',
-        render: (o) => <span className="text-[#9C9585]">{formatCurrency(o.total_price)}</span>,
+        render: (o) => <span className="text-muted-foreground">{formatCurrency(o.total_price)}</span>,
     },
     {
         key: 'created_at',
         label: 'Vytvořeno',
-        render: (o) => <span className="text-[#6B6560]">{formatDate(o.created_at)}</span>,
+        render: (o) => <span className="text-muted-foreground">{formatDate(o.created_at)}</span>,
     },
 ];
 
@@ -82,7 +82,7 @@ const invoiceColumns: Column<Invoice>[] = [
     {
         key: 'number',
         label: 'Číslo',
-        render: (i) => <span className="font-medium text-white">{i.number}</span>,
+        render: (i) => <span className="font-medium text-foreground">{i.number}</span>,
     },
     {
         key: 'status',
@@ -92,12 +92,12 @@ const invoiceColumns: Column<Invoice>[] = [
     {
         key: 'amount',
         label: 'Částka',
-        render: (i) => <span className="text-[#9C9585]">{formatCurrency(i.amount)}</span>,
+        render: (i) => <span className="text-muted-foreground">{formatCurrency(i.amount)}</span>,
     },
     {
         key: 'due_date',
         label: 'Splatnost',
-        render: (i) => <span className="text-[#6B6560]">{formatDate(i.due_date)}</span>,
+        render: (i) => <span className="text-muted-foreground">{formatDate(i.due_date)}</span>,
     },
 ];
 
@@ -105,7 +105,7 @@ const requirementColumns: Column<Requirement>[] = [
     {
         key: 'subject',
         label: 'Předmět',
-        render: (r) => <span className="font-medium text-white">{r.subject}</span>,
+        render: (r) => <span className="font-medium text-foreground">{r.subject}</span>,
     },
     {
         key: 'status',
@@ -115,12 +115,12 @@ const requirementColumns: Column<Requirement>[] = [
     {
         key: 'priority',
         label: 'Priorita',
-        render: (r) => <span className="text-[#9C9585]">{r.priority}</span>,
+        render: (r) => <span className="text-muted-foreground">{r.priority}</span>,
     },
     {
         key: 'created_at',
         label: 'Vytvořeno',
-        render: (r) => <span className="text-[#6B6560]">{formatDate(r.created_at)}</span>,
+        render: (r) => <span className="text-muted-foreground">{formatDate(r.created_at)}</span>,
     },
 ];
 
@@ -128,17 +128,17 @@ const fileColumns: Column<FileItem>[] = [
     {
         key: 'name',
         label: 'Soubor',
-        render: (f) => <span className="font-medium text-white">{f.name}</span>,
+        render: (f) => <span className="font-medium text-foreground">{f.name}</span>,
     },
     {
         key: 'size',
         label: 'Velikost',
-        render: (f) => <span className="text-[#9C9585]">{f.size}</span>,
+        render: (f) => <span className="text-muted-foreground">{f.size}</span>,
     },
     {
         key: 'uploaded_at',
         label: 'Nahráno',
-        render: (f) => <span className="text-[#6B6560]">{formatDate(f.uploaded_at)}</span>,
+        render: (f) => <span className="text-muted-foreground">{formatDate(f.uploaded_at)}</span>,
     },
 ];
 
@@ -149,29 +149,29 @@ export default function CustomerTabs({
     files,
 }: Props) {
     return (
-        <Tabs defaultValue="orders" className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f]">
-            <TabsList className="w-full justify-start border-b border-[#F5F0E8]/[0.05] bg-transparent px-4 pt-2">
+        <Tabs defaultValue="orders" className="rounded-xl border border-border bg-card">
+            <TabsList className="w-full justify-start border-b border-border bg-transparent px-4 pt-2">
                 <TabsTrigger
                     value="orders"
-                    className="text-[#9C9585] data-[state=active]:border-b-2 data-[state=active]:border-[#D97706] data-[state=active]:text-white data-[state=active]:shadow-none"
+                    className="text-muted-foreground data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
                 >
                     Zakázky ({orders.length})
                 </TabsTrigger>
                 <TabsTrigger
                     value="invoices"
-                    className="text-[#9C9585] data-[state=active]:border-b-2 data-[state=active]:border-[#D97706] data-[state=active]:text-white data-[state=active]:shadow-none"
+                    className="text-muted-foreground data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
                 >
                     Faktury ({invoices.length})
                 </TabsTrigger>
                 <TabsTrigger
                     value="requirements"
-                    className="text-[#9C9585] data-[state=active]:border-b-2 data-[state=active]:border-[#D97706] data-[state=active]:text-white data-[state=active]:shadow-none"
+                    className="text-muted-foreground data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
                 >
                     Požadavky ({requirements.length})
                 </TabsTrigger>
                 <TabsTrigger
                     value="files"
-                    className="text-[#9C9585] data-[state=active]:border-b-2 data-[state=active]:border-[#D97706] data-[state=active]:text-white data-[state=active]:shadow-none"
+                    className="text-muted-foreground data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
                 >
                     Soubory ({files.length})
                 </TabsTrigger>

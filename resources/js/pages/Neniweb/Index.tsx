@@ -73,7 +73,7 @@ const domainColumns = [
         render: (sub: Subscription) => (
             <div className="flex items-center gap-2">
                 <Globe className="h-4 w-4 text-amber-500" />
-                <span className="font-medium text-[#F5F0E8]/85">{sub.name}</span>
+                <span className="font-medium text-foreground">{sub.name}</span>
             </div>
         ),
     },
@@ -81,7 +81,7 @@ const domainColumns = [
         key: 'customer' as const,
         label: 'Zákazník',
         render: (sub: Subscription) => (
-            <span className="text-[#F5F0E8]/70">
+            <span className="text-muted-foreground">
                 {sub.customer
                     ? sub.customer.company || sub.customer.name
                     : '—'}
@@ -92,7 +92,7 @@ const domainColumns = [
         key: 'provider' as const,
         label: 'Registrár',
         render: (sub: Subscription) => (
-            <span className="text-[#9C9585] text-sm">
+            <span className="text-muted-foreground text-sm">
                 {sub.provider || '—'}
             </span>
         ),
@@ -103,7 +103,7 @@ const domainColumns = [
         sortable: true,
         render: (sub: Subscription) => (
             <div className="flex items-center gap-2">
-                <span className="text-sm text-[#9C9585]">
+                <span className="text-sm text-muted-foreground">
                     {format(new Date(sub.expires_at), 'd. M. yyyy', {
                         locale: cs,
                     })}
@@ -117,7 +117,7 @@ const domainColumns = [
         label: 'Auto-renew',
         render: (sub: Subscription) => (
             <span
-                className={`text-sm ${sub.auto_renew ? 'text-green-400' : 'text-[#6B6560]'}`}
+                className={`text-sm ${sub.auto_renew ? 'text-green-400' : 'text-muted-foreground'}`}
             >
                 {sub.auto_renew ? 'Ano' : 'Ne'}
             </span>
@@ -128,7 +128,7 @@ const domainColumns = [
         label: 'Roční cena',
         sortable: true,
         render: (sub: Subscription) => (
-            <span className="text-sm text-[#F5F0E8]/70">
+            <span className="text-sm text-muted-foreground">
                 {new Intl.NumberFormat('cs-CZ', {
                     style: 'currency',
                     currency: 'CZK',
@@ -159,7 +159,7 @@ const hostingColumns = [
         render: (sub: Subscription) => (
             <div className="flex items-center gap-2">
                 <Server className="h-4 w-4 text-blue-400" />
-                <span className="font-medium text-[#F5F0E8]/85">{sub.name}</span>
+                <span className="font-medium text-foreground">{sub.name}</span>
             </div>
         ),
     },
@@ -167,7 +167,7 @@ const hostingColumns = [
         key: 'customer' as const,
         label: 'Zákazník',
         render: (sub: Subscription) => (
-            <span className="text-[#F5F0E8]/70">
+            <span className="text-muted-foreground">
                 {sub.customer
                     ? sub.customer.company || sub.customer.name
                     : '—'}
@@ -178,7 +178,7 @@ const hostingColumns = [
         key: 'server' as const,
         label: 'Server',
         render: (sub: Subscription) => (
-            <span className="text-[#9C9585] text-sm">{sub.server || '—'}</span>
+            <span className="text-muted-foreground text-sm">{sub.server || '—'}</span>
         ),
     },
     {
@@ -187,7 +187,7 @@ const hostingColumns = [
         sortable: true,
         render: (sub: Subscription) => (
             <div className="flex items-center gap-2">
-                <span className="text-sm text-[#9C9585]">
+                <span className="text-sm text-muted-foreground">
                     {format(new Date(sub.expires_at), 'd. M. yyyy', {
                         locale: cs,
                     })}
@@ -201,7 +201,7 @@ const hostingColumns = [
         label: 'Auto-renew',
         render: (sub: Subscription) => (
             <span
-                className={`text-sm ${sub.auto_renew ? 'text-green-400' : 'text-[#6B6560]'}`}
+                className={`text-sm ${sub.auto_renew ? 'text-green-400' : 'text-muted-foreground'}`}
             >
                 {sub.auto_renew ? 'Ano' : 'Ne'}
             </span>
@@ -212,7 +212,7 @@ const hostingColumns = [
         label: 'Roční cena',
         sortable: true,
         render: (sub: Subscription) => (
-            <span className="text-sm text-[#F5F0E8]/70">
+            <span className="text-sm text-muted-foreground">
                 {new Intl.NumberFormat('cs-CZ', {
                     style: 'currency',
                     currency: 'CZK',
@@ -286,17 +286,17 @@ export default function NeniwebIndex({
                     }}
                 >
                     <div className="flex items-center justify-between mb-6">
-                        <TabsList className="bg-[#0f0e0c] border border-[#F5F0E8]/[0.05]">
+                        <TabsList className="bg-muted border border-border">
                             <TabsTrigger
                                 value="domeny"
-                                className="data-[state=active]:bg-[#D97706] data-[state=active]:text-white text-[#9C9585]"
+                                className="data-[state=active]:bg-primary data-[state=active]:text-white text-muted-foreground"
                             >
                                 <Globe className="h-4 w-4 mr-2" />
                                 Domény ({domains.total})
                             </TabsTrigger>
                             <TabsTrigger
                                 value="hostingy"
-                                className="data-[state=active]:bg-[#D97706] data-[state=active]:text-white text-[#9C9585]"
+                                className="data-[state=active]:bg-primary data-[state=active]:text-white text-muted-foreground"
                             >
                                 <Server className="h-4 w-4 mr-2" />
                                 Hostingy ({hostings.total})
@@ -304,7 +304,7 @@ export default function NeniwebIndex({
                         </TabsList>
                         <Button
                             onClick={handleOpenCreate}
-                            className="bg-[#D97706] hover:bg-[#B45309] text-white"
+                            className="bg-primary hover:bg-primary/80 text-white"
                         >
                             <Plus className="h-4 w-4 mr-2" />
                             {activeTab === 'domeny'

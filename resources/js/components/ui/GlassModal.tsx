@@ -47,17 +47,17 @@ export default function GlassModal({
             {/* Modal */}
             <div
                 className={`relative w-full ${maxWidth} max-h-[90vh] flex flex-col rounded-2xl overflow-hidden
-                    border border-[#F5F0E8]/[0.06]
-                    bg-[#16140f]
+                    border border-border
+                    bg-card
                     shadow-2xl shadow-black/50
                 `}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-[#F5F0E8]/[0.06] px-8 py-5">
-                    <h2 className="text-lg font-semibold text-[#F5F0E8]">{title}</h2>
+                <div className="flex items-center justify-between border-b border-border px-8 py-5">
+                    <h2 className="text-lg font-semibold text-foreground">{title}</h2>
                     <button
                         onClick={onClose}
-                        className="rounded-xl p-2 text-[#9C9585] transition-all hover:bg-[#F5F0E8]/[0.05] hover:text-[#F5F0E8]"
+                        className="rounded-xl p-2 text-muted-foreground transition-all hover:bg-accent hover:text-foreground"
                     >
                         <X className="h-5 w-5" />
                     </button>

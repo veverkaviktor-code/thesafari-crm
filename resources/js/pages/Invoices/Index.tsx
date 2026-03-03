@@ -56,11 +56,11 @@ const formatCurrency = (v: number) =>
 const formatDate = (d: string) => new Date(d).toLocaleDateString('cs-CZ');
 
 function dueDateClass(dueDate: string, status: string): string {
-    if (status === 'zaplacena') return 'text-[#6B6560]';
+    if (status === 'zaplacena') return 'text-muted-foreground';
     const diff = new Date(dueDate).getTime() - Date.now();
     if (diff < 0) return 'text-red-400';
     if (diff < 7 * 24 * 60 * 60 * 1000) return 'text-amber-400';
-    return 'text-[#9C9585]';
+    return 'text-muted-foreground';
 }
 
 const columns: Column<Invoice>[] = [
@@ -69,14 +69,14 @@ const columns: Column<Invoice>[] = [
         label: 'Číslo',
         sortable: true,
         render: (i) => (
-            <span className="font-medium text-white">{i.invoice_number}</span>
+            <span className="font-medium text-foreground">{i.invoice_number}</span>
         ),
     },
     {
         key: 'customer',
         label: 'Zákazník',
         render: (i) => (
-            <span className="text-[#F5F0E8]/70">{i.customer.name}</span>
+            <span className="text-muted-foreground">{i.customer.name}</span>
         ),
     },
     {
@@ -84,7 +84,7 @@ const columns: Column<Invoice>[] = [
         label: 'Vystaveno',
         sortable: true,
         render: (i) => (
-            <span className="text-[#9C9585]">{formatDate(i.issue_date)}</span>
+            <span className="text-muted-foreground">{formatDate(i.issue_date)}</span>
         ),
     },
     {
@@ -102,7 +102,7 @@ const columns: Column<Invoice>[] = [
         label: 'Částka',
         sortable: true,
         render: (i) => (
-            <span className="font-medium text-white">
+            <span className="font-medium text-foreground">
                 {formatCurrency(i.total)}
             </span>
         ),
@@ -116,7 +116,7 @@ const columns: Column<Invoice>[] = [
         key: 'payment_method',
         label: 'Platba',
         render: (i) => (
-            <span className="text-[#6B6560]">
+            <span className="text-muted-foreground">
                 {i.payment_method === 'banka' ? 'Převodem' : 'Hotově'}
             </span>
         ),
@@ -156,12 +156,12 @@ export default function Index({ invoices, filters }: Props) {
         >
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                    <h1 className="text-2xl font-semibold text-[#F5F0E8]">
+                    <h1 className="text-2xl font-semibold text-foreground">
                         Faktury
                     </h1>
                     <Button
                         asChild
-                        className="bg-[#D97706] text-white hover:bg-[#B45309]"
+                        className="bg-primary text-white hover:bg-primary/80"
                     >
                         <Link href="/faktury/create">
                             <Plus className="h-4 w-4" />
@@ -205,23 +205,23 @@ export default function Index({ invoices, filters }: Props) {
                                 })
                             }
                         >
-                            <SelectTrigger className="w-[140px] border-[#F5F0E8]/[0.06] bg-[#0f0e0c]">
+                            <SelectTrigger className="w-[140px] border-border bg-muted">
                                 <SelectValue placeholder="Stav" />
                             </SelectTrigger>
-                            <SelectContent className="border-[#F5F0E8]/[0.06] bg-[#16140f]">
-                                <SelectItem value="all" className="focus:bg-[#0f0e0c]">
+                            <SelectContent className="border-border bg-card">
+                                <SelectItem value="all" className="focus:bg-muted">
                                     Všechny stavy
                                 </SelectItem>
-                                <SelectItem value="vystavena" className="focus:bg-[#0f0e0c]">
+                                <SelectItem value="vystavena" className="focus:bg-muted">
                                     Vystavena
                                 </SelectItem>
-                                <SelectItem value="odeslana" className="focus:bg-[#0f0e0c]">
+                                <SelectItem value="odeslana" className="focus:bg-muted">
                                     Odeslaná
                                 </SelectItem>
-                                <SelectItem value="zaplacena" className="focus:bg-[#0f0e0c]">
+                                <SelectItem value="zaplacena" className="focus:bg-muted">
                                     Zaplacena
                                 </SelectItem>
-                                <SelectItem value="po_splatnosti" className="focus:bg-[#0f0e0c]">
+                                <SelectItem value="po_splatnosti" className="focus:bg-muted">
                                     Po splatnosti
                                 </SelectItem>
                             </SelectContent>

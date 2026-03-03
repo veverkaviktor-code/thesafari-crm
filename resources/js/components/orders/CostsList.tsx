@@ -53,8 +53,8 @@ export default function CostsList({ orderId, costs, totalCosts }: Props) {
     };
 
     return (
-        <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-5">
-            <h3 className="mb-4 text-sm font-semibold text-[#F5F0E8]/70">Náklady</h3>
+        <div className="rounded-xl border border-border bg-card p-5">
+            <h3 className="mb-4 text-sm font-semibold text-foreground/70">Náklady</h3>
 
             {/* Add form */}
             <form onSubmit={handleAdd} className="mb-4 flex gap-2">
@@ -62,7 +62,7 @@ export default function CostsList({ orderId, costs, totalCosts }: Props) {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="Název nákladu..."
-                    className="border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]"
+                    className="border-border bg-accent"
                 />
                 <Input
                     value={amount}
@@ -71,13 +71,13 @@ export default function CostsList({ orderId, costs, totalCosts }: Props) {
                     type="number"
                     min="0"
                     step="1"
-                    className="w-32 shrink-0 border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]"
+                    className="w-32 shrink-0 border-border bg-accent"
                 />
                 <Button
                     type="submit"
                     size="icon"
                     disabled={submitting || !title.trim() || !amount}
-                    className="shrink-0 bg-[#D97706] text-white hover:bg-[#B45309]"
+                    className="shrink-0 bg-primary text-white hover:bg-primary/80"
                 >
                     <Plus className="h-4 w-4" />
                 </Button>
@@ -85,26 +85,26 @@ export default function CostsList({ orderId, costs, totalCosts }: Props) {
 
             {/* List */}
             {costs.length === 0 ? (
-                <p className="text-sm text-[#6B6560]">Žádné náklady</p>
+                <p className="text-sm text-muted-foreground">Žádné náklady</p>
             ) : (
                 <div className="space-y-2">
                     {costs.map((cost) => (
                         <div
                             key={cost.id}
-                            className="flex items-center justify-between rounded-lg bg-white/[0.03] p-3"
+                            className="flex items-center justify-between rounded-lg bg-accent p-3"
                         >
                             <div>
-                                <p className="text-sm text-[#F5F0E8]/70">
+                                <p className="text-sm text-foreground/70">
                                     {cost.title}
                                 </p>
-                                <p className="text-xs text-[#6B6560]">
+                                <p className="text-xs text-muted-foreground">
                                     {formatCurrency(cost.amount)}
                                 </p>
                             </div>
                             <Button
                                 variant="ghost"
                                 size="icon-xs"
-                                className="text-[#6B6560] hover:text-red-400"
+                                className="text-muted-foreground hover:text-red-400"
                                 onClick={() => handleDelete(cost.id)}
                             >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -115,9 +115,9 @@ export default function CostsList({ orderId, costs, totalCosts }: Props) {
             )}
 
             {/* Total */}
-            <div className="mt-4 flex items-center justify-between border-t border-[#F5F0E8]/[0.05] pt-3">
-                <span className="text-sm text-[#9C9585]">Celkem náklady</span>
-                <span className="text-sm font-semibold text-white">
+            <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
+                <span className="text-sm text-muted-foreground">Celkem náklady</span>
+                <span className="text-sm font-semibold text-foreground">
                     {formatCurrency(totalCosts)}
                 </span>
             </div>

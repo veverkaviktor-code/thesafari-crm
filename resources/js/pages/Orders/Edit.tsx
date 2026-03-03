@@ -47,7 +47,7 @@ export default function Edit({ order, customers }: Props) {
             ]}
         >
             <div className="mx-auto max-w-3xl">
-                <h1 className="mb-6 text-2xl font-semibold text-white">
+                <h1 className="mb-6 text-2xl font-semibold text-foreground">
                     Upravit zakázku
                 </h1>
                 <OrderForm

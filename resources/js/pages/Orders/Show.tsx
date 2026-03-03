@@ -74,7 +74,7 @@ const formatCurrency = (v: number) =>
     }).format(v);
 
 function deadlineInfo(deadline: string | null) {
-    if (!deadline) return { text: 'Bez termínu', className: 'text-[#6B6560]' };
+    if (!deadline) return { text: 'Bez termínu', className: 'text-muted-foreground' };
     const diff = new Date(deadline).getTime() - Date.now();
     const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
     const formatted = format(new Date(deadline), 'd. MMMM yyyy', { locale: cs });
@@ -88,7 +88,7 @@ function deadlineInfo(deadline: string | null) {
             text: `${formatted} (za ${days} ${days === 1 ? 'den' : days < 5 ? 'dny' : 'dní'})`,
             className: 'text-amber-400',
         };
-    return { text: formatted, className: 'text-[#F5F0E8]/70' };
+    return { text: formatted, className: 'text-foreground/70' };
 }
 
 export default function Show({ order }: Props) {
@@ -127,7 +127,7 @@ export default function Show({ order }: Props) {
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                         <div className="flex items-center gap-3">
-                            <h1 className="text-2xl font-semibold text-white">
+                            <h1 className="text-2xl font-semibold text-foreground">
                                 {order.title}
                             </h1>
                             <OrderStatusBadge status={order.status} />
@@ -136,7 +136,7 @@ export default function Show({ order }: Props) {
                         <div className="mt-2 flex items-center gap-4 text-sm">
                             <Link
                                 href={`/zakaznici/${order.customer.id}`}
-                                className="text-[#D97706] hover:underline"
+                                className="text-primary hover:underline"
                             >
                                 {order.customer.name}
                             </Link>
@@ -150,21 +150,21 @@ export default function Show({ order }: Props) {
                             value={order.status}
                             onValueChange={handleStatusChange}
                         >
-                            <SelectTrigger className="w-[140px] border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]">
+                            <SelectTrigger className="w-[140px] border-border bg-accent">
                                 <SelectValue />
                             </SelectTrigger>
-                            <SelectContent className="border-[#F5F0E8]/[0.06] bg-[#16140f]">
-                                <SelectItem value="nova" className="focus:bg-[#F5F0E8]/[0.04]">Nová</SelectItem>
-                                <SelectItem value="v_reseni" className="focus:bg-[#F5F0E8]/[0.04]">V řešení</SelectItem>
-                                <SelectItem value="hotovo" className="focus:bg-[#F5F0E8]/[0.04]">Hotovo</SelectItem>
-                                <SelectItem value="fakturovano" className="focus:bg-[#F5F0E8]/[0.04]">Fakturováno</SelectItem>
+                            <SelectContent className="border-border bg-card">
+                                <SelectItem value="nova" className="focus:bg-accent">Nová</SelectItem>
+                                <SelectItem value="v_reseni" className="focus:bg-accent">V řešení</SelectItem>
+                                <SelectItem value="hotovo" className="focus:bg-accent">Hotovo</SelectItem>
+                                <SelectItem value="fakturovano" className="focus:bg-accent">Fakturováno</SelectItem>
                             </SelectContent>
                         </Select>
                         <Button
                             asChild
                             variant="ghost"
                             size="icon"
-                            className="text-[#9C9585] hover:text-[#F5F0E8]"
+                            className="text-muted-foreground hover:text-foreground"
                         >
                             <Link href={`/zakazky/${order.id}/upravit`}>
                                 <Pencil className="h-4 w-4" />
@@ -173,7 +173,7 @@ export default function Show({ order }: Props) {
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="text-[#9C9585] hover:text-red-400"
+                            className="text-muted-foreground hover:text-red-400"
                             onClick={handleDelete}
                         >
                             <Trash2 className="h-4 w-4" />
@@ -186,9 +186,9 @@ export default function Show({ order }: Props) {
                     {/* Left: Details */}
                     <div className="space-y-6 lg:col-span-2">
                         {/* Description + Price */}
-                        <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-5">
+                        <div className="rounded-xl border border-border bg-card p-5">
                             {order.description && (
-                                <p className="mb-4 text-sm leading-relaxed text-[#9C9585]">
+                                <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
                                     {order.description}
                                 </p>
                             )}
@@ -196,7 +196,7 @@ export default function Show({ order }: Props) {
                                 <InfoBox
                                     label="Cena zakázky"
                                     value={formatCurrency(order.price)}
-                                    className="text-white"
+                                    className="text-foreground"
                                 />
                                 <InfoBox
                                     label="Náklady celkem"
@@ -204,7 +204,7 @@ export default function Show({ order }: Props) {
                                         order.total_time_cost +
                                             order.total_costs,
                                     )}
-                                    className="text-[#F5F0E8]/70"
+                                    className="text-foreground/70"
                                 />
                                 <InfoBox
                                     label="Zisk"
@@ -240,7 +240,7 @@ export default function Show({ order }: Props) {
                         {/* Invoice button */}
                         <Button
                             asChild
-                            className="w-full bg-[#D97706] text-white hover:bg-[#B45309]"
+                            className="w-full bg-primary text-white hover:bg-primary/80"
                         >
                             <Link
                                 href={`/faktury/create?order_id=${order.id}`}
@@ -251,14 +251,14 @@ export default function Show({ order }: Props) {
                         </Button>
 
                         {/* Order info card */}
-                        <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-5">
-                            <h3 className="mb-3 text-sm font-semibold text-[#F5F0E8]/70">
+                        <div className="rounded-xl border border-border bg-card p-5">
+                            <h3 className="mb-3 text-sm font-semibold text-foreground/70">
                                 Info
                             </h3>
                             <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
-                                    <span className="text-[#6B6560]">Vytvořeno</span>
-                                    <span className="text-[#F5F0E8]/70">
+                                    <span className="text-muted-foreground">Vytvořeno</span>
+                                    <span className="text-foreground/70">
                                         {format(
                                             new Date(order.created_at),
                                             'd. M. yyyy',
@@ -266,14 +266,14 @@ export default function Show({ order }: Props) {
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-[#6B6560]">Časové záznamy</span>
-                                    <span className="text-[#F5F0E8]/70">
+                                    <span className="text-muted-foreground">Časové záznamy</span>
+                                    <span className="text-foreground/70">
                                         {order.time_entries.length}
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-[#6B6560]">Materiálové náklady</span>
-                                    <span className="text-[#F5F0E8]/70">
+                                    <span className="text-muted-foreground">Materiálové náklady</span>
+                                    <span className="text-foreground/70">
                                         {order.costs.length}
                                     </span>
                                 </div>
@@ -296,8 +296,8 @@ function InfoBox({
     className?: string;
 }) {
     return (
-        <div className="rounded-lg bg-white/[0.03] p-3">
-            <p className="text-xs text-[#6B6560]">{label}</p>
+        <div className="rounded-lg bg-accent p-3">
+            <p className="text-xs text-muted-foreground">{label}</p>
             <p className={cn('mt-1 text-lg font-semibold', className)}>
                 {value}
             </p>

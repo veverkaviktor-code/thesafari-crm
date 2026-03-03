@@ -58,22 +58,22 @@ export default function NeniwebCreate({ customers, type: initialType }: Props) {
                 <Button
                     variant="ghost"
                     onClick={() => router.visit('/neniweb')}
-                    className="text-[#9C9585] hover:text-[#F5F0E8]/85 mb-4"
+                    className="text-muted-foreground hover:text-foreground mb-4"
                 >
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Zpět
                 </Button>
 
-                <div className="bg-[#16140f] rounded-xl border border-[#F5F0E8]/[0.05] p-6">
+                <div className="bg-card rounded-xl border border-border p-6">
                     <form onSubmit={handleSubmit} className="space-y-5">
                         {/* Type */}
                         <div>
-                            <Label className="text-[#F5F0E8]/70">Typ</Label>
+                            <Label className="text-muted-foreground">Typ</Label>
                             <Select value={data.type} onValueChange={(v) => setData('type', v)}>
-                                <SelectTrigger className="mt-1.5 bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/85">
+                                <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
                                     <SelectValue />
                                 </SelectTrigger>
-                                <SelectContent className="bg-[#16140f] border-[#F5F0E8]/[0.06]">
+                                <SelectContent className="bg-card border-border">
                                     <SelectItem value="domena">Doména</SelectItem>
                                     <SelectItem value="hosting">Hosting</SelectItem>
                                 </SelectContent>
@@ -83,12 +83,12 @@ export default function NeniwebCreate({ customers, type: initialType }: Props) {
 
                         {/* Customer */}
                         <div>
-                            <Label className="text-[#F5F0E8]/70">Zákazník</Label>
+                            <Label className="text-muted-foreground">Zákazník</Label>
                             <Select value={data.customer_id} onValueChange={(v) => setData('customer_id', v)}>
-                                <SelectTrigger className="mt-1.5 bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/85">
+                                <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
                                     <SelectValue placeholder="Vyberte zákazníka" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-[#16140f] border-[#F5F0E8]/[0.06]">
+                                <SelectContent className="bg-card border-border">
                                     {customers.map((c) => (
                                         <SelectItem key={c.id} value={String(c.id)}>
                                             {c.company || c.name}
@@ -101,12 +101,12 @@ export default function NeniwebCreate({ customers, type: initialType }: Props) {
 
                         {/* Name */}
                         <div>
-                            <Label className="text-[#F5F0E8]/70">{isDomain ? 'Název domény' : 'Název hostingu'}</Label>
+                            <Label className="text-muted-foreground">{isDomain ? 'Název domény' : 'Název hostingu'}</Label>
                             <Input
                                 value={data.name}
                                 onChange={(e) => setData('name', e.target.value)}
                                 placeholder={isDomain ? 'example.cz' : 'Hosting example.cz'}
-                                className="mt-1.5 bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/85 placeholder:text-[#6B6560]"
+                                className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
                             />
                             {errors.name && <p className="mt-1 text-xs text-red-400">{errors.name}</p>}
                         </div>
@@ -114,34 +114,34 @@ export default function NeniwebCreate({ customers, type: initialType }: Props) {
                         {/* Provider / Server */}
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <Label className="text-[#F5F0E8]/70">{isDomain ? 'Registrár' : 'Poskytovatel'}</Label>
+                                <Label className="text-muted-foreground">{isDomain ? 'Registrár' : 'Poskytovatel'}</Label>
                                 <Input
                                     value={data.provider}
                                     onChange={(e) => setData('provider', e.target.value)}
                                     placeholder={isDomain ? 'WEDOS, Forpsi...' : 'WEDOS, VPS...'}
-                                    className="mt-1.5 bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/85 placeholder:text-[#6B6560]"
+                                    className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
                                 />
                             </div>
                             {!isDomain && (
                                 <div>
-                                    <Label className="text-[#F5F0E8]/70">Server</Label>
+                                    <Label className="text-muted-foreground">Server</Label>
                                     <Input
                                         value={data.server}
                                         onChange={(e) => setData('server', e.target.value)}
                                         placeholder="37.235.108.29"
-                                        className="mt-1.5 bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/85 placeholder:text-[#6B6560]"
+                                        className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
                                     />
                                 </div>
                             )}
                             {isDomain && (
                                 <div>
-                                    <Label className="text-[#F5F0E8]/70">Roční cena (Kč)</Label>
+                                    <Label className="text-muted-foreground">Roční cena (Kč)</Label>
                                     <Input
                                         type="number"
                                         value={data.price_yearly}
                                         onChange={(e) => setData('price_yearly', e.target.value)}
                                         placeholder="250"
-                                        className="mt-1.5 bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/85 placeholder:text-[#6B6560]"
+                                        className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
                                     />
                                 </div>
                             )}
@@ -149,13 +149,13 @@ export default function NeniwebCreate({ customers, type: initialType }: Props) {
 
                         {!isDomain && (
                             <div>
-                                <Label className="text-[#F5F0E8]/70">Roční cena (Kč)</Label>
+                                <Label className="text-muted-foreground">Roční cena (Kč)</Label>
                                 <Input
                                     type="number"
                                     value={data.price_yearly}
                                     onChange={(e) => setData('price_yearly', e.target.value)}
                                     placeholder="1200"
-                                    className="mt-1.5 bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/85 placeholder:text-[#6B6560]"
+                                    className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
                                 />
                             </div>
                         )}
@@ -163,20 +163,20 @@ export default function NeniwebCreate({ customers, type: initialType }: Props) {
                         {/* Dates */}
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <Label className="text-[#F5F0E8]/70">Začátek</Label>
+                                <Label className="text-muted-foreground">Začátek</Label>
                                 <Popover>
                                     <PopoverTrigger asChild>
                                         <Button
                                             variant="outline"
-                                            className="mt-1.5 w-full justify-start text-left bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/85 hover:bg-[#0f0e0c]"
+                                            className="mt-1.5 w-full justify-start text-left bg-muted border-border text-foreground hover:bg-muted"
                                         >
-                                            <CalendarIcon className="h-4 w-4 mr-2 text-[#6B6560]" />
+                                            <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground" />
                                             {data.starts_at
                                                 ? format(new Date(data.starts_at), 'd. M. yyyy', { locale: cs })
                                                 : 'Vyberte datum'}
                                         </Button>
                                     </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0 bg-[#16140f] border-[#F5F0E8]/[0.06]">
+                                    <PopoverContent className="w-auto p-0 bg-card border-border">
                                         <Calendar
                                             mode="single"
                                             selected={data.starts_at ? new Date(data.starts_at) : undefined}
@@ -187,20 +187,20 @@ export default function NeniwebCreate({ customers, type: initialType }: Props) {
                                 </Popover>
                             </div>
                             <div>
-                                <Label className="text-[#F5F0E8]/70">Expirace</Label>
+                                <Label className="text-muted-foreground">Expirace</Label>
                                 <Popover>
                                     <PopoverTrigger asChild>
                                         <Button
                                             variant="outline"
-                                            className="mt-1.5 w-full justify-start text-left bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/85 hover:bg-[#0f0e0c]"
+                                            className="mt-1.5 w-full justify-start text-left bg-muted border-border text-foreground hover:bg-muted"
                                         >
-                                            <CalendarIcon className="h-4 w-4 mr-2 text-[#6B6560]" />
+                                            <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground" />
                                             {data.expires_at
                                                 ? format(new Date(data.expires_at), 'd. M. yyyy', { locale: cs })
                                                 : 'Vyberte datum'}
                                         </Button>
                                     </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0 bg-[#16140f] border-[#F5F0E8]/[0.06]">
+                                    <PopoverContent className="w-auto p-0 bg-card border-border">
                                         <Calendar
                                             mode="single"
                                             selected={data.expires_at ? new Date(data.expires_at) : undefined}
@@ -220,15 +220,15 @@ export default function NeniwebCreate({ customers, type: initialType }: Props) {
                                     checked={data.auto_renew}
                                     onCheckedChange={(v) => setData('auto_renew', v)}
                                 />
-                                <Label className="text-[#F5F0E8]/70">Auto-renew</Label>
+                                <Label className="text-muted-foreground">Auto-renew</Label>
                             </div>
                             <div>
-                                <Label className="text-[#F5F0E8]/70">Stav</Label>
+                                <Label className="text-muted-foreground">Stav</Label>
                                 <Select value={data.status} onValueChange={(v) => setData('status', v)}>
-                                    <SelectTrigger className="mt-1.5 bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/85">
+                                    <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
                                         <SelectValue />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-[#16140f] border-[#F5F0E8]/[0.06]">
+                                    <SelectContent className="bg-card border-border">
                                         <SelectItem value="aktivni">Aktivní</SelectItem>
                                         <SelectItem value="neaktivni">Neaktivní</SelectItem>
                                         <SelectItem value="expirovana">Expirovaná</SelectItem>
@@ -239,12 +239,12 @@ export default function NeniwebCreate({ customers, type: initialType }: Props) {
 
                         {/* Notes */}
                         <div>
-                            <Label className="text-[#F5F0E8]/70">Poznámky</Label>
+                            <Label className="text-muted-foreground">Poznámky</Label>
                             <Textarea
                                 value={data.notes}
                                 onChange={(e) => setData('notes', e.target.value)}
                                 rows={3}
-                                className="mt-1.5 bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/85 placeholder:text-[#6B6560] resize-none"
+                                className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground resize-none"
                             />
                         </div>
 
@@ -253,14 +253,14 @@ export default function NeniwebCreate({ customers, type: initialType }: Props) {
                                 type="button"
                                 variant="ghost"
                                 onClick={() => router.visit('/neniweb')}
-                                className="text-[#9C9585]"
+                                className="text-muted-foreground"
                             >
                                 Zrušit
                             </Button>
                             <Button
                                 type="submit"
                                 disabled={processing}
-                                className="bg-[#D97706] hover:bg-[#B45309] text-white"
+                                className="bg-primary hover:bg-primary/80 text-white"
                             >
                                 Uložit
                             </Button>

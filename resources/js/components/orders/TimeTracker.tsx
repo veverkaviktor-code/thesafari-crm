@@ -103,8 +103,8 @@ export default function TimeTracker({
     };
 
     return (
-        <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-5">
-            <h3 className="mb-4 text-sm font-semibold text-[#F5F0E8]/70">
+        <div className="rounded-xl border border-border bg-card p-5">
+            <h3 className="mb-4 text-sm font-semibold text-foreground/70">
                 Sledování času
             </h3>
 
@@ -116,14 +116,14 @@ export default function TimeTracker({
                     className={cn(
                         'group flex h-24 w-24 items-center justify-center rounded-full border-2 transition-all',
                         isRunning
-                            ? 'animate-pulse border-[#D97706] bg-[#D97706]/10 hover:bg-[#D97706]/20'
-                            : 'border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04] hover:border-[#D97706] hover:bg-[#D97706]/10',
+                            ? 'animate-pulse border-primary bg-primary/10 hover:bg-primary/20'
+                            : 'border-border bg-accent hover:border-primary hover:bg-primary/10',
                     )}
                 >
                     {isRunning ? (
-                        <Pause className="h-8 w-8 text-[#D97706]" />
+                        <Pause className="h-8 w-8 text-primary" />
                     ) : (
-                        <Play className="h-8 w-8 text-[#9C9585] transition-colors group-hover:text-[#D97706]" />
+                        <Play className="h-8 w-8 text-muted-foreground transition-colors group-hover:text-primary" />
                     )}
                 </button>
 
@@ -132,13 +132,13 @@ export default function TimeTracker({
                     <p
                         className={cn(
                             'font-mono text-3xl font-bold',
-                            isRunning ? 'text-[#D97706]' : 'text-[#6B6560]',
+                            isRunning ? 'text-primary' : 'text-muted-foreground',
                         )}
                     >
                         {formatDuration(elapsed)}
                     </p>
                     {isRunning && (
-                        <p className="mt-1 text-xs text-[#6B6560]">
+                        <p className="mt-1 text-xs text-muted-foreground">
                             Probíhá měření...
                         </p>
                     )}
@@ -151,7 +151,7 @@ export default function TimeTracker({
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             placeholder="Popis práce..."
-                            className="border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]"
+                            className="border-border bg-accent"
                         />
                         <div className="relative w-28 shrink-0">
                             <Input
@@ -159,9 +159,9 @@ export default function TimeTracker({
                                 onChange={(e) => setHourlyRate(e.target.value)}
                                 type="number"
                                 min="0"
-                                className="border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04] pr-12"
+                                className="border-border bg-accent pr-12"
                             />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#6B6560]">
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                                 Kč/h
                             </span>
                         </div>
@@ -172,21 +172,21 @@ export default function TimeTracker({
             {/* Time entries list */}
             {timeEntries.length > 0 && (
                 <div className="space-y-2">
-                    <h4 className="text-xs font-medium text-[#6B6560]">
+                    <h4 className="text-xs font-medium text-muted-foreground">
                         Historie
                     </h4>
                     {timeEntries.map((entry) => (
                         <div
                             key={entry.id}
-                            className="flex items-center justify-between rounded-lg bg-white/[0.03] p-3"
+                            className="flex items-center justify-between rounded-lg bg-accent p-3"
                         >
                             <div className="flex items-center gap-3">
-                                <Clock className="h-3.5 w-3.5 shrink-0 text-[#6B6560]" />
+                                <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                                 <div>
-                                    <p className="text-sm text-[#F5F0E8]/70">
+                                    <p className="text-sm text-foreground/70">
                                         {entry.description || 'Bez popisu'}
                                     </p>
-                                    <p className="text-xs text-[#6B6560]">
+                                    <p className="text-xs text-muted-foreground">
                                         {new Date(
                                             entry.started_at,
                                         ).toLocaleDateString('cs-CZ')}{' '}
@@ -201,13 +201,13 @@ export default function TimeTracker({
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium text-white">
+                                <span className="text-sm font-medium text-foreground">
                                     {formatCurrency(entry.cost)}
                                 </span>
                                 <Button
                                     variant="ghost"
                                     size="icon-xs"
-                                    className="text-[#6B6560] hover:text-red-400"
+                                    className="text-muted-foreground hover:text-red-400"
                                     onClick={() => handleDelete(entry.id)}
                                 >
                                     <Trash2 className="h-3 w-3" />
@@ -219,18 +219,18 @@ export default function TimeTracker({
             )}
 
             {/* Totals */}
-            <div className="mt-4 space-y-2 border-t border-[#F5F0E8]/[0.05] pt-3">
+            <div className="mt-4 space-y-2 border-t border-border pt-3">
                 <div className="flex items-center justify-between">
-                    <span className="text-sm text-[#9C9585]">Celkem hodin</span>
-                    <span className="text-sm font-medium text-white">
+                    <span className="text-sm text-muted-foreground">Celkem hodin</span>
+                    <span className="text-sm font-medium text-foreground">
                         {formatHoursMinutes(totalTimeMinutes)}
                     </span>
                 </div>
                 <div className="flex items-center justify-between">
-                    <span className="text-sm text-[#9C9585]">
+                    <span className="text-sm text-muted-foreground">
                         Celkem za čas
                     </span>
-                    <span className="text-sm font-semibold text-[#D97706]">
+                    <span className="text-sm font-semibold text-primary">
                         {formatCurrency(totalTimeCost)}
                     </span>
                 </div>

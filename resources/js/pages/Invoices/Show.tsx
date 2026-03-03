@@ -102,7 +102,7 @@ export default function Show({ invoice, company }: Props) {
                 {/* Actions bar */}
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
-                        <h1 className="text-2xl font-semibold text-white">
+                        <h1 className="text-2xl font-semibold text-foreground">
                             {invoice.invoice_number}
                         </h1>
                         <InvoiceStatusBadge status={invoice.status} />
@@ -112,7 +112,7 @@ export default function Show({ invoice, company }: Props) {
                             asChild
                             variant="outline"
                             size="sm"
-                            className="border-[#F5F0E8]/[0.06] text-[#F5F0E8]/70 hover:text-[#F5F0E8]"
+                            className="border-border text-muted-foreground hover:text-foreground"
                         >
                             <a
                                 href={`/faktury/${invoice.id}/pdf`}
@@ -125,7 +125,7 @@ export default function Show({ invoice, company }: Props) {
                         <Button
                             variant="outline"
                             size="sm"
-                            className="border-[#F5F0E8]/[0.06] text-[#F5F0E8]/70 hover:text-[#F5F0E8]"
+                            className="border-border text-muted-foreground hover:text-foreground"
                             onClick={handleSendEmail}
                         >
                             <Mail className="h-4 w-4" />
@@ -145,7 +145,7 @@ export default function Show({ invoice, company }: Props) {
                             asChild
                             variant="ghost"
                             size="icon-sm"
-                            className="text-[#9C9585] hover:text-[#F5F0E8]"
+                            className="text-muted-foreground hover:text-foreground"
                         >
                             <Link href={`/faktury/${invoice.id}/upravit`}>
                                 <Pencil className="h-4 w-4" />
@@ -155,28 +155,28 @@ export default function Show({ invoice, company }: Props) {
                 </div>
 
                 {/* Invoice card */}
-                <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-8">
+                <div className="rounded-xl border border-border bg-card p-8">
                     {/* Header */}
                     <div className="flex items-start justify-between">
                         <div>
-                            <h2 className="text-xl font-bold text-white">
+                            <h2 className="text-xl font-bold text-foreground">
                                 FAKTURA
                             </h2>
-                            <p className="text-sm text-[#D97706]">
+                            <p className="text-sm text-primary">
                                 {invoice.invoice_number}
                             </p>
                         </div>
                         <div className="text-right">
-                            <p className="text-sm font-semibold text-white">
+                            <p className="text-sm font-semibold text-foreground">
                                 {co.name}
                             </p>
                             {co.street && (
-                                <p className="text-xs text-[#6B6560]">
+                                <p className="text-xs text-muted-foreground">
                                     {co.street}, {co.zip} {co.city}
                                 </p>
                             )}
                             {co.ico && (
-                                <p className="text-xs text-[#6B6560]">
+                                <p className="text-xs text-muted-foreground">
                                     IČO: {co.ico}
                                     {co.dic ? ` | DIČ: ${co.dic}` : ''}
                                 </p>
@@ -184,31 +184,31 @@ export default function Show({ invoice, company }: Props) {
                         </div>
                     </div>
 
-                    <Separator className="my-6 bg-[#F5F0E8]/[0.04]" />
+                    <Separator className="my-6 bg-border" />
 
                     {/* Customer + Dates */}
                     <div className="grid gap-6 md:grid-cols-2">
                         <div>
-                            <p className="mb-1 text-xs font-medium text-[#6B6560]">
+                            <p className="mb-1 text-xs font-medium text-muted-foreground">
                                 ODBĚRATEL
                             </p>
-                            <p className="text-sm font-semibold text-white">
+                            <p className="text-sm font-semibold text-foreground">
                                 {invoice.customer.name}
                             </p>
                             {invoice.customer.company && (
-                                <p className="text-xs text-[#9C9585]">
+                                <p className="text-xs text-muted-foreground">
                                     {invoice.customer.company}
                                 </p>
                             )}
                             {invoice.customer.billing_street && (
-                                <p className="text-xs text-[#6B6560]">
+                                <p className="text-xs text-muted-foreground">
                                     {invoice.customer.billing_street},{' '}
                                     {invoice.customer.billing_zip}{' '}
                                     {invoice.customer.billing_city}
                                 </p>
                             )}
                             {invoice.customer.ico && (
-                                <p className="text-xs text-[#6B6560]">
+                                <p className="text-xs text-muted-foreground">
                                     IČO: {invoice.customer.ico}
                                     {invoice.customer.dic
                                         ? ` | DIČ: ${invoice.customer.dic}`
@@ -218,34 +218,34 @@ export default function Show({ invoice, company }: Props) {
                         </div>
                         <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
-                                <span className="text-[#6B6560]">
+                                <span className="text-muted-foreground">
                                     Datum vystavení
                                 </span>
-                                <span className="text-[#F5F0E8]/70">
+                                <span className="text-muted-foreground">
                                     {formatDate(invoice.issue_date)}
                                 </span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-[#6B6560]">
+                                <span className="text-muted-foreground">
                                     Datum splatnosti
                                 </span>
-                                <span className="text-[#F5F0E8]/70">
+                                <span className="text-muted-foreground">
                                     {formatDate(invoice.due_date)}
                                 </span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-[#6B6560]">
+                                <span className="text-muted-foreground">
                                     Variabilní symbol
                                 </span>
-                                <span className="text-[#F5F0E8]/70">
+                                <span className="text-muted-foreground">
                                     {invoice.variable_symbol}
                                 </span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-[#6B6560]">
+                                <span className="text-muted-foreground">
                                     Způsob platby
                                 </span>
-                                <span className="text-[#F5F0E8]/70">
+                                <span className="text-muted-foreground">
                                     {invoice.payment_method === 'banka'
                                         ? 'Bankovní převod'
                                         : 'Hotovost'}
@@ -253,10 +253,10 @@ export default function Show({ invoice, company }: Props) {
                             </div>
                             {co.bank_account && (
                                 <div className="flex justify-between">
-                                    <span className="text-[#6B6560]">
+                                    <span className="text-muted-foreground">
                                         Číslo účtu
                                     </span>
-                                    <span className="text-[#F5F0E8]/70">
+                                    <span className="text-muted-foreground">
                                         {co.bank_account}
                                     </span>
                                 </div>
@@ -264,12 +264,12 @@ export default function Show({ invoice, company }: Props) {
                         </div>
                     </div>
 
-                    <Separator className="my-6 bg-[#F5F0E8]/[0.04]" />
+                    <Separator className="my-6 bg-border" />
 
                     {/* Items table */}
                     <table className="w-full text-sm">
                         <thead>
-                            <tr className="border-b border-[#F5F0E8]/[0.05] text-left text-xs text-[#6B6560]">
+                            <tr className="border-b border-border text-left text-xs text-muted-foreground">
                                 <th className="pb-2 font-medium">Popis</th>
                                 <th className="pb-2 text-right font-medium">
                                     Množství
@@ -286,18 +286,18 @@ export default function Show({ invoice, company }: Props) {
                             {invoice.items.map((item) => (
                                 <tr
                                     key={item.id}
-                                    className="border-b border-[#F5F0E8]/[0.05]"
+                                    className="border-b border-border"
                                 >
-                                    <td className="py-3 text-[#F5F0E8]/70">
+                                    <td className="py-3 text-muted-foreground">
                                         {item.description}
                                     </td>
-                                    <td className="py-3 text-right text-[#9C9585]">
+                                    <td className="py-3 text-right text-muted-foreground">
                                         {item.quantity} {item.unit}
                                     </td>
-                                    <td className="py-3 text-right text-[#9C9585]">
+                                    <td className="py-3 text-right text-muted-foreground">
                                         {formatCurrency(item.unit_price)}
                                     </td>
-                                    <td className="py-3 text-right font-medium text-[#F5F0E8]/70">
+                                    <td className="py-3 text-right font-medium text-muted-foreground">
                                         {formatCurrency(item.total_price)}
                                     </td>
                                 </tr>
@@ -309,17 +309,17 @@ export default function Show({ invoice, company }: Props) {
                     <div className="mt-4 flex justify-end">
                         <div className="w-48 space-y-1">
                             <div className="flex justify-between text-sm">
-                                <span className="text-[#6B6560]">Základ</span>
-                                <span className="text-[#F5F0E8]/70">
+                                <span className="text-muted-foreground">Základ</span>
+                                <span className="text-muted-foreground">
                                     {formatCurrency(invoice.total)}
                                 </span>
                             </div>
-                            <Separator className="bg-[#F5F0E8]/[0.04]" />
+                            <Separator className="bg-border" />
                             <div className="flex justify-between">
-                                <span className="text-sm font-medium text-[#9C9585]">
+                                <span className="text-sm font-medium text-muted-foreground">
                                     Celkem
                                 </span>
-                                <span className="text-lg font-bold text-[#D97706]">
+                                <span className="text-lg font-bold text-primary">
                                     {formatCurrency(invoice.total)}
                                 </span>
                             </div>
@@ -329,8 +329,8 @@ export default function Show({ invoice, company }: Props) {
                     {/* Notes */}
                     {invoice.notes && (
                         <>
-                            <Separator className="my-6 bg-[#F5F0E8]/[0.04]" />
-                            <p className="text-xs text-[#6B6560]">
+                            <Separator className="my-6 bg-border" />
+                            <p className="text-xs text-muted-foreground">
                                 {invoice.notes}
                             </p>
                         </>
@@ -339,12 +339,12 @@ export default function Show({ invoice, company }: Props) {
                     {/* Linked order */}
                     {invoice.order && (
                         <>
-                            <Separator className="my-6 bg-[#F5F0E8]/[0.04]" />
-                            <p className="text-xs text-[#6B6560]">
+                            <Separator className="my-6 bg-border" />
+                            <p className="text-xs text-muted-foreground">
                                 Zakázka:{' '}
                                 <Link
                                     href={`/zakazky/${invoice.order.id}`}
-                                    className="text-[#D97706] hover:underline"
+                                    className="text-primary hover:underline"
                                 >
                                     {invoice.order.title}
                                 </Link>

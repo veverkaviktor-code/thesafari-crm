@@ -52,15 +52,15 @@ export default function CustomerMiniDashboard({ stats }: Props) {
     ];
 
     return (
-        <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-5">
-            <h3 className="mb-4 text-sm font-semibold text-[#F5F0E8]/70">
+        <div className="rounded-xl border border-border bg-card p-5">
+            <h3 className="mb-4 text-sm font-semibold text-foreground/70">
                 Přehled
             </h3>
             <div className="grid grid-cols-2 gap-3">
                 {items.map((item) => (
                     <div
                         key={item.label}
-                        className="rounded-lg bg-white/[0.03] p-3"
+                        className="rounded-lg bg-accent p-3"
                     >
                         <div className="flex items-center gap-2">
                             <div
@@ -74,10 +74,10 @@ export default function CustomerMiniDashboard({ stats }: Props) {
                                 />
                             </div>
                         </div>
-                        <p className="mt-2 text-lg font-semibold text-white">
+                        <p className="mt-2 text-lg font-semibold text-foreground">
                             {item.value}
                         </p>
-                        <p className="text-xs text-[#6B6560]">{item.label}</p>
+                        <p className="text-xs text-muted-foreground">{item.label}</p>
                     </div>
                 ))}
             </div>

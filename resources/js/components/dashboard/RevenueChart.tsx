@@ -71,17 +71,17 @@ export default function RevenueChart({ data }: Props) {
     const chartData = (data ?? demoData)[period];
 
     return (
-        <div className="h-full flex flex-col rounded-xl border border-[#F5F0E8]/[0.06] bg-gradient-to-br from-[#16140f] to-[#1a1508] p-5">
+        <div className="h-full flex flex-col rounded-xl border border-border bg-card p-5">
             <div className="mb-4 flex items-center justify-between">
                 <div>
-                    <h3 className="text-sm font-semibold text-[#9C9585]">
+                    <h3 className="text-sm font-semibold text-muted-foreground">
                         Příjmy vs Náklady
                     </h3>
-                    <p className="mt-0.5 text-xs text-[#6B6560]">
+                    <p className="mt-0.5 text-xs text-muted-foreground">
                         Přehled financí za období
                     </p>
                 </div>
-                <div className="flex gap-1 rounded-lg bg-[#F5F0E8]/[0.04] p-1">
+                <div className="flex gap-1 rounded-lg bg-accent p-1">
                     {periods.map((p) => (
                         <button
                             key={p.value}
@@ -89,8 +89,8 @@ export default function RevenueChart({ data }: Props) {
                             className={cn(
                                 'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
                                 period === p.value
-                                    ? 'bg-[#D97706] text-white'
-                                    : 'text-[#9C9585] hover:text-[#F5F0E8]',
+                                    ? 'bg-primary text-white'
+                                    : 'text-muted-foreground hover:text-foreground',
                             )}
                         >
                             {p.label}
@@ -102,12 +102,12 @@ export default function RevenueChart({ data }: Props) {
             {/* Legend */}
             <div className="mb-3 flex gap-4">
                 <div className="flex items-center gap-1.5">
-                    <div className="h-2 w-2 rounded-full bg-[#D97706]" />
-                    <span className="text-xs text-[#9C9585]">Příjmy</span>
+                    <div className="h-2 w-2 rounded-full bg-primary" />
+                    <span className="text-xs text-muted-foreground">Příjmy</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                    <div className="h-2 w-2 rounded-full bg-[#6B6560]" />
-                    <span className="text-xs text-[#9C9585]">Náklady</span>
+                    <div className="h-2 w-2 rounded-full bg-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">Náklady</span>
                 </div>
             </div>
 
@@ -124,12 +124,12 @@ export default function RevenueChart({ data }: Props) {
                             >
                                 <stop
                                     offset="0%"
-                                    stopColor="#D97706"
+                                    stopColor="var(--primary)"
                                     stopOpacity={0.25}
                                 />
                                 <stop
                                     offset="100%"
-                                    stopColor="#D97706"
+                                    stopColor="var(--primary)"
                                     stopOpacity={0}
                                 />
                             </linearGradient>
@@ -142,29 +142,29 @@ export default function RevenueChart({ data }: Props) {
                             >
                                 <stop
                                     offset="0%"
-                                    stopColor="#6B6560"
+                                    stopColor="var(--muted-foreground)"
                                     stopOpacity={0.15}
                                 />
                                 <stop
                                     offset="100%"
-                                    stopColor="#6B6560"
+                                    stopColor="var(--muted-foreground)"
                                     stopOpacity={0}
                                 />
                             </linearGradient>
                         </defs>
                         <CartesianGrid
-                            stroke="#F5F0E808"
+                            stroke="var(--border)"
                             strokeDasharray="3 3"
                             vertical={false}
                         />
                         <XAxis
                             dataKey="month"
-                            tick={{ fill: '#6B6560', fontSize: 12 }}
+                            tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
                             axisLine={false}
                             tickLine={false}
                         />
                         <YAxis
-                            tick={{ fill: '#6B6560', fontSize: 12 }}
+                            tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
                             axisLine={false}
                             tickLine={false}
                             tickFormatter={(v) =>
@@ -174,29 +174,29 @@ export default function RevenueChart({ data }: Props) {
                         />
                         <Tooltip
                             contentStyle={{
-                                backgroundColor: '#16140f',
-                                border: '1px solid rgba(245,240,232,0.08)',
+                                backgroundColor: 'var(--card)',
+                                border: '1px solid var(--border)',
                                 borderRadius: '10px',
-                                color: '#F5F0E8',
+                                color: 'var(--foreground)',
                                 fontSize: '13px',
                             }}
                             formatter={(value: number, name: string) => [
                                 formatCurrency(value),
                                 name === 'revenue' ? 'Příjmy' : 'Náklady',
                             ]}
-                            labelStyle={{ color: '#9C9585', marginBottom: 4 }}
+                            labelStyle={{ color: 'var(--muted-foreground)', marginBottom: 4 }}
                         />
                         <Area
                             type="monotone"
                             dataKey="revenue"
-                            stroke="#D97706"
+                            stroke="var(--primary)"
                             strokeWidth={2}
                             fill="url(#revenueGradient)"
                         />
                         <Area
                             type="monotone"
                             dataKey="costs"
-                            stroke="#6B6560"
+                            stroke="var(--muted-foreground)"
                             strokeWidth={2}
                             fill="url(#costsGradient)"
                         />

@@ -63,8 +63,8 @@ export default function Profile({ user }: Props) {
     return (
         <div className="space-y-6">
             {/* Profile info */}
-            <div className="bg-[#16140f] rounded-xl border border-[#F5F0E8]/[0.05] p-6">
-                <h2 className="text-lg font-semibold text-[#F5F0E8] mb-4">Osobní údaje</h2>
+            <div className="bg-card rounded-xl border border-border p-6">
+                <h2 className="text-lg font-semibold text-foreground mb-4">Osobní údaje</h2>
                 <form onSubmit={handleProfileSubmit} className="space-y-5">
                     {/* Avatar */}
                     <div className="flex items-center gap-4">
@@ -76,8 +76,8 @@ export default function Profile({ user }: Props) {
                                     className="h-20 w-20 rounded-full object-cover"
                                 />
                             ) : (
-                                <div className="h-20 w-20 rounded-full bg-[#D97706]/20 flex items-center justify-center">
-                                    <span className="text-xl font-semibold text-[#D97706]">{initials}</span>
+                                <div className="h-20 w-20 rounded-full bg-primary/20 flex items-center justify-center">
+                                    <span className="text-xl font-semibold text-primary">{initials}</span>
                                 </div>
                             )}
                             <label className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
@@ -91,30 +91,30 @@ export default function Profile({ user }: Props) {
                             </label>
                         </div>
                         <div>
-                            <p className="text-sm font-medium text-[#F5F0E8]/90">{user.name}</p>
-                            <p className="text-xs text-[#6B6560]">{user.email}</p>
+                            <p className="text-sm font-medium text-foreground">{user.name}</p>
+                            <p className="text-xs text-muted-foreground">{user.email}</p>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <Label className="text-[#9C9585]">Jméno</Label>
+                            <Label className="text-muted-foreground">Jméno</Label>
                             <Input
                                 value={profileForm.data.name}
                                 onChange={(e) => profileForm.setData('name', e.target.value)}
-                                className="mt-1.5 bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/90"
+                                className="mt-1.5 bg-muted border-border text-foreground"
                             />
                             {profileForm.errors.name && (
                                 <p className="mt-1 text-xs text-red-400">{profileForm.errors.name}</p>
                             )}
                         </div>
                         <div>
-                            <Label className="text-[#9C9585]">E-mail</Label>
+                            <Label className="text-muted-foreground">E-mail</Label>
                             <Input
                                 type="email"
                                 value={profileForm.data.email}
                                 onChange={(e) => profileForm.setData('email', e.target.value)}
-                                className="mt-1.5 bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/90"
+                                className="mt-1.5 bg-muted border-border text-foreground"
                             />
                             {profileForm.errors.email && (
                                 <p className="mt-1 text-xs text-red-400">{profileForm.errors.email}</p>
@@ -126,7 +126,7 @@ export default function Profile({ user }: Props) {
                         <Button
                             type="submit"
                             disabled={profileForm.processing}
-                            className="bg-[#D97706] hover:bg-[#B45309] text-white"
+                            className="bg-primary hover:bg-primary/80 text-white"
                         >
                             Uložit profil
                         </Button>
@@ -135,16 +135,16 @@ export default function Profile({ user }: Props) {
             </div>
 
             {/* Password change */}
-            <div className="bg-[#16140f] rounded-xl border border-[#F5F0E8]/[0.05] p-6">
-                <h2 className="text-lg font-semibold text-[#F5F0E8] mb-4">Změna hesla</h2>
+            <div className="bg-card rounded-xl border border-border p-6">
+                <h2 className="text-lg font-semibold text-foreground mb-4">Změna hesla</h2>
                 <form onSubmit={handlePasswordSubmit} className="space-y-5">
                     <div>
-                        <Label className="text-[#9C9585]">Současné heslo</Label>
+                        <Label className="text-muted-foreground">Současné heslo</Label>
                         <Input
                             type="password"
                             value={passwordForm.data.current_password}
                             onChange={(e) => passwordForm.setData('current_password', e.target.value)}
-                            className="mt-1.5 bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/90"
+                            className="mt-1.5 bg-muted border-border text-foreground"
                         />
                         {passwordForm.errors.current_password && (
                             <p className="mt-1 text-xs text-red-400">{passwordForm.errors.current_password}</p>
@@ -153,24 +153,24 @@ export default function Profile({ user }: Props) {
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <Label className="text-[#9C9585]">Nové heslo</Label>
+                            <Label className="text-muted-foreground">Nové heslo</Label>
                             <Input
                                 type="password"
                                 value={passwordForm.data.password}
                                 onChange={(e) => passwordForm.setData('password', e.target.value)}
-                                className="mt-1.5 bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/90"
+                                className="mt-1.5 bg-muted border-border text-foreground"
                             />
                             {passwordForm.errors.password && (
                                 <p className="mt-1 text-xs text-red-400">{passwordForm.errors.password}</p>
                             )}
                         </div>
                         <div>
-                            <Label className="text-[#9C9585]">Potvrzení hesla</Label>
+                            <Label className="text-muted-foreground">Potvrzení hesla</Label>
                             <Input
                                 type="password"
                                 value={passwordForm.data.password_confirmation}
                                 onChange={(e) => passwordForm.setData('password_confirmation', e.target.value)}
-                                className="mt-1.5 bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/90"
+                                className="mt-1.5 bg-muted border-border text-foreground"
                             />
                         </div>
                     </div>
@@ -179,7 +179,7 @@ export default function Profile({ user }: Props) {
                         <Button
                             type="submit"
                             disabled={passwordForm.processing}
-                            className="bg-[#D97706] hover:bg-[#B45309] text-white"
+                            className="bg-primary hover:bg-primary/80 text-white"
                         >
                             Změnit heslo
                         </Button>

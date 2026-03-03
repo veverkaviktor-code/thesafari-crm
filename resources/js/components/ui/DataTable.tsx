@@ -61,18 +61,18 @@ export default function DataTable<T>({
     emptyMessage = 'Žádné záznamy',
 }: DataTableProps<T>) {
     return (
-        <div className="rounded-xl border border-[#F5F0E8]/[0.06] bg-gradient-to-br from-[#16140f] to-[#141414]">
+        <div className="rounded-xl border border-border bg-card">
             {/* Toolbar */}
             {(onSearchChange || toolbar) && (
-                <div className="flex items-center gap-3 border-b border-[#F5F0E8]/[0.06] p-4">
+                <div className="flex items-center gap-3 border-b border-border p-4">
                     {onSearchChange && (
                         <div className="relative w-full max-w-sm">
-                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B6560]" />
+                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 value={searchValue ?? ''}
                                 onChange={(e) => onSearchChange(e.target.value)}
                                 placeholder={searchPlaceholder}
-                                className="border-[#F5F0E8]/[0.06] bg-[#0f0e0c] pl-9 text-[#F5F0E8] placeholder:text-[#6B6560] focus-visible:ring-[#D97706]/30"
+                                className="border-border bg-muted pl-9 text-foreground placeholder:text-muted-foreground focus-visible:ring-ring/30"
                             />
                         </div>
                     )}
@@ -83,13 +83,13 @@ export default function DataTable<T>({
             {/* Table */}
             <Table>
                 <TableHeader>
-                    <TableRow className="border-[#F5F0E8]/[0.06] hover:bg-transparent">
+                    <TableRow className="border-border hover:bg-transparent">
                         {columns.map((col) => (
                             <TableHead
                                 key={col.key}
                                 className={cn(
-                                    'text-[#6B6560]',
-                                    col.sortable && 'cursor-pointer select-none hover:text-[#9C9585]',
+                                    'text-muted-foreground',
+                                    col.sortable && 'cursor-pointer select-none hover:text-foreground',
                                     col.className,
                                 )}
                                 onClick={
@@ -116,7 +116,7 @@ export default function DataTable<T>({
                         <TableRow className="hover:bg-transparent">
                             <TableCell
                                 colSpan={columns.length}
-                                className="h-32 text-center text-[#6B6560]"
+                                className="h-32 text-center text-muted-foreground"
                             >
                                 {emptyMessage}
                             </TableCell>
@@ -126,9 +126,9 @@ export default function DataTable<T>({
                             <TableRow
                                 key={i}
                                 className={cn(
-                                    'border-[#F5F0E8]/[0.04]',
+                                    'border-border',
                                     onRowClick &&
-                                        'cursor-pointer hover:bg-[#F5F0E8]/[0.03]',
+                                        'cursor-pointer hover:bg-accent',
                                 )}
                                 onClick={
                                     onRowClick
@@ -152,8 +152,8 @@ export default function DataTable<T>({
 
             {/* Pagination */}
             {pagination && pagination.last_page > 1 && (
-                <div className="flex items-center justify-between border-t border-[#F5F0E8]/[0.06] px-4 py-3">
-                    <span className="text-sm text-[#6B6560]">
+                <div className="flex items-center justify-between border-t border-border px-4 py-3">
+                    <span className="text-sm text-muted-foreground">
                         {pagination.from}–{pagination.to} z {pagination.total}
                     </span>
                     <div className="flex items-center gap-1">
@@ -164,7 +164,7 @@ export default function DataTable<T>({
                             onClick={() =>
                                 onPageChange?.(pagination.current_page - 1)
                             }
-                            className="text-[#9C9585] hover:text-[#F5F0E8]"
+                            className="text-muted-foreground hover:text-foreground"
                         >
                             <ChevronLeft className="h-4 w-4" />
                         </Button>
@@ -175,7 +175,7 @@ export default function DataTable<T>({
                             page === null ? (
                                 <span
                                     key={`dots-${idx}`}
-                                    className="px-1 text-[#6B6560]"
+                                    className="px-1 text-muted-foreground"
                                 >
                                     ...
                                 </span>
@@ -186,9 +186,9 @@ export default function DataTable<T>({
                                     size="icon-sm"
                                     onClick={() => onPageChange?.(page)}
                                     className={cn(
-                                        'text-[#9C9585] hover:text-[#F5F0E8]',
+                                        'text-muted-foreground hover:text-foreground',
                                         page === pagination.current_page &&
-                                            'bg-[#F5F0E8]/[0.06] text-[#F5F0E8]',
+                                            'bg-accent text-foreground',
                                     )}
                                 >
                                     {page}
@@ -205,7 +205,7 @@ export default function DataTable<T>({
                             onClick={() =>
                                 onPageChange?.(pagination.current_page + 1)
                             }
-                            className="text-[#9C9585] hover:text-[#F5F0E8]"
+                            className="text-muted-foreground hover:text-foreground"
                         >
                             <ChevronRight className="h-4 w-4" />
                         </Button>
@@ -225,9 +225,9 @@ function SortIcon({
 }) {
     if (!active) return <ArrowUpDown className="h-3 w-3 opacity-30" />;
     return direction === 'asc' ? (
-        <ArrowUp className="h-3 w-3 text-[#D97706]" />
+        <ArrowUp className="h-3 w-3 text-primary" />
     ) : (
-        <ArrowDown className="h-3 w-3 text-[#D97706]" />
+        <ArrowDown className="h-3 w-3 text-primary" />
     );
 }
 

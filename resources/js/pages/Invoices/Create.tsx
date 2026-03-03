@@ -128,14 +128,14 @@ export default function Create({
                     {/* Left: Form */}
                     <div className="space-y-6 lg:col-span-2">
                         {/* Basic info */}
-                        <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-6">
-                            <h3 className="mb-4 text-sm font-semibold text-[#F5F0E8]/70">
+                        <div className="rounded-xl border border-border bg-card p-6">
+                            <h3 className="mb-4 text-sm font-semibold text-muted-foreground">
                                 Základní údaje
                             </h3>
                             <div className="grid gap-4 md:grid-cols-2">
                                 {/* Customer */}
                                 <div className="space-y-1.5">
-                                    <Label className="text-[#9C9585]">
+                                    <Label className="text-muted-foreground">
                                         Zákazník *
                                     </Label>
                                     <Select
@@ -145,15 +145,15 @@ export default function Create({
                                             setData('order_id', '');
                                         }}
                                     >
-                                        <SelectTrigger className="w-full border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]">
+                                        <SelectTrigger className="w-full border-border bg-accent">
                                             <SelectValue placeholder="Vyberte zákazníka..." />
                                         </SelectTrigger>
-                                        <SelectContent className="border-[#F5F0E8]/[0.06] bg-[#16140f]">
+                                        <SelectContent className="border-border bg-card">
                                             {customers.map((c) => (
                                                 <SelectItem
                                                     key={c.id}
                                                     value={String(c.id)}
-                                                    className="focus:bg-[#F5F0E8]/[0.04]"
+                                                    className="focus:bg-accent"
                                                 >
                                                     {c.name}
                                                     {c.company
@@ -168,7 +168,7 @@ export default function Create({
 
                                 {/* Order (optional) */}
                                 <div className="space-y-1.5">
-                                    <Label className="text-[#9C9585]">
+                                    <Label className="text-muted-foreground">
                                         Zakázka (volitelné)
                                     </Label>
                                     <Select
@@ -177,15 +177,15 @@ export default function Create({
                                             setData('order_id', v)
                                         }
                                     >
-                                        <SelectTrigger className="w-full border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]">
+                                        <SelectTrigger className="w-full border-border bg-accent">
                                             <SelectValue placeholder="Bez zakázky" />
                                         </SelectTrigger>
-                                        <SelectContent className="border-[#F5F0E8]/[0.06] bg-[#16140f]">
+                                        <SelectContent className="border-border bg-card">
                                             {filteredOrders.map((o) => (
                                                 <SelectItem
                                                     key={o.id}
                                                     value={String(o.id)}
-                                                    className="focus:bg-[#F5F0E8]/[0.04]"
+                                                    className="focus:bg-accent"
                                                 >
                                                     {o.title}
                                                 </SelectItem>
@@ -196,7 +196,7 @@ export default function Create({
 
                                 {/* Issue date */}
                                 <div className="space-y-1.5">
-                                    <Label className="text-[#9C9585]">
+                                    <Label className="text-muted-foreground">
                                         Datum vystavení
                                     </Label>
                                     <Popover>
@@ -204,12 +204,12 @@ export default function Create({
                                             <Button
                                                 variant="outline"
                                                 className={cn(
-                                                    'w-full justify-start border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04] text-left font-normal',
+                                                    'w-full justify-start border-border bg-accent text-left font-normal',
                                                     !data.issue_date &&
-                                                        'text-[#6B6560]',
+                                                        'text-muted-foreground',
                                                 )}
                                             >
-                                                <CalendarIcon className="mr-2 h-4 w-4 text-[#6B6560]" />
+                                                <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
                                                 {issueDateObj
                                                     ? format(
                                                           issueDateObj,
@@ -220,7 +220,7 @@ export default function Create({
                                             </Button>
                                         </PopoverTrigger>
                                         <PopoverContent
-                                            className="w-auto border-[#F5F0E8]/[0.06] bg-[#16140f] p-0"
+                                            className="w-auto border-border bg-card p-0"
                                             align="start"
                                         >
                                             <Calendar
@@ -246,7 +246,7 @@ export default function Create({
 
                                 {/* Due date */}
                                 <div className="space-y-1.5">
-                                    <Label className="text-[#9C9585]">
+                                    <Label className="text-muted-foreground">
                                         Datum splatnosti
                                     </Label>
                                     <Popover>
@@ -254,12 +254,12 @@ export default function Create({
                                             <Button
                                                 variant="outline"
                                                 className={cn(
-                                                    'w-full justify-start border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04] text-left font-normal',
+                                                    'w-full justify-start border-border bg-accent text-left font-normal',
                                                     !data.due_date &&
-                                                        'text-[#6B6560]',
+                                                        'text-muted-foreground',
                                                 )}
                                             >
-                                                <CalendarIcon className="mr-2 h-4 w-4 text-[#6B6560]" />
+                                                <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
                                                 {dueDateObj
                                                     ? format(
                                                           dueDateObj,
@@ -270,7 +270,7 @@ export default function Create({
                                             </Button>
                                         </PopoverTrigger>
                                         <PopoverContent
-                                            className="w-auto border-[#F5F0E8]/[0.06] bg-[#16140f] p-0"
+                                            className="w-auto border-border bg-card p-0"
                                             align="start"
                                         >
                                             <Calendar
@@ -296,7 +296,7 @@ export default function Create({
 
                                 {/* Payment method */}
                                 <div className="space-y-1.5">
-                                    <Label className="text-[#9C9585]">
+                                    <Label className="text-muted-foreground">
                                         Způsob platby
                                     </Label>
                                     <Select
@@ -305,19 +305,19 @@ export default function Create({
                                             setData('payment_method', v)
                                         }
                                     >
-                                        <SelectTrigger className="w-full border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]">
+                                        <SelectTrigger className="w-full border-border bg-accent">
                                             <SelectValue />
                                         </SelectTrigger>
-                                        <SelectContent className="border-[#F5F0E8]/[0.06] bg-[#16140f]">
+                                        <SelectContent className="border-border bg-card">
                                             <SelectItem
                                                 value="banka"
-                                                className="focus:bg-[#F5F0E8]/[0.04]"
+                                                className="focus:bg-accent"
                                             >
                                                 Bankovní převod
                                             </SelectItem>
                                             <SelectItem
                                                 value="hotovost"
-                                                className="focus:bg-[#F5F0E8]/[0.04]"
+                                                className="focus:bg-accent"
                                             >
                                                 Hotovost
                                             </SelectItem>
@@ -327,7 +327,7 @@ export default function Create({
 
                                 {/* Notes */}
                                 <div className="space-y-1.5 md:col-span-2">
-                                    <Label className="text-[#9C9585]">
+                                    <Label className="text-muted-foreground">
                                         Poznámky
                                     </Label>
                                     <Textarea
@@ -336,7 +336,7 @@ export default function Create({
                                             setData('notes', e.target.value)
                                         }
                                         placeholder="Poznámky k faktuře..."
-                                        className="min-h-16 border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]"
+                                        className="min-h-16 border-border bg-accent"
                                     />
                                 </div>
                             </div>
@@ -353,19 +353,19 @@ export default function Create({
                             <Button
                                 type="button"
                                 variant="ghost"
-                                className="text-[#9C9585] hover:text-[#F5F0E8]"
+                                className="text-muted-foreground hover:text-foreground"
                                 onClick={() => window.history.back()}
                             >
                                 Zrušit
                             </Button>
                             <Separator
                                 orientation="vertical"
-                                className="h-6 bg-white/10"
+                                className="h-6 bg-border"
                             />
                             <Button
                                 type="submit"
                                 disabled={processing}
-                                className="bg-[#D97706] text-white hover:bg-[#B45309]"
+                                className="bg-primary text-white hover:bg-primary/80"
                             >
                                 {processing
                                     ? 'Vystavuji...'

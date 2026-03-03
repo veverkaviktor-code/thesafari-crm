@@ -7,7 +7,7 @@ interface NotificationBellProps {
 export default function NotificationBell({ count = 0 }: NotificationBellProps) {
     return (
         <button
-            className="relative rounded-lg p-2 text-[#9C9585] transition-colors hover:bg-white/5 hover:text-[#F5F0E8]"
+            className="relative rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             aria-label="Notifikace"
         >
             <Bell className="h-5 w-5" />

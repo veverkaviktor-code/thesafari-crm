@@ -51,21 +51,21 @@ export default function Sidebar() {
         <TooltipProvider>
             <aside
                 className={cn(
-                    'flex h-screen flex-col border-r border-[#F5F0E8]/[0.05] bg-[#0f0e0c] transition-all duration-300 ease-in-out',
+                    'flex h-screen flex-col border-r border-border bg-background transition-all duration-300 ease-in-out',
                     collapsed ? 'w-[68px]' : 'w-[240px]',
                 )}
             >
                 {/* Logo + collapse button */}
                 <div className={cn(
-                    'flex h-16 items-center border-b border-[#F5F0E8]/[0.05]',
+                    'flex h-16 items-center border-b border-border',
                     collapsed ? 'justify-center px-0' : 'px-4'
                 )}>
                     {!collapsed && (
                         <div className="flex flex-1 items-center gap-3 overflow-hidden">
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#D97706] text-sm font-bold text-white">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
                                 S
                             </div>
-                            <span className="whitespace-nowrap text-sm font-semibold text-[#F5F0E8]">
+                            <span className="whitespace-nowrap text-sm font-semibold text-foreground">
                                 The Safari HQ
                             </span>
                         </div>
@@ -73,7 +73,7 @@ export default function Sidebar() {
                     <button
                         onClick={() => setCollapsed(!collapsed)}
                         className={cn(
-                            'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#F5F0E8]/[0.08] bg-[#F5F0E8]/[0.04] text-[#9C9585] transition-colors hover:bg-[#F5F0E8]/[0.08] hover:text-[#F5F0E8]',
+                            'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-accent text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
                         )}
                         title={collapsed ? 'Rozbalit' : 'Sbalit'}
                     >
@@ -98,7 +98,7 @@ export default function Sidebar() {
                 </nav>
 
                 {/* Bottom section */}
-                <div className="space-y-0.5 border-t border-[#F5F0E8]/[0.05] px-3 py-4">
+                <div className="space-y-0.5 border-t border-border px-3 py-4">
                     {bottomNav.map((item) => (
                         <NavLink
                             key={item.href}
@@ -130,13 +130,13 @@ function NavLink({
             className={cn(
                 'group relative flex h-9 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors',
                 active
-                    ? 'bg-[#F5F0E8]/[0.06] text-[#F5F0E8]'
-                    : 'text-[#9C9585] hover:bg-[#F5F0E8]/[0.04] hover:text-[#F5F0E8]',
+                    ? 'bg-accent text-foreground'
+                    : 'text-muted-foreground hover:bg-accent hover:text-foreground',
             )}
         >
             {/* Active indicator */}
             {active && (
-                <span className="absolute -left-3 top-1.5 h-5 w-0.5 rounded-r bg-[#D97706]" />
+                <span className="absolute -left-3 top-1.5 h-5 w-0.5 rounded-r bg-primary" />
             )}
             <Icon className="h-4 w-4 shrink-0" />
             <span

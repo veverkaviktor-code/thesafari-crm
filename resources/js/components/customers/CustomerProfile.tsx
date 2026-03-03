@@ -82,11 +82,11 @@ export default function CustomerProfile({ customer }: Props) {
           );
 
     return (
-        <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] overflow-hidden">
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
             {/* Banner + Avatar */}
-            <div className="relative h-24 bg-gradient-to-r from-[#D97706]/20 via-[#1a1a22] to-[#1a1a22]">
+            <div className="relative h-24 bg-gradient-to-r from-primary/20 via-[#1a1a22] to-[#1a1a22]">
                 <div className="absolute -bottom-8 left-6">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-[#1a1a22] bg-[#D97706] text-xl font-bold text-white">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-[#1a1a22] bg-primary text-xl font-bold text-white">
                         {initials}
                     </div>
                 </div>
@@ -96,15 +96,15 @@ export default function CustomerProfile({ customer }: Props) {
                 {/* Name + actions */}
                 <div className="flex items-start justify-between">
                     <div>
-                        <h2 className="text-xl font-semibold text-white">
+                        <h2 className="text-xl font-semibold text-foreground">
                             {customer.name}
                         </h2>
                         {customer.company && (
-                            <p className="text-sm text-[#9C9585]">
+                            <p className="text-sm text-muted-foreground">
                                 {customer.company}
                             </p>
                         )}
-                        <p className="mt-1 text-xs text-[#6B6560]">
+                        <p className="mt-1 text-xs text-muted-foreground">
                             Zákazník od{' '}
                             {new Date(customer.created_at).toLocaleDateString(
                                 'cs-CZ',
@@ -116,7 +116,7 @@ export default function CustomerProfile({ customer }: Props) {
                             asChild
                             variant="ghost"
                             size="icon-sm"
-                            className="text-[#9C9585] hover:text-[#F5F0E8]"
+                            className="text-muted-foreground hover:text-foreground"
                         >
                             <Link href={`/zakaznici/${customer.id}/upravit`}>
                                 <Pencil className="h-4 w-4" />
@@ -125,7 +125,7 @@ export default function CustomerProfile({ customer }: Props) {
                         <Button
                             variant="ghost"
                             size="icon-sm"
-                            className="text-[#9C9585] hover:text-red-400"
+                            className="text-muted-foreground hover:text-red-400"
                             onClick={handleDelete}
                         >
                             <Trash2 className="h-4 w-4" />
@@ -152,12 +152,12 @@ export default function CustomerProfile({ customer }: Props) {
 
                 {/* Notes */}
                 {customer.notes && (
-                    <p className="mt-4 rounded-lg bg-[#F5F0E8]/[0.04] p-3 text-sm text-[#9C9585]">
+                    <p className="mt-4 rounded-lg bg-accent p-3 text-sm text-muted-foreground">
                         {customer.notes}
                     </p>
                 )}
 
-                <Separator className="my-5 bg-[#F5F0E8]/[0.04]" />
+                <Separator className="my-5 bg-accent" />
 
                 {/* Contact info grid */}
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -190,7 +190,7 @@ export default function CustomerProfile({ customer }: Props) {
                 {/* Business info */}
                 {(customer.ico || customer.dic) && (
                     <>
-                        <Separator className="my-5 bg-[#F5F0E8]/[0.04]" />
+                        <Separator className="my-5 bg-accent" />
                         <div className="grid gap-3 sm:grid-cols-2">
                             <InfoItem
                                 icon={Building2}
@@ -209,7 +209,7 @@ export default function CustomerProfile({ customer }: Props) {
                 {/* Addresses */}
                 {billingAddress && (
                     <>
-                        <Separator className="my-5 bg-[#F5F0E8]/[0.04]" />
+                        <Separator className="my-5 bg-accent" />
                         <div className="grid gap-3 sm:grid-cols-2">
                             <InfoItem
                                 icon={MapPin}
@@ -245,15 +245,15 @@ function InfoItem({
     external?: boolean;
 }) {
     return (
-        <div className="flex items-start gap-3 rounded-lg bg-white/[0.03] p-3">
-            <Icon className="mt-0.5 h-4 w-4 shrink-0 text-[#6B6560]" />
+        <div className="flex items-start gap-3 rounded-lg bg-accent p-3">
+            <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
             <div className="min-w-0">
-                <p className="text-xs text-[#6B6560]">{label}</p>
+                <p className="text-xs text-muted-foreground">{label}</p>
                 {value ? (
                     href ? (
                         <a
                             href={href}
-                            className="text-sm text-[#D97706] hover:underline"
+                            className="text-sm text-primary hover:underline"
                             {...(external
                                 ? { target: '_blank', rel: 'noopener noreferrer' }
                                 : {})}
@@ -261,10 +261,10 @@ function InfoItem({
                             {value}
                         </a>
                     ) : (
-                        <p className="text-sm text-[#F5F0E8]/70">{value}</p>
+                        <p className="text-sm text-foreground/70">{value}</p>
                     )
                 ) : (
-                    <p className="text-sm text-[#6B6560]">—</p>
+                    <p className="text-sm text-muted-foreground">—</p>
                 )}
             </div>
         </div>
