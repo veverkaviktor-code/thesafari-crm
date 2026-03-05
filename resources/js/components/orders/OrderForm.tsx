@@ -175,74 +175,50 @@ export default function OrderForm({
                 </div>
             </div>
 
-            {/* Price + Deadline */}
+            {/* Deadline */}
             <div className="rounded-xl border border-border bg-card p-6">
                 <h3 className="mb-4 text-sm font-semibold text-foreground/70">
-                    Cena a termín
+                    Termín
                 </h3>
-                <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-1.5">
-                        <Label className="text-muted-foreground">Cena (Kč)</Label>
-                        <div className="relative">
-                            <Input
-                                value={data.price}
-                                onChange={(e) =>
-                                    setData('price', e.target.value)
-                                }
-                                type="number"
-                                min="0"
-                                step="1"
-                                placeholder="0"
-                                className="border-border bg-accent pr-10"
-                                aria-invalid={!!errors.price}
-                            />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                                Kč
-                            </span>
-                        </div>
-                        <FieldError error={errors.price} />
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <Label className="text-muted-foreground">Deadline</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    className={cn(
-                                        'w-full justify-start border-border bg-accent text-left font-normal',
-                                        !data.deadline && 'text-muted-foreground',
-                                    )}
-                                >
-                                    <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
-                                    {deadlineDate
-                                        ? format(deadlineDate, 'd. MMMM yyyy', {
-                                              locale: cs,
-                                          })
-                                        : 'Vyberte datum...'}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent
-                                className="w-auto border-border bg-card p-0"
-                                align="start"
+                <div className="space-y-1.5">
+                    <Label className="text-muted-foreground">Deadline</Label>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="outline"
+                                className={cn(
+                                    'w-full justify-start border-border bg-accent text-left font-normal',
+                                    !data.deadline && 'text-muted-foreground',
+                                )}
                             >
-                                <Calendar
-                                    mode="single"
-                                    selected={deadlineDate}
-                                    onSelect={(date) =>
-                                        setData(
-                                            'deadline',
-                                            date
-                                                ? format(date, 'yyyy-MM-dd')
-                                                : '',
-                                        )
-                                    }
-                                    initialFocus
-                                />
-                            </PopoverContent>
-                        </Popover>
-                        <FieldError error={errors.deadline} />
-                    </div>
+                                <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+                                {deadlineDate
+                                    ? format(deadlineDate, 'd. MMMM yyyy', {
+                                          locale: cs,
+                                      })
+                                    : 'Vyberte datum...'}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                            className="w-auto border-border bg-card p-0"
+                            align="start"
+                        >
+                            <Calendar
+                                mode="single"
+                                selected={deadlineDate}
+                                onSelect={(date) =>
+                                    setData(
+                                        'deadline',
+                                        date
+                                            ? format(date, 'yyyy-MM-dd')
+                                            : '',
+                                    )
+                                }
+                                initialFocus
+                            />
+                        </PopoverContent>
+                    </Popover>
+                    <FieldError error={errors.deadline} />
                 </div>
             </div>
 

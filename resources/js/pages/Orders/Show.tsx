@@ -20,7 +20,18 @@ import DivisionBadge, {
 } from '@/components/orders/DivisionBadge';
 import TimeTracker from '@/components/orders/TimeTracker';
 import CostsList from '@/components/orders/CostsList';
+import OrderItems from '@/components/orders/OrderItems';
+import OrderAttachments from '@/components/orders/OrderAttachments';
 import { cn } from '@/lib/utils';
+
+interface Attachment {
+    id: number;
+    filename: string;
+    description: string | null;
+    mime_type: string | null;
+    size: number;
+    created_at: string;
+}
 
 interface TimeEntry {
     id: number;
@@ -29,6 +40,7 @@ interface TimeEntry {
     description: string | null;
     duration_minutes: number;
     hourly_rate: number | null;
+    billable_hours: number;
     cost: number;
 }
 
@@ -36,6 +48,16 @@ interface OrderCost {
     id: number;
     title: string;
     amount: number;
+}
+
+interface OrderItem {
+    id: number;
+    name: string;
+    description: string | null;
+    quantity: number;
+    unit: string;
+    unit_price: number;
+    total: number;
 }
 
 interface Customer {
@@ -56,6 +78,8 @@ interface Order {
     created_at: string;
     time_entries: TimeEntry[];
     costs: OrderCost[];
+    items: OrderItem[];
+    attachments: Attachment[];
 }
 
 interface Stats {
@@ -77,6 +101,13 @@ const formatCurrency = (v: number) =>
         maximumFractionDigits: 0,
     }).format(v);
 
+function formatHoursMinutes(minutes: number): string {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    if (h === 0) return `${m} min`;
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
+
 function deadlineInfo(deadline: string | null) {
     if (!deadline) return { text: 'Bez termínu', className: 'text-muted-foreground' };
     const diff = new Date(deadline).getTime() - Date.now();
@@ -97,7 +128,18 @@ function deadlineInfo(deadline: string | null) {
 
 export default function Show({ order, stats }: Props) {
     const deadline = deadlineInfo(order.deadline);
-    const profit = order.price - (stats.total_time_cost ?? 0) - (stats.total_costs ?? 0);
+    const itemsPrice = Number(order.price) || 0;
+    const timeCost = Number(stats.total_time_cost) || 0;
+    const totalRevenue = itemsPrice + timeCost;
+    const materialCosts = Number(stats.total_costs) || 0;
+    const profit = totalRevenue - materialCosts;
+    const margin = totalRevenue > 0 ? (profit / totalRevenue) * 100 : 0;
+    const marginClassName =
+        margin >= 30
+            ? 'text-emerald-400'
+            : margin >= 10
+              ? 'text-amber-400'
+              : 'text-red-400';
 
     const handleStatusChange = (status: string) => {
         router.put(
@@ -196,15 +238,24 @@ export default function Show({ order, stats }: Props) {
                                     {order.description}
                                 </p>
                             )}
-                            <div className="grid gap-4 sm:grid-cols-3">
+                            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                                 <InfoBox
                                     label="Cena zakázky"
-                                    value={formatCurrency(order.price)}
+                                    value={formatCurrency(totalRevenue)}
                                     className="text-foreground"
+                                    subtitle={timeCost > 0 ? `položky ${formatCurrency(itemsPrice)} + čas ${formatCurrency(timeCost)}` : undefined}
+                                    subtitleClassName="text-muted-foreground"
                                 />
                                 <InfoBox
-                                    label="Náklady celkem"
-                                    value={formatCurrency((stats.total_time_cost ?? 0) + (stats.total_costs ?? 0))}
+                                    label="Odpracováno"
+                                    value={formatHoursMinutes(stats.total_time_minutes ?? 0)}
+                                    className="text-foreground/70"
+                                    subtitle={timeCost > 0 ? formatCurrency(timeCost) : undefined}
+                                    subtitleClassName="text-primary"
+                                />
+                                <InfoBox
+                                    label="Náklady"
+                                    value={formatCurrency(materialCosts)}
                                     className="text-foreground/70"
                                 />
                                 <InfoBox
@@ -215,6 +266,8 @@ export default function Show({ order, stats }: Props) {
                                             ? 'text-emerald-400'
                                             : 'text-red-400'
                                     }
+                                    subtitle={`marže ${Math.round(margin)} %`}
+                                    subtitleClassName={marginClassName}
                                 />
                             </div>
                         </div>
@@ -227,30 +280,16 @@ export default function Show({ order, stats }: Props) {
                             totalTimeMinutes={stats.total_time_minutes ?? 0}
                             totalTimeCost={stats.total_time_cost ?? 0}
                         />
+
+                        {/* Order Items */}
+                        <OrderItems
+                            orderId={order.id}
+                            items={order.items ?? []}
+                        />
                     </div>
 
                     {/* Right sidebar */}
                     <div className="space-y-6">
-                        {/* Costs */}
-                        <CostsList
-                            orderId={order.id}
-                            costs={order.costs}
-                            totalCosts={stats.total_costs ?? 0}
-                        />
-
-                        {/* Invoice button */}
-                        <Button
-                            asChild
-                            className="w-full bg-primary text-white hover:bg-primary/80"
-                        >
-                            <Link
-                                href={`/faktury/create?order_id=${order.id}`}
-                            >
-                                <FileText className="h-4 w-4" />
-                                Vystavit fakturu
-                            </Link>
-                        </Button>
-
                         {/* Order info card */}
                         <div className="rounded-xl border border-border bg-card p-5">
                             <h3 className="mb-3 text-sm font-semibold text-foreground/70">
@@ -280,6 +319,32 @@ export default function Show({ order, stats }: Props) {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Costs */}
+                        <CostsList
+                            orderId={order.id}
+                            costs={order.costs}
+                            totalCosts={stats.total_costs ?? 0}
+                        />
+
+                        {/* Invoice button */}
+                        <Button
+                            asChild
+                            className="w-full bg-primary text-white hover:bg-primary/80"
+                        >
+                            <Link
+                                href={`/faktury/create?order_id=${order.id}`}
+                            >
+                                <FileText className="h-4 w-4" />
+                                Vystavit fakturu
+                            </Link>
+                        </Button>
+
+                        {/* Attachments */}
+                        <OrderAttachments
+                            orderId={order.id}
+                            attachments={order.attachments ?? []}
+                        />
                     </div>
                 </div>
             </div>
@@ -291,10 +356,14 @@ function InfoBox({
     label,
     value,
     className,
+    subtitle,
+    subtitleClassName,
 }: {
     label: string;
     value: string;
     className?: string;
+    subtitle?: string;
+    subtitleClassName?: string;
 }) {
     return (
         <div className="rounded-lg bg-accent p-3">
@@ -302,6 +371,9 @@ function InfoBox({
             <p className={cn('mt-1 text-lg font-semibold', className)}>
                 {value}
             </p>
+            {subtitle && (
+                <p className={cn('text-xs', subtitleClassName)}>{subtitle}</p>
+            )}
         </div>
     );
 }

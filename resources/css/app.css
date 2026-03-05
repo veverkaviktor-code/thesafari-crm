@@ -12,8 +12,11 @@
 
 @theme {
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-    --color-safari-gold: #D97706;
-    --color-safari-amber: #F59E0B;
+    --color-safari-blue: #628395;
+    --color-safari-taupe: #96897B;
+    --color-safari-custard: #DFD5A5;
+    --color-safari-clay: #DBAD6A;
+    --color-safari-bronze: #CF995F;
     --color-safari-dark: #0A0A0A;
 }
 
@@ -66,7 +69,7 @@
     --card-foreground: #1C1917;
     --popover: #FFFFFF;
     --popover-foreground: #1C1917;
-    --primary: #D97706;
+    --primary: #CF995F;
     --primary-foreground: #FFFFFF;
     --secondary: #F5F5F0;
     --secondary-foreground: #1C1917;
@@ -77,20 +80,20 @@
     --destructive: #DC2626;
     --border: #E7E5E0;
     --input: #E7E5E0;
-    --ring: #D97706;
-    --chart-1: #D97706;
-    --chart-2: #F59E0B;
-    --chart-3: #78716C;
-    --chart-4: #A8A29E;
-    --chart-5: #1C1917;
+    --ring: #CF995F;
+    --chart-1: #CF995F;
+    --chart-2: #DBAD6A;
+    --chart-3: #628395;
+    --chart-4: #96897B;
+    --chart-5: #DFD5A5;
     --sidebar: #0a0a08;
     --sidebar-foreground: #F5F0E8;
-    --sidebar-primary: #D97706;
+    --sidebar-primary: #CF995F;
     --sidebar-primary-foreground: #FFFFFF;
     --sidebar-accent: #1a1815;
     --sidebar-accent-foreground: #F5F0E8;
     --sidebar-border: rgba(245,240,232,0.08);
-    --sidebar-ring: #D97706;
+    --sidebar-ring: #CF995F;
 }
 
 .dark {
@@ -100,7 +103,7 @@
     --card-foreground: #F5F0E8;
     --popover: #16140f;
     --popover-foreground: #F5F0E8;
-    --primary: #D97706;
+    --primary: #CF995F;
     --primary-foreground: #FFFFFF;
     --secondary: #1a1815;
     --secondary-foreground: #F5F0E8;
@@ -111,20 +114,20 @@
     --destructive: #DC2626;
     --border: rgba(245,240,232,0.08);
     --input: rgba(245,240,232,0.1);
-    --ring: #D97706;
-    --chart-1: #D97706;
-    --chart-2: #F59E0B;
-    --chart-3: #9C9585;
-    --chart-4: #6B6560;
-    --chart-5: #F5F0E8;
+    --ring: #CF995F;
+    --chart-1: #CF995F;
+    --chart-2: #DBAD6A;
+    --chart-3: #628395;
+    --chart-4: #96897B;
+    --chart-5: #DFD5A5;
     --sidebar: #0a0a08;
     --sidebar-foreground: #F5F0E8;
-    --sidebar-primary: #D97706;
+    --sidebar-primary: #CF995F;
     --sidebar-primary-foreground: #FFFFFF;
     --sidebar-accent: #1a1815;
     --sidebar-accent-foreground: #F5F0E8;
     --sidebar-border: rgba(245,240,232,0.08);
-    --sidebar-ring: #D97706;
+    --sidebar-ring: #CF995F;
 }
 
 @layer base {

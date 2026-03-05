@@ -1,13 +1,13 @@
 import { type FormEvent, type KeyboardEvent, useRef, useState } from 'react';
 import { type InertiaFormProps } from '@inertiajs/react';
-import { Upload, X } from 'lucide-react';
+import { Loader2, Plus, Search, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import { cn } from '@/lib/utils';
+import { cn, formatPhone } from '@/lib/utils';
 
 export interface CustomerFormData {
     type: 'fyzicka' | 'pravnicka';
@@ -83,15 +83,22 @@ export default function CustomerForm({
     const [tagInput, setTagInput] = useState('');
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [aresLoading, setAresLoading] = useState(false);
+    const [aresError, setAresError] = useState<string | null>(null);
+    const [aresSuccess, setAresSuccess] = useState(false);
+
+    const addPendingTag = () => {
+        const value = tagInput.trim();
+        if (value && !data.tags.includes(value)) {
+            setData('tags', [...data.tags, value]);
+        }
+        setTagInput('');
+    };
 
     const handleTagKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            const value = tagInput.trim();
-            if (value && !data.tags.includes(value)) {
-                setData('tags', [...data.tags, value]);
-            }
-            setTagInput('');
+            addPendingTag();
         }
     };
 
@@ -112,6 +119,45 @@ export default function CustomerForm({
         } else {
             setAvatarPreview(null);
         }
+    };
+
+    const handleAresLookup = async () => {
+        const ico = data.ico.trim();
+        if (!ico || ico.length !== 8) {
+            setAresError('IČO musí obsahovat 8 číslic.');
+            return;
+        }
+        setAresLoading(true);
+        setAresError(null);
+        setAresSuccess(false);
+        try {
+            const response = await fetch(`/api/ares/${ico}`);
+            const result = await response.json();
+            if (!response.ok) {
+                setAresError(result.error || 'Chyba při vyhledávání.');
+                return;
+            }
+            if (result.name) setData('name', result.name);
+            if (result.dic) setData('dic', result.dic);
+            if (result.street) setData('billing_street', result.street);
+            if (result.city) setData('billing_city', result.city);
+            if (result.zip) setData('billing_zip', result.zip);
+            if (result.country) setData('billing_country', result.country);
+            setData('type', 'pravnicka');
+            setAresSuccess(true);
+            setTimeout(() => setAresSuccess(false), 3000);
+        } catch {
+            setAresError('Nepodařilo se připojit k ARES.');
+        } finally {
+            setAresLoading(false);
+        }
+    };
+
+    const normalizeUrl = (url: string): string => {
+        const trimmed = url.trim();
+        if (!trimmed) return '';
+        if (/^https?:\/\//i.test(trimmed)) return trimmed;
+        return `https://${trimmed}`;
     };
 
     const handleCancel = () => {
@@ -200,23 +246,52 @@ export default function CustomerForm({
                                 : 'Firma s.r.o.'
                         }
                     />
-                    {data.type === 'pravnicka' && (
-                        <Field
-                            label="Společnost"
-                            value={data.company}
-                            onChange={(v) => setData('company', v)}
-                            error={errors.company}
-                            placeholder="Název společnosti"
-                        />
-                    )}
                     <Field
-                        label="IČO"
-                        value={data.ico}
-                        onChange={(v) => setData('ico', v)}
-                        error={errors.ico}
-                        placeholder="12345678"
-                        maxLength={8}
+                        label="Obchodní název"
+                        value={data.company}
+                        onChange={(v) => setData('company', v)}
+                        error={errors.company}
+                        placeholder="Pokud se liší od názvu"
                     />
+                    <div className="space-y-1.5">
+                        <Label className="text-muted-foreground">IČO</Label>
+                        <div className="flex gap-2">
+                            <Input
+                                value={data.ico}
+                                onChange={(e) => {
+                                    setData('ico', e.target.value);
+                                    setAresError(null);
+                                    setAresSuccess(false);
+                                }}
+                                placeholder="12345678"
+                                maxLength={8}
+                                className="border-border bg-accent"
+                                aria-invalid={!!errors.ico || !!aresError}
+                            />
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={aresLoading || data.ico.trim().length !== 8}
+                                onClick={handleAresLookup}
+                                className="shrink-0 border-border text-muted-foreground hover:border-primary hover:text-primary"
+                            >
+                                {aresLoading ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Search className="h-4 w-4" />
+                                )}
+                                <span className="ml-1.5">ARES</span>
+                            </Button>
+                        </div>
+                        <FieldError error={errors.ico} />
+                        {aresError && (
+                            <p className="text-xs text-red-400">{aresError}</p>
+                        )}
+                        {aresSuccess && (
+                            <p className="text-xs text-emerald-400">Data z ARES načtena.</p>
+                        )}
+                    </div>
                     <Field
                         label="DIČ"
                         value={data.dic}
@@ -248,22 +323,31 @@ export default function CustomerForm({
                         placeholder="email@example.com"
                         type="email"
                     />
-                    <Field
-                        label="Telefon"
-                        value={data.phone}
-                        onChange={(v) => setData('phone', v)}
-                        error={errors.phone}
-                        placeholder="+420 123 456 789"
-                        type="tel"
-                    />
-                    <Field
-                        label="Web"
-                        value={data.web}
-                        onChange={(v) => setData('web', v)}
-                        error={errors.web}
-                        placeholder="https://example.com"
-                        type="url"
-                    />
+                    <div className="space-y-1.5">
+                        <Label className="text-muted-foreground">Telefon</Label>
+                        <Input
+                            type="tel"
+                            value={data.phone}
+                            onChange={(e) => setData('phone', e.target.value)}
+                            onBlur={() => setData('phone', formatPhone(data.phone))}
+                            placeholder="+420 123 456 789"
+                            className="border-border bg-accent"
+                            aria-invalid={!!errors.phone}
+                        />
+                        <FieldError error={errors.phone} />
+                    </div>
+                    <div className="space-y-1.5">
+                        <Label className="text-muted-foreground">Web</Label>
+                        <Input
+                            value={data.web}
+                            onChange={(e) => setData('web', e.target.value)}
+                            onBlur={() => setData('web', normalizeUrl(data.web))}
+                            placeholder="example.com"
+                            className="border-border bg-accent"
+                            aria-invalid={!!errors.web}
+                        />
+                        <FieldError error={errors.web} />
+                    </div>
                 </div>
             </div>
 
@@ -310,13 +394,27 @@ export default function CustomerForm({
             <div className="rounded-xl border border-border bg-card p-6">
                 <h3 className="mb-4 text-sm font-semibold text-foreground/70">Štítky</h3>
                 <div className="space-y-3">
-                    <Input
-                        value={tagInput}
-                        onChange={(e) => setTagInput(e.target.value)}
-                        onKeyDown={handleTagKeyDown}
-                        placeholder="Napište štítek a stiskněte Enter..."
-                        className="border-border bg-accent"
-                    />
+                    <div className="flex gap-2">
+                        <Input
+                            value={tagInput}
+                            onChange={(e) => setTagInput(e.target.value)}
+                            onKeyDown={handleTagKeyDown}
+                            onBlur={addPendingTag}
+                            placeholder="Napište štítek a stiskněte Enter..."
+                            className="border-border bg-accent"
+                        />
+                        {tagInput.trim() && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                onClick={addPendingTag}
+                                className="shrink-0 border-border text-muted-foreground hover:text-foreground"
+                            >
+                                <Plus className="h-4 w-4" />
+                            </Button>
+                        )}
+                    </div>
                     {data.tags.length > 0 && (
                         <div className="flex flex-wrap gap-2">
                             {data.tags.map((tag, i) => (

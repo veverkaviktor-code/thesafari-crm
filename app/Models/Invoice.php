@@ -76,7 +76,8 @@ class Invoice extends Model
             $year = now()->year;
             $prefix = (string) $year;
 
-            $lastInvoice = static::where('invoice_number', 'LIKE', $prefix . '%')
+            $lastInvoice = static::withTrashed()
+                ->where('invoice_number', 'LIKE', $prefix . '%')
                 ->orderByRaw('CAST(invoice_number AS INTEGER) DESC')
                 ->lockForUpdate()
                 ->first();

@@ -76,6 +76,9 @@ class TicketController extends Controller
             'content' => $validated['message'],
         ]);
 
+        $admin = \App\Models\User::where('role', 'admin')->first();
+        $admin?->notify(new \App\Notifications\NewTicket($ticket));
+
         return redirect()->route('pozadavky.show', $ticket)
             ->with('success', 'Požadavek vytvořen.');
     }

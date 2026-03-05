@@ -2,9 +2,12 @@ import { Link, router } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
 import {
+    Banknote,
     CheckCircle2,
+    CreditCard,
     Download,
     Mail,
+    MailCheck,
     Pencil,
 } from 'lucide-react';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
@@ -49,7 +52,7 @@ interface Invoice {
 }
 
 interface Props {
-    invoice: Invoice;
+    invoice: Invoice & { sent_at: string | null };
     company: {
         name: string;
         ico: string;
@@ -82,8 +85,8 @@ export default function Show({ invoice, company }: Props) {
         bank_account: '',
     };
 
-    const handleMarkPaid = () => {
-        router.post(`/faktury/${invoice.id}/paid`, {}, { preserveScroll: true });
+    const handleMarkPaid = (method: 'banka' | 'hotovost') => {
+        router.post(`/faktury/${invoice.id}/paid`, { payment_method: method }, { preserveScroll: true });
     };
 
     const handleSendEmail = () => {
@@ -131,15 +134,32 @@ export default function Show({ invoice, company }: Props) {
                             <Mail className="h-4 w-4" />
                             Odeslat e-mailem
                         </Button>
+                        {invoice.sent_at && (
+                            <span className="inline-flex items-center gap-1 text-xs text-emerald-400">
+                                <MailCheck className="h-3.5 w-3.5" />
+                                Odesláno {format(new Date(invoice.sent_at), 'd.M.yyyy', { locale: cs })}
+                            </span>
+                        )}
                         {invoice.status !== 'zaplacena' && (
-                            <Button
-                                size="sm"
-                                className="bg-emerald-600 text-white hover:bg-emerald-700"
-                                onClick={handleMarkPaid}
-                            >
-                                <CheckCircle2 className="h-4 w-4" />
-                                Zaplaceno
-                            </Button>
+                            <div className="flex items-center gap-1">
+                                <Button
+                                    size="sm"
+                                    className="bg-emerald-600 text-white hover:bg-emerald-700"
+                                    onClick={() => handleMarkPaid('banka')}
+                                >
+                                    <CreditCard className="h-4 w-4" />
+                                    Zaplaceno převodem
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-emerald-600/30 text-emerald-400 hover:bg-emerald-600/10 hover:text-emerald-300"
+                                    onClick={() => handleMarkPaid('hotovost')}
+                                >
+                                    <Banknote className="h-4 w-4" />
+                                    Hotově
+                                </Button>
+                            </div>
                         )}
                         <Button
                             asChild

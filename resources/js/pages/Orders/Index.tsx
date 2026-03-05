@@ -1,6 +1,6 @@
-import { type FormEvent, useCallback, useState } from 'react';
+import { type FormEvent, useCallback, useMemo, useState } from 'react';
 import { Link, router, useForm } from '@inertiajs/react';
-import { Plus } from 'lucide-react';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import DataTable, { type Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/button';
@@ -79,7 +79,7 @@ function deadlineClass(deadline: string | null): string {
     return 'text-muted-foreground';
 }
 
-const columns: Column<Order>[] = [
+const baseColumns: Column<Order>[] = [
     {
         key: 'title',
         label: 'Zakázka',
@@ -146,6 +146,47 @@ const columns: Column<Order>[] = [
 export default function Index({ orders, customers, filters }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [showCreate, setShowCreate] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState<Order | null>(null);
+    const [deleting, setDeleting] = useState(false);
+
+    const handleDelete = () => {
+        if (!deleteTarget) return;
+        setDeleting(true);
+        router.delete(`/zakazky/${deleteTarget.id}`, {
+            onSuccess: () => {
+                setDeleteTarget(null);
+                setDeleting(false);
+            },
+            onError: () => setDeleting(false),
+        });
+    };
+
+    const columns = useMemo<Column<Order>[]>(() => [
+        ...baseColumns,
+        {
+            key: 'actions',
+            label: '',
+            className: 'w-[100px] text-right',
+            render: (row) => (
+                <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                    <button
+                        onClick={() => router.visit(`/zakazky/${row.id}/upravit`)}
+                        className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                        title="Upravit"
+                    >
+                        <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                        onClick={() => setDeleteTarget(row)}
+                        className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-500"
+                        title="Smazat"
+                    >
+                        <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                </div>
+            ),
+        },
+    ], []);
 
     const form = useForm<OrderFormData>({ ...defaultOrderData });
 
@@ -311,6 +352,40 @@ export default function Index({ orders, customers, filters }: Props) {
                     customers={customers}
                     onCancel={() => setShowCreate(false)}
                 />
+            </GlassModal>
+
+            {/* Delete confirmation modal */}
+            <GlassModal
+                open={!!deleteTarget}
+                onClose={() => setDeleteTarget(null)}
+                title="Smazat zakázku"
+                maxWidth="max-w-md"
+            >
+                <div className="space-y-6">
+                    <p className="text-sm text-muted-foreground">
+                        Opravdu chcete smazat zakázku{' '}
+                        <span className="font-semibold text-foreground">{deleteTarget?.title}</span>?
+                        Tato akce se nedá vrátit.
+                    </p>
+                    <div className="flex justify-end gap-3">
+                        <Button
+                            variant="ghost"
+                            className="text-muted-foreground hover:text-foreground"
+                            onClick={() => setDeleteTarget(null)}
+                        >
+                            Zrušit
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            disabled={deleting}
+                            onClick={handleDelete}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                            {deleting ? 'Mažu...' : 'Smazat'}
+                        </Button>
+                    </div>
+                </div>
             </GlassModal>
         </AuthenticatedLayout>
     );

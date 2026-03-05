@@ -24,24 +24,15 @@ interface DivisionData {
 
 interface Props {
     data?: DivisionData[];
-    mrr?: { total: number; hosting: number; domain: number; count: number };
 }
 
 const formatCurrency = (v: number) =>
     new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(v);
 
-export default function DivisionChart({ data, mrr }: Props) {
-    const chartData = data && data.length > 0 ? data : [
-        { division: 'weby', count: 15, total: 285000 },
-        { division: 'tisk', count: 8, total: 124000 },
-        { division: 'polepy', count: 6, total: 98000 },
-        { division: 'reklama', count: 4, total: 62000 },
-        { division: 'montaze', count: 3, total: 21000 },
-    ];
-
-    const maxTotal = Math.max(...chartData.map(d => d.total));
+export default function DivisionChart({ data }: Props) {
+    const chartData = data && data.length > 0 ? data : [];
+    const maxTotal = chartData.length > 0 ? Math.max(...chartData.map(d => d.total)) : 0;
     const grandTotal = chartData.reduce((sum, d) => sum + d.total, 0);
-    const mrrData = mrr ?? { total: 8500, hosting: 6200, domain: 2300, count: 12 };
 
     return (
         <div className="flex h-full flex-col rounded-xl border border-border bg-card p-5">
@@ -52,6 +43,11 @@ export default function DivisionChart({ data, mrr }: Props) {
 
             {/* Division bars */}
             <div className="mt-4 flex-1 space-y-3">
+                {chartData.length === 0 && (
+                    <div className="flex h-full items-center justify-center">
+                        <p className="text-sm text-muted-foreground">Zatím žádné fakturované zakázky</p>
+                    </div>
+                )}
                 {chartData.map((item) => {
                     const pct = maxTotal > 0 ? (item.total / maxTotal) * 100 : 0;
                     const color = DIVISION_COLORS[item.division] || 'var(--muted-foreground)';
@@ -76,24 +72,6 @@ export default function DivisionChart({ data, mrr }: Props) {
                 })}
             </div>
 
-            {/* MRR Section */}
-            <div className="mt-5 border-t border-border pt-4">
-                <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-foreground/70">MRR</span>
-                    <span className="text-lg font-bold text-primary">{formatCurrency(mrrData.total)}</span>
-                </div>
-                <p className="mt-0.5 text-[10px] text-muted-foreground">Monthly Recurring Revenue · {mrrData.count} subscriptions</p>
-                <div className="mt-2 flex gap-3">
-                    <div className="flex-1 rounded-lg bg-accent/50 px-2.5 py-1.5">
-                        <p className="text-[10px] text-muted-foreground">Hostingy</p>
-                        <p className="text-xs font-semibold text-foreground">{formatCurrency(mrrData.hosting)}</p>
-                    </div>
-                    <div className="flex-1 rounded-lg bg-accent/50 px-2.5 py-1.5">
-                        <p className="text-[10px] text-muted-foreground">Domény</p>
-                        <p className="text-xs font-semibold text-foreground">{formatCurrency(mrrData.domain)}</p>
-                    </div>
-                </div>
-            </div>
         </div>
     );
 }

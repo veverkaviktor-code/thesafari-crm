@@ -10,46 +10,9 @@ import {
 } from 'recharts';
 import { cn } from '@/lib/utils';
 
-type Period = '1M' | '3M' | '6M' | '1Y';
-
-const demoData: Record<Period, { month: string; revenue: number; costs: number }[]> = {
-    '1M': [
-        { month: '1. týden', revenue: 45000, costs: 18000 },
-        { month: '2. týden', revenue: 62000, costs: 24000 },
-        { month: '3. týden', revenue: 38000, costs: 15000 },
-        { month: '4. týden', revenue: 71000, costs: 28000 },
-    ],
-    '3M': [
-        { month: 'Leden', revenue: 185000, costs: 72000 },
-        { month: 'Únor', revenue: 210000, costs: 85000 },
-        { month: 'Březen', revenue: 195000, costs: 78000 },
-    ],
-    '6M': [
-        { month: 'Říjen', revenue: 165000, costs: 68000 },
-        { month: 'Listopad', revenue: 178000, costs: 71000 },
-        { month: 'Prosinec', revenue: 220000, costs: 92000 },
-        { month: 'Leden', revenue: 185000, costs: 72000 },
-        { month: 'Únor', revenue: 210000, costs: 85000 },
-        { month: 'Březen', revenue: 195000, costs: 78000 },
-    ],
-    '1Y': [
-        { month: 'Dub', revenue: 142000, costs: 58000 },
-        { month: 'Kvě', revenue: 158000, costs: 62000 },
-        { month: 'Čvn', revenue: 135000, costs: 55000 },
-        { month: 'Čvc', revenue: 120000, costs: 48000 },
-        { month: 'Srp', revenue: 145000, costs: 60000 },
-        { month: 'Zář', revenue: 168000, costs: 65000 },
-        { month: 'Říj', revenue: 165000, costs: 68000 },
-        { month: 'Lis', revenue: 178000, costs: 71000 },
-        { month: 'Pro', revenue: 220000, costs: 92000 },
-        { month: 'Led', revenue: 185000, costs: 72000 },
-        { month: 'Úno', revenue: 210000, costs: 85000 },
-        { month: 'Bře', revenue: 195000, costs: 78000 },
-    ],
-};
+type Period = '3M' | '6M' | '1Y';
 
 const periods: { value: Period; label: string }[] = [
-    { value: '1M', label: '1M' },
     { value: '3M', label: '3M' },
     { value: '6M', label: '6M' },
     { value: '1Y', label: 'Rok' },
@@ -62,20 +25,72 @@ const formatCurrency = (v: number) =>
         maximumFractionDigits: 0,
     }).format(v);
 
+interface RevenueDataPoint {
+    month: string;
+    revenue: number;
+    costs: number;
+}
+
 interface Props {
-    data?: Record<Period, { month: string; revenue: number; costs: number }[]>;
+    data?: RevenueDataPoint[];
+}
+
+function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: { payload: RevenueDataPoint }[]; label?: string }) {
+    if (!active || !payload?.length) return null;
+    const d = payload[0].payload;
+    const profit = d.revenue - d.costs;
+    return (
+        <div className="rounded-xl border border-border bg-card p-3 shadow-lg">
+            <p className="text-xs text-muted-foreground mb-2">{label}</p>
+            <div className="space-y-1">
+                <div className="flex items-center justify-between gap-6">
+                    <span className="text-xs text-primary flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full bg-primary" />Příjmy
+                    </span>
+                    <span className="text-xs font-medium text-foreground">{formatCurrency(d.revenue)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-6">
+                    <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full bg-muted-foreground" />Náklady
+                    </span>
+                    <span className="text-xs font-medium text-foreground">{formatCurrency(d.costs)}</span>
+                </div>
+                <div className="border-t border-border pt-1 mt-1 flex items-center justify-between gap-6">
+                    <span className="text-xs text-muted-foreground">Zisk</span>
+                    <span className={`text-xs font-semibold ${profit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {formatCurrency(profit)}
+                    </span>
+                </div>
+            </div>
+        </div>
+    );
 }
 
 export default function RevenueChart({ data }: Props) {
     const [period, setPeriod] = useState<Period>('6M');
-    const chartData = (data ?? demoData)[period];
+
+    if (!data || data.length === 0) {
+        return (
+            <div className="h-full flex flex-col rounded-xl border border-border bg-card p-5">
+                <h3 className="text-sm font-semibold text-muted-foreground">
+                    Zakázky — Příjmy vs Náklady
+                </h3>
+                <div className="flex-1 flex items-center justify-center min-h-[256px]">
+                    <p className="text-sm text-muted-foreground">Zatím žádná data o příjmech</p>
+                </div>
+            </div>
+        );
+    }
+
+    const sliceCount = period === '3M' ? 3 : period === '6M' ? 6 : data.length;
+    const chartData = data.slice(-sliceCount);
 
     return (
         <div className="h-full flex flex-col rounded-xl border border-border bg-card p-5">
             <div className="mb-4 flex items-center justify-between">
                 <div>
                     <h3 className="text-sm font-semibold text-muted-foreground">
-                        Příjmy vs Náklady
+                        Zakázky — Příjmy vs Náklady
                     </h3>
                     <p className="mt-0.5 text-xs text-muted-foreground">
                         Přehled financí za období
@@ -162,6 +177,7 @@ export default function RevenueChart({ data }: Props) {
                             tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
                             axisLine={false}
                             tickLine={false}
+                            padding={{ left: 10 }}
                         />
                         <YAxis
                             tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
@@ -170,22 +186,9 @@ export default function RevenueChart({ data }: Props) {
                             tickFormatter={(v) =>
                                 `${Math.round(v / 1000)}k`
                             }
-                            width={45}
+                            width={50}
                         />
-                        <Tooltip
-                            contentStyle={{
-                                backgroundColor: 'var(--card)',
-                                border: '1px solid var(--border)',
-                                borderRadius: '10px',
-                                color: 'var(--foreground)',
-                                fontSize: '13px',
-                            }}
-                            formatter={(value: number, name: string) => [
-                                formatCurrency(value),
-                                name === 'revenue' ? 'Příjmy' : 'Náklady',
-                            ]}
-                            labelStyle={{ color: 'var(--muted-foreground)', marginBottom: 4 }}
-                        />
+                        <Tooltip content={<CustomTooltip />} />
                         <Area
                             type="monotone"
                             dataKey="revenue"

@@ -9,6 +9,7 @@ use App\Models\Invoice;
 use App\Models\Order;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
@@ -17,9 +18,13 @@ class InvoiceController extends Controller
 {
     public function index(Request $request)
     {
-        $invoices = Invoice::query()
-            ->with('customer:id,name,company')
-            ->when($request->input('search'), function ($q, $term) {
+        $trashed = $request->boolean('trashed');
+
+        $query = $trashed
+            ? Invoice::onlyTrashed()->with('customer:id,name,company')
+            : Invoice::query()->with('customer:id,name,company');
+
+        $query->when($request->input('search'), function ($q, $term) {
                 $q->where('invoice_number', 'ilike', "%{$term}%")
                   ->orWhereHas('customer', fn ($cq) => $cq->where('name', 'ilike', "%{$term}%"));
             })
@@ -27,13 +32,15 @@ class InvoiceController extends Controller
             ->when($request->input('customer_id'), fn ($q, $id) => $q->where('customer_id', $id))
             ->when($request->input('date_from'), fn ($q, $d) => $q->where('issue_date', '>=', $d))
             ->when($request->input('date_to'), fn ($q, $d) => $q->where('issue_date', '<=', $d))
-            ->latest()
-            ->paginate(25)
-            ->withQueryString();
+            ->latest();
+
+        $invoices = $query->paginate(25)->withQueryString();
+        $trashedCount = Invoice::onlyTrashed()->count();
 
         return Inertia::render('Invoices/Index', [
             'invoices' => $invoices,
-            'filters' => $request->only(['search', 'status', 'customer_id', 'date_from', 'date_to']),
+            'filters' => $request->only(['search', 'status', 'customer_id', 'date_from', 'date_to', 'trashed']),
+            'trashedCount' => $trashedCount,
         ]);
     }
 
@@ -54,7 +61,7 @@ class InvoiceController extends Controller
         $prefillOrder = null;
 
         if ($orderId = $request->input('order_id')) {
-            $prefillOrder = Order::select('id', 'title', 'price', 'customer_id')->find($orderId);
+            $prefillOrder = Order::with('items')->select('id', 'title', 'price', 'customer_id')->find($orderId);
         }
 
         return Inertia::render('Invoices/Create', [
@@ -68,7 +75,10 @@ class InvoiceController extends Controller
     public function store(InvoiceRequest $request)
     {
         $invoiceNumber = Invoice::getNextInvoiceNumber();
-        $items = $request->input('items');
+        $items = collect($request->input('items'))->map(function ($item) {
+            $item['total_price'] = $item['total_price'] ?? (float) $item['quantity'] * (float) $item['unit_price'];
+            return $item;
+        })->toArray();
         $total = collect($items)->sum('total_price');
 
         $invoice = Invoice::create([
@@ -104,41 +114,48 @@ class InvoiceController extends Controller
         $invoice = $faktury;
         $invoice->load('items');
         $customers = Customer::select('id', 'name', 'company')->orderBy('name')->get();
+        $orders = Order::select('id', 'title', 'price', 'customer_id')->orderBy('title')->get();
 
         return Inertia::render('Invoices/Edit', [
             'invoice' => $invoice,
             'customers' => $customers,
+            'orders' => $orders,
         ]);
     }
 
     public function update(InvoiceRequest $request, Invoice $faktury)
     {
         $invoice = $faktury;
-        $items = $request->input('items');
+        $items = collect($request->input('items'))->map(function ($item) {
+            $item['total_price'] = $item['total_price'] ?? (float) $item['quantity'] * (float) $item['unit_price'];
+            return $item;
+        })->toArray();
         $total = collect($items)->sum('total_price');
 
-        $invoice->update([
-            'customer_id' => $request->input('customer_id'),
-            'order_id' => $request->input('order_id'),
-            'issue_date' => $request->input('issue_date'),
-            'due_date' => $request->input('due_date'),
-            'status' => $request->input('status', $invoice->status),
-            'payment_method' => $request->input('payment_method'),
-            'total' => $total,
-            'notes' => $request->input('notes'),
-        ]);
-
-        $invoice->items()->delete();
-        foreach ($items as $i => $item) {
-            $invoice->items()->create([
-                'description' => $item['description'],
-                'quantity' => $item['quantity'],
-                'unit' => $item['unit'] ?? 'ks',
-                'unit_price' => $item['unit_price'],
-                'total_price' => $item['total_price'],
-                'sort_order' => $i,
+        DB::transaction(function () use ($invoice, $items, $total, $request) {
+            $invoice->update([
+                'customer_id' => $request->input('customer_id'),
+                'order_id' => $request->input('order_id'),
+                'issue_date' => $request->input('issue_date'),
+                'due_date' => $request->input('due_date'),
+                'status' => $request->input('status', $invoice->status),
+                'payment_method' => $request->input('payment_method'),
+                'total' => $total,
+                'notes' => $request->input('notes'),
             ]);
-        }
+
+            $invoice->items()->delete();
+            foreach ($items as $i => $item) {
+                $invoice->items()->create([
+                    'description' => $item['description'],
+                    'quantity' => $item['quantity'],
+                    'unit' => $item['unit'] ?? 'ks',
+                    'unit_price' => $item['unit_price'],
+                    'total_price' => $item['total_price'],
+                    'sort_order' => $i,
+                ]);
+            }
+        });
 
         return redirect()->route('faktury.show', $invoice)
             ->with('success', 'Faktura aktualizovana.');
@@ -146,10 +163,36 @@ class InvoiceController extends Controller
 
     public function destroy(Invoice $faktury)
     {
+        // Mark related notifications as read before soft-deleting
+        $user = auth()->user();
+        $user->notifications()
+            ->whereNull('read_at')
+            ->whereRaw("data->>'invoice_id' = ?", [(string) $faktury->id])
+            ->update(['read_at' => now()]);
+
         $faktury->delete();
 
         return redirect()->route('faktury.index')
-            ->with('success', 'Faktura smazana.');
+            ->with('success', 'Faktura přesunuta do koše.');
+    }
+
+    public function restore(int $id)
+    {
+        $invoice = Invoice::onlyTrashed()->findOrFail($id);
+        $invoice->restore();
+
+        return redirect()->route('faktury.index')
+            ->with('success', "Faktura {$invoice->invoice_number} obnovena.");
+    }
+
+    public function forceDelete(int $id)
+    {
+        $invoice = Invoice::onlyTrashed()->findOrFail($id);
+        $invoice->items()->forceDelete();
+        $invoice->forceDelete();
+
+        return redirect()->route('faktury.index', ['trashed' => 1])
+            ->with('success', 'Faktura trvale smazána.');
     }
 
     public function downloadPdf(Invoice $invoice)
@@ -204,25 +247,76 @@ class InvoiceController extends Controller
         return back()->with('success', 'Faktura odeslana na ' . $invoice->customer->email);
     }
 
-    public function markAsPaid(Invoice $invoice)
+    public function markAsPaid(Request $request, Invoice $invoice)
     {
+        $paymentMethod = $request->input('payment_method', $invoice->payment_method ?? 'banka');
+
         $invoice->update([
             'status' => 'zaplacena',
             'paid_at' => now(),
+            'payment_method' => $paymentMethod,
         ]);
 
         if ($invoice->order_id) {
             $invoice->order->update(['status' => 'fakturovano']);
         }
 
-        return back()->with('success', 'Faktura oznacena jako zaplacena.');
+        $invoice->loadMissing('customer');
+        $user = auth()->user();
+        $user->notify(new \App\Notifications\PaymentReceived($invoice));
+
+        $label = $paymentMethod === 'hotovost' ? 'hotově' : 'převodem';
+
+        return back()->with('success', "Faktura označena jako zaplacená ({$label}).");
+    }
+
+    public function exportCsv(Request $request)
+    {
+        $invoices = Invoice::query()
+            ->with('customer:id,name,company')
+            ->whereNotNull('sent_at')
+            ->when($request->input('status'), fn ($q, $s) => $q->where('status', $s))
+            ->orderBy('issue_date', 'desc')
+            ->get();
+
+        $csv = "Číslo faktury;Zákazník;Datum vystavení;Splatnost;Částka;Stav;Platba;Odesláno;Zaplaceno\n";
+
+        foreach ($invoices as $inv) {
+            $status = match ($inv->status) {
+                'vystavena' => 'Vystavena',
+                'odeslana' => 'Odeslaná',
+                'zaplacena' => 'Zaplacena',
+                'po_splatnosti' => 'Po splatnosti',
+                default => $inv->status,
+            };
+            $payment = $inv->payment_method === 'hotovost' ? 'Hotově' : 'Převodem';
+            $csv .= implode(';', [
+                $inv->invoice_number,
+                '"' . ($inv->customer->name ?? '') . '"',
+                $inv->issue_date,
+                $inv->due_date,
+                number_format((float) $inv->total, 0, ',', ''),
+                $status,
+                $payment,
+                $inv->sent_at ? $inv->sent_at->format('d.m.Y') : '',
+                $inv->paid_at ? $inv->paid_at->format('d.m.Y') : '',
+            ]) . "\n";
+        }
+
+        return response($csv, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="faktury-export.csv"',
+        ]);
     }
 
     private function generateSpdString(Invoice $invoice, CompanySetting $company): string
     {
+        // SPD standard: IBAN bez mezer, nebo český formát číslo-účtu/kód-banky
+        $iban = str_replace(' ', '', $company->bank_iban ?? '');
+
         $parts = [
             'SPD*1.0',
-            'ACC:' . ($company->bank_iban ? 'CZ' . $company->bank_iban : ''),
+            'ACC:' . $iban,
             'AM:' . number_format((float) $invoice->total, 2, '.', ''),
             'CC:CZK',
             'MSG:Faktura ' . $invoice->invoice_number,

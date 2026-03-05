@@ -14,6 +14,7 @@ class AttachmentController extends Controller
             'file' => 'required|file|max:10240',
             'attachable_type' => 'required|string|in:customer,order,ticket',
             'attachable_id' => 'required|integer',
+            'description' => 'nullable|string|max:500',
         ]);
 
         $modelMap = [
@@ -35,6 +36,7 @@ class AttachmentController extends Controller
             'attachable_type' => $type,
             'attachable_id' => $id,
             'filename' => $file->getClientOriginalName(),
+            'description' => $request->input('description'),
             'path' => $path,
             'mime_type' => $file->getClientMimeType(),
             'size' => $file->getSize(),

@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { cn } from '@/lib/utils';
+import { cn, formatPhone } from '@/lib/utils';
 
 interface Customer {
     id: number;
@@ -24,15 +24,8 @@ interface Customer {
     email: string | null;
     phone: string | null;
     web: string | null;
-    billing_street: string | null;
-    billing_city: string | null;
-    billing_zip: string | null;
-    billing_country: string | null;
-    delivery_same: boolean;
-    delivery_street: string | null;
-    delivery_city: string | null;
-    delivery_zip: string | null;
-    delivery_country: string | null;
+    billing_address: { street?: string; city?: string; zip?: string; country?: string } | null;
+    delivery_address: { street?: string; city?: string; zip?: string; country?: string } | null;
     notes: string | null;
     tags: string[];
     created_at: string;
@@ -65,21 +58,17 @@ export default function CustomerProfile({ customer }: Props) {
         }
     };
 
-    const billingAddress = formatAddress(
-        customer.billing_street,
-        customer.billing_city,
-        customer.billing_zip,
-        customer.billing_country,
-    );
+    const ba = customer.billing_address;
+    const da = customer.delivery_address;
 
-    const deliveryAddress = customer.delivery_same
+    const billingAddress = ba
+        ? formatAddress(ba.street ?? null, ba.city ?? null, ba.zip ?? null, ba.country ?? null)
+        : null;
+
+    const isSameAddress = !da || JSON.stringify(ba) === JSON.stringify(da);
+    const deliveryAddress = isSameAddress
         ? null
-        : formatAddress(
-              customer.delivery_street,
-              customer.delivery_city,
-              customer.delivery_zip,
-              customer.delivery_country,
-          );
+        : formatAddress(da?.street ?? null, da?.city ?? null, da?.zip ?? null, da?.country ?? null);
 
     return (
         <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -134,9 +123,9 @@ export default function CustomerProfile({ customer }: Props) {
                 </div>
 
                 {/* Tags */}
-                {customer.tags.length > 0 && (
+                {(customer.tags ?? []).length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-1.5">
-                        {customer.tags.map((tag, i) => (
+                        {(customer.tags ?? []).map((tag, i) => (
                             <span
                                 key={tag}
                                 className={cn(
@@ -170,8 +159,8 @@ export default function CustomerProfile({ customer }: Props) {
                     <InfoItem
                         icon={Phone}
                         label="Telefon"
-                        value={customer.phone}
-                        href={customer.phone ? `tel:${customer.phone}` : undefined}
+                        value={formatPhone(customer.phone) || customer.phone}
+                        href={customer.phone ? `tel:${customer.phone.replace(/\s/g, '')}` : undefined}
                     />
                     <InfoItem
                         icon={Globe}

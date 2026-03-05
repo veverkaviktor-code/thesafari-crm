@@ -4,10 +4,24 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class TimeEntry extends Model
 {
+    use LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('time_entry')
+            ->logFillable()
+            ->logOnlyDirty();
+    }
+
     public $timestamps = false;
+
+    protected $appends = ['cost', 'billable_hours'];
 
     protected $fillable = [
         'order_id',
@@ -42,6 +56,35 @@ class TimeEntry extends Model
     public function isRunning(): bool
     {
         return $this->stopped_at === null;
+    }
+
+    /**
+     * Cena za práci — účtování po půlhodinách (0.5h, 1h, 1.5h, ...).
+     */
+    public function getCostAttribute(): float
+    {
+        $minutes = $this->duration_minutes ?? 0;
+        $rate = (float) ($this->hourly_rate ?? 0);
+
+        if ($minutes === 0 || $rate === 0.0) {
+            return 0;
+        }
+
+        // Zaokrouhlení nahoru na nejbližší půlhodinu (30 min)
+        $halfHours = ceil($minutes / 30);
+        $hours = $halfHours * 0.5;
+
+        return round($hours * $rate, 2);
+    }
+
+    /**
+     * Účtovatelné hodiny (zaokrouhleno na 0.5h).
+     */
+    public function getBillableHoursAttribute(): float
+    {
+        $minutes = $this->duration_minutes ?? 0;
+        if ($minutes === 0) return 0;
+        return ceil($minutes / 30) * 0.5;
     }
 
     public function getDurationAttribute(): ?int

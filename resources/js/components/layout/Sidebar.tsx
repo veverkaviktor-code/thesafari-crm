@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import {
+    Bell,
+    CalendarCheck,
     ChevronLeft,
     ChevronRight,
     ClipboardList,
@@ -9,6 +11,7 @@ import {
     LayoutDashboard,
     MessageSquare,
     Settings,
+    TrendingUp,
     Users,
 } from 'lucide-react';
 import {
@@ -30,8 +33,11 @@ const mainNav: NavItem[] = [
     { label: 'Zákazníci', href: '/zakaznici', icon: Users },
     { label: 'Zakázky', href: '/zakazky', icon: ClipboardList },
     { label: 'Faktury', href: '/faktury', icon: FileText },
+    { label: 'Finance', href: '/finance', icon: TrendingUp },
     { label: 'Požadavky', href: '/pozadavky', icon: MessageSquare },
     { label: 'Neniweb', href: '/neniweb', icon: Globe },
+    { label: 'Plánovač', href: '/planovac', icon: CalendarCheck },
+    { label: 'Notifikace', href: '/notifikace', icon: Bell },
 ];
 
 const bottomNav: NavItem[] = [
@@ -40,7 +46,8 @@ const bottomNav: NavItem[] = [
 
 export default function Sidebar() {
     const [collapsed, setCollapsed] = useState(false);
-    const { url } = usePage();
+    const { url, props: pageProps } = usePage<{ notifications?: { unread_count: number } }>();
+    const unreadCount = pageProps.notifications?.unread_count ?? 0;
 
     const isActive = (href: string) => {
         if (href === '/dashboard') return url === '/dashboard' || url === '/';
@@ -93,6 +100,7 @@ export default function Sidebar() {
                             item={item}
                             active={isActive(item.href)}
                             collapsed={collapsed}
+                            badge={item.href === '/notifikace' ? unreadCount : 0}
                         />
                     ))}
                 </nav>
@@ -105,6 +113,7 @@ export default function Sidebar() {
                             item={item}
                             active={isActive(item.href)}
                             collapsed={collapsed}
+                            badge={0}
                         />
                     ))}
                 </div>
@@ -117,10 +126,12 @@ function NavLink({
     item,
     active,
     collapsed,
+    badge = 0,
 }: {
     item: NavItem;
     active: boolean;
     collapsed: boolean;
+    badge?: number;
 }) {
     const Icon = item.icon;
 
@@ -138,14 +149,29 @@ function NavLink({
             {active && (
                 <span className="absolute -left-3 top-1.5 h-5 w-0.5 rounded-r bg-primary" />
             )}
-            <Icon className="h-4 w-4 shrink-0" />
+
+            {/* Icon with collapsed badge */}
+            <span className="relative shrink-0">
+                <Icon className="h-4 w-4" />
+                {collapsed && badge > 0 && (
+                    <span className="absolute -right-1.5 -top-1.5 flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold text-white">
+                        {badge > 9 ? '9+' : badge}
+                    </span>
+                )}
+            </span>
+
             <span
                 className={cn(
-                    'whitespace-nowrap transition-all duration-300',
+                    'flex flex-1 items-center justify-between whitespace-nowrap transition-all duration-300',
                     collapsed && 'w-0 opacity-0',
                 )}
             >
                 {item.label}
+                {!collapsed && badge > 0 && (
+                    <span className="ml-auto flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500/15 px-1 text-[10px] font-semibold text-red-400">
+                        {badge > 99 ? '99+' : badge}
+                    </span>
+                )}
             </span>
         </Link>
     );
@@ -156,6 +182,7 @@ function NavLink({
                 <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
                 <TooltipContent side="right" sideOffset={8}>
                     {item.label}
+                    {badge > 0 && ` (${badge})`}
                 </TooltipContent>
             </Tooltip>
         );

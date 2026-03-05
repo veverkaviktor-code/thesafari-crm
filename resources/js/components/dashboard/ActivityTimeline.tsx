@@ -1,42 +1,52 @@
 import {
     CheckCircle2,
+    Clock,
     CreditCard,
     FileText,
     MessageSquare,
+    Package,
+    Receipt,
     UserPlus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface Activity {
+export interface Activity {
     id: number;
-    icon: 'customer' | 'order' | 'invoice' | 'payment' | 'ticket';
+    icon: 'customer' | 'order' | 'invoice' | 'payment' | 'ticket' | 'time_entry' | 'cost' | 'item';
     text: string;
     time: string;
+    created_at: string;
+    changes?: string | null;
 }
 
 const iconMap = {
-    customer: { icon: UserPlus, color: 'text-amber-500', bg: 'bg-amber-500/10' },
-    order: { icon: FileText, color: 'text-primary', bg: 'bg-primary/10' },
-    invoice: { icon: FileText, color: 'text-[#D4A574]', bg: 'bg-[#D4A574]/10' },
-    payment: { icon: CreditCard, color: 'text-lime-600', bg: 'bg-lime-600/10' },
-    ticket: { icon: MessageSquare, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+    customer:   { icon: UserPlus,      color: 'text-amber-500',    bg: 'bg-amber-500/10' },
+    order:      { icon: FileText,      color: 'text-primary',      bg: 'bg-primary/10' },
+    invoice:    { icon: FileText,      color: 'text-[#D4A574]',    bg: 'bg-[#D4A574]/10' },
+    payment:    { icon: CreditCard,    color: 'text-lime-600',     bg: 'bg-lime-600/10' },
+    ticket:     { icon: MessageSquare, color: 'text-orange-500',   bg: 'bg-orange-500/10' },
+    time_entry: { icon: Clock,         color: 'text-sky-500',      bg: 'bg-sky-500/10' },
+    cost:       { icon: Receipt,       color: 'text-rose-500',     bg: 'bg-rose-500/10' },
+    item:       { icon: Package,       color: 'text-violet-500',   bg: 'bg-violet-500/10' },
 };
-
-const placeholderActivities: Activity[] = [
-    { id: 1, icon: 'customer', text: 'Nový zákazník: Studio Grafika s.r.o.', time: 'Před 2 hodinami' },
-    { id: 2, icon: 'payment', text: 'Faktura #2024-0042 zaplacena (12 500 Kč)', time: 'Před 3 hodinami' },
-    { id: 3, icon: 'order', text: 'Zakázka "Polep dodávky" dokončena', time: 'Před 5 hodinami' },
-    { id: 4, icon: 'ticket', text: 'Nový požadavek: Aktualizace webu neniweb.cz', time: 'Před 5 hodinami' },
-    { id: 5, icon: 'invoice', text: 'Vystavena faktura #2024-0043 (28 000 Kč)', time: 'Včera' },
-    { id: 6, icon: 'customer', text: 'Nový zákazník: Jan Procházka', time: 'Před 2 dny' },
-];
 
 interface Props {
     activities?: Activity[];
 }
 
 export default function ActivityTimeline({ activities }: Props) {
-    const items = activities ?? placeholderActivities;
+    const items = activities ?? [];
+
+    if (items.length === 0) {
+        return (
+            <div className="rounded-xl border border-border bg-card p-5">
+                <h3 className="mb-4 text-sm font-semibold text-muted-foreground">
+                    Poslední aktivita
+                </h3>
+                <p className="text-sm text-muted-foreground">Žádná aktivita</p>
+            </div>
+        );
+    }
 
     return (
         <div className="rounded-xl border border-border bg-card p-5">
@@ -45,7 +55,7 @@ export default function ActivityTimeline({ activities }: Props) {
             </h3>
             <div className="space-y-4">
                 {items.map((activity, index) => {
-                    const config = iconMap[activity.icon];
+                    const config = iconMap[activity.icon] ?? iconMap.order;
                     const Icon = config.icon;
                     return (
                         <div key={activity.id} className="flex gap-3">
@@ -64,10 +74,15 @@ export default function ActivityTimeline({ activities }: Props) {
                                     <div className="mt-1 h-full w-px bg-border" />
                                 )}
                             </div>
-                            <div className="pb-4">
+                            <div className="pb-4 min-w-0 flex-1">
                                 <p className="text-sm text-foreground/80">
                                     {activity.text}
                                 </p>
+                                {activity.changes && (
+                                    <p className="mt-0.5 text-xs text-muted-foreground/70">
+                                        Změněno: {activity.changes}
+                                    </p>
+                                )}
                                 <p className="mt-0.5 text-xs text-muted-foreground">
                                     {activity.time}
                                 </p>

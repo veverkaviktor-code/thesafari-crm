@@ -1,10 +1,18 @@
 import { differenceInDays, parseISO } from 'date-fns';
 
 interface ExpirationBadgeProps {
-    expiresAt: string;
+    expiresAt: string | null;
 }
 
 export default function ExpirationBadge({ expiresAt }: ExpirationBadgeProps) {
+    if (!expiresAt) {
+        return (
+            <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium bg-muted text-muted-foreground border-border">
+                —
+            </span>
+        );
+    }
+
     const days = differenceInDays(parseISO(expiresAt), new Date());
 
     let label: string;

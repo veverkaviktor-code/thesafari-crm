@@ -1,7 +1,7 @@
 import { useState } from "react";
 import AuthenticatedLayout from "@/layouts/AuthenticatedLayout";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Building2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import Profile from "./Profile";
 import Company from "./Company";
 
@@ -31,6 +31,11 @@ interface Props {
     tab?: string;
 }
 
+const tabs = [
+    { value: "profile", label: "Profil", icon: User, description: "Jméno, email a avatar" },
+    { value: "company", label: "Firma", icon: Building2, description: "Firemní údaje a fakturace" },
+];
+
 export default function SettingsIndex({ user, company, tab }: Props) {
     const [activeTab, setActiveTab] = useState(tab || "profile");
 
@@ -39,36 +44,40 @@ export default function SettingsIndex({ user, company, tab }: Props) {
             title="Nastavení"
             breadcrumbs={[{ label: "Nastavení" }]}
         >
-            <div className="p-6 max-w-4xl mx-auto">
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex gap-6">
+            <div className="p-6 max-w-5xl mx-auto">
+                <div className="flex gap-8">
                     {/* Side navigation */}
-                    <TabsList className="flex flex-col h-auto bg-transparent border-0 w-[200px] shrink-0 gap-1">
-                        <TabsTrigger
-                            value="profile"
-                            className="w-full justify-start px-3 py-2.5 text-muted-foreground data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:border data-[state=active]:border-border rounded-lg"
-                        >
-                            <User className="h-4 w-4 mr-2" />
-                            Profil
-                        </TabsTrigger>
-                        <TabsTrigger
-                            value="company"
-                            className="w-full justify-start px-3 py-2.5 text-muted-foreground data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:border data-[state=active]:border-border rounded-lg"
-                        >
-                            <Building2 className="h-4 w-4 mr-2" />
-                            Firma
-                        </TabsTrigger>
-                    </TabsList>
+                    <nav className="w-[220px] shrink-0 space-y-1">
+                        {tabs.map((t) => {
+                            const Icon = t.icon;
+                            const isActive = activeTab === t.value;
+                            return (
+                                <button
+                                    key={t.value}
+                                    onClick={() => setActiveTab(t.value)}
+                                    className={cn(
+                                        "flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors",
+                                        isActive
+                                            ? "bg-card border border-border text-foreground"
+                                            : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                                    )}
+                                >
+                                    <Icon className={cn("h-5 w-5 shrink-0", isActive ? "text-primary" : "")} />
+                                    <div>
+                                        <p className="text-sm font-medium">{t.label}</p>
+                                        <p className="text-xs text-muted-foreground">{t.description}</p>
+                                    </div>
+                                </button>
+                            );
+                        })}
+                    </nav>
 
                     {/* Content */}
                     <div className="flex-1 min-w-0">
-                        <TabsContent value="profile" className="mt-0">
-                            <Profile user={user} />
-                        </TabsContent>
-                        <TabsContent value="company" className="mt-0">
-                            <Company company={company} />
-                        </TabsContent>
+                        {activeTab === "profile" && <Profile user={user} />}
+                        {activeTab === "company" && <Company company={company} />}
                     </div>
-                </Tabs>
+                </div>
             </div>
         </AuthenticatedLayout>
     );

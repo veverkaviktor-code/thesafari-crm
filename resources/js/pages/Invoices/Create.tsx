@@ -33,11 +33,22 @@ interface Customer {
     company: string | null;
 }
 
+interface OrderItem {
+    id: number;
+    name: string;
+    description: string | null;
+    quantity: number;
+    unit: string;
+    unit_price: number;
+    total: number;
+}
+
 interface Order {
     id: number;
     title: string;
     price: number;
     customer_id: number;
+    items?: OrderItem[];
 }
 
 interface Props {
@@ -70,14 +81,21 @@ export default function Create({
     );
 
     const initialItems: InvoiceItemRow[] = prefill_order
-        ? [
-              {
-                  description: prefill_order.title,
-                  quantity: '1',
-                  unit: 'komplet',
-                  unit_price: String(prefill_order.price),
-              },
-          ]
+        ? prefill_order.items && prefill_order.items.length > 0
+            ? prefill_order.items.map((item) => ({
+                  description: item.name + (item.description ? ` — ${item.description}` : ''),
+                  quantity: String(item.quantity),
+                  unit: item.unit,
+                  unit_price: String(item.unit_price),
+              }))
+            : [
+                  {
+                      description: prefill_order.title,
+                      quantity: '1',
+                      unit: 'komplet',
+                      unit_price: String(prefill_order.price),
+                  },
+              ]
         : [{ description: '', quantity: '1', unit: 'ks', unit_price: '' }];
 
     const form = useForm<FormData>({

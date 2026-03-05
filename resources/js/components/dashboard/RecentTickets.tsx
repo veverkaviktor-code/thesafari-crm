@@ -17,20 +17,12 @@ const priorityConfig = {
     urgent: { label: 'Urgentní', className: 'bg-red-500/10 text-red-500 border-red-500/20' },
 };
 
-const placeholderTickets: Ticket[] = [
-    { id: 1, subject: 'Nefunguje kontaktní formulář', customer: 'Studio Grafika', priority: 'high', created_at: 'Před 1 hodinou' },
-    { id: 2, subject: 'Aktualizace ceníku na webu', customer: 'Jan Procházka', priority: 'medium', created_at: 'Před 3 hodinami' },
-    { id: 3, subject: 'Nový design vizitky', customer: 'ABC Logistics', priority: 'low', created_at: 'Včera' },
-    { id: 4, subject: 'SSL certifikát expiruje', customer: 'Kavárna U Mlynáře', priority: 'urgent', created_at: 'Včera' },
-    { id: 5, subject: 'Přidání foto do galerie', customer: 'Hotel Relax', priority: 'low', created_at: 'Před 2 dny' },
-];
-
 interface Props {
     tickets?: Ticket[];
 }
 
 export default function RecentTickets({ tickets }: Props) {
-    const items = tickets ?? placeholderTickets;
+    const items = tickets ?? [];
 
     return (
         <div className="rounded-xl border border-border bg-card p-5">
@@ -47,6 +39,11 @@ export default function RecentTickets({ tickets }: Props) {
                 </Link>
             </div>
             <div className="space-y-2">
+                {items.length === 0 && (
+                    <p className="py-6 text-center text-sm text-muted-foreground">
+                        Žádné otevřené požadavky
+                    </p>
+                )}
                 {items.map((ticket) => {
                     const priority = priorityConfig[ticket.priority];
                     return (

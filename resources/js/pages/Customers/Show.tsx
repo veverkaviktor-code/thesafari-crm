@@ -30,9 +30,9 @@ interface Props {
         created_at: string;
         subscriptions: {
             id: number;
-            service_type: string;
+            type: 'hosting' | 'domena' | 'sluzba';
             name: string;
-            status: 'active' | 'inactive' | 'pending' | 'completed' | 'cancelled';
+            status: string;
             expires_at: string | null;
         }[];
     };
@@ -41,7 +41,19 @@ interface Props {
         total_revenue: number;
         total_costs: number;
         profit: number;
+        invoiced: number;
+        paid: number;
+        uninvoiced: number;
+        active_subscriptions: number;
+        vps_yearly: number;
     };
+    vpsServers: {
+        id: number;
+        name: string;
+        status: string;
+        price_yearly: number;
+        hostings_count: number;
+    }[];
     orders: {
         id: number;
         title: string;
@@ -73,6 +85,7 @@ export default function Show({
     orders,
     invoices,
     tickets,
+    vpsServers,
 }: Props) {
     return (
         <AuthenticatedLayout
@@ -91,6 +104,7 @@ export default function Show({
                     <div className="space-y-6">
                         <CustomerServices
                             subscriptions={customer.subscriptions ?? []}
+                            vpsServers={vpsServers ?? []}
                         />
                         <CustomerMiniDashboard
                             stats={
