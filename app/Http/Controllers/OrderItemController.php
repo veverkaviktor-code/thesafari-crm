@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\OrderItem;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class OrderItemController extends Controller
 {
@@ -18,8 +19,10 @@ class OrderItemController extends Controller
             'unit_price' => 'required|numeric|min:0',
         ]);
 
-        $order->items()->create($validated);
-        $order->update(['price' => $order->items()->sum(\DB::raw('quantity * unit_price'))]);
+        DB::transaction(function () use ($order, $validated) {
+            $order->items()->create($validated);
+            $this->recalcPrice($order);
+        });
 
         return back()->with('success', 'Polozka pridana.');
     }
@@ -36,8 +39,10 @@ class OrderItemController extends Controller
             'unit_price' => 'required|numeric|min:0',
         ]);
 
-        $orderItem->update($validated);
-        $order->update(['price' => $order->items()->sum(\DB::raw('quantity * unit_price'))]);
+        DB::transaction(function () use ($order, $orderItem, $validated) {
+            $orderItem->update($validated);
+            $this->recalcPrice($order);
+        });
 
         return back()->with('success', 'Polozka upravena.');
     }
@@ -46,9 +51,18 @@ class OrderItemController extends Controller
     {
         abort_if($orderItem->order_id !== $order->id, 403);
 
-        $orderItem->delete();
-        $order->update(['price' => $order->items()->sum(\DB::raw('quantity * unit_price'))]);
+        DB::transaction(function () use ($order, $orderItem) {
+            $orderItem->delete();
+            $this->recalcPrice($order);
+        });
 
         return back()->with('success', 'Polozka smazana.');
+    }
+
+    private function recalcPrice(Order $order): void
+    {
+        $order->update([
+            'price' => $order->items()->sum(DB::raw('quantity * unit_price')),
+        ]);
     }
 }

@@ -14,7 +14,7 @@ class AdminUserSeeder extends Seeder
             ['email' => 'admin@thesafari.cz'],
             [
                 'name' => 'Admin',
-                'password' => Hash::make('SafariHQ2026!'),
+                'password' => Hash::make(env('ADMIN_PASSWORD', 'change-me-immediately')),
                 'role' => 'admin',
             ]
         );

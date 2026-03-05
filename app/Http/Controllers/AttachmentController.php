@@ -11,7 +11,7 @@ class AttachmentController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|max:10240',
+            'file' => 'required|file|max:10240|mimes:pdf,jpg,jpeg,png,gif,webp,doc,docx,xls,xlsx,zip,txt,svg',
             'attachable_type' => 'required|string|in:customer,order,ticket',
             'attachable_id' => 'required|integer',
             'description' => 'nullable|string|max:500',
@@ -38,7 +38,7 @@ class AttachmentController extends Controller
             'filename' => $file->getClientOriginalName(),
             'description' => $request->input('description'),
             'path' => $path,
-            'mime_type' => $file->getClientMimeType(),
+            'mime_type' => $file->getMimeType(),
             'size' => $file->getSize(),
         ]);
 
@@ -51,7 +51,7 @@ class AttachmentController extends Controller
             abort(404, 'Soubor nenalezen.');
         }
 
-        return Storage::disk('local')->download($attachment->path, $attachment->filename);
+        return Storage::disk('local')->download($attachment->path, basename($attachment->filename));
     }
 
     public function destroy(Attachment $attachment)

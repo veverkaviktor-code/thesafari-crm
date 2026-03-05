@@ -366,7 +366,9 @@ class SubscriptionController extends Controller
         match ($validated['action']) {
             'set_free' => $subscriptions->update(['is_free' => true]),
             'unset_free' => $subscriptions->update(['is_free' => false]),
-            'set_status' => $subscriptions->update(['status' => $validated['value']]),
+            'set_status' => in_array($validated['value'], ['aktivni', 'pozastaveno', 'zruseno'])
+                ? $subscriptions->update(['status' => $validated['value']])
+                : null,
             'set_customer' => $this->bulkSetCustomer($validated['ids'], $validated['value'] ?: null),
             'clear_expiry' => $subscriptions->update(['expires_at' => null]),
             'set_external' => $subscriptions->update(['is_external' => true]),

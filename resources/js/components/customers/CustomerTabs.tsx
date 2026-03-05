@@ -64,6 +64,7 @@ const divisionConfig: Record<string, { label: string; className: string }> = {
 
 const invoiceStatusConfig: Record<string, { label: string; className: string }> = {
     nova: { label: 'Nová', className: 'bg-blue-500/15 text-blue-500 border-blue-500/25' },
+    vystavena: { label: 'Vystavena', className: 'bg-indigo-500/15 text-indigo-500 border-indigo-500/25' },
     odeslana: { label: 'Odeslaná', className: 'bg-amber-500/15 text-amber-500 border-amber-500/25' },
     zaplacena: { label: 'Zaplacená', className: 'bg-emerald-500/15 text-emerald-500 border-emerald-500/25' },
     po_splatnosti: { label: 'Po splatnosti', className: 'bg-red-500/15 text-red-500 border-red-500/25' },
@@ -79,10 +80,9 @@ const ticketStatusConfig: Record<string, { label: string; className: string }> =
 };
 
 const priorityConfig: Record<string, { label: string; className: string }> = {
-    nizka: { label: 'Nízká', className: 'bg-gray-500/15 text-muted-foreground border-gray-500/25' },
-    normalni: { label: 'Normální', className: 'bg-blue-500/15 text-blue-500 border-blue-500/25' },
-    vysoka: { label: 'Vysoká', className: 'bg-amber-500/15 text-amber-500 border-amber-500/25' },
-    kriticka: { label: 'Kritická', className: 'bg-red-500/15 text-red-500 border-red-500/25' },
+    low: { label: 'Nízká', className: 'bg-gray-500/15 text-muted-foreground border-gray-500/25' },
+    medium: { label: 'Normální', className: 'bg-blue-500/15 text-blue-500 border-blue-500/25' },
+    high: { label: 'Vysoká', className: 'bg-amber-500/15 text-amber-500 border-amber-500/25' },
 };
 
 function Badge({ label, className }: { label: string; className: string }) {
