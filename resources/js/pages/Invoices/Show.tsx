@@ -6,6 +6,7 @@ import {
     CheckCircle2,
     CreditCard,
     Download,
+    ExternalLink,
     Mail,
     MailCheck,
     Pencil,
@@ -49,6 +50,12 @@ interface Invoice {
     };
     order: { id: number; title: string } | null;
     items: InvoiceItem[];
+    subscriptions?: Array<{
+        id: number;
+        name: string;
+        type: string;
+        expires_at: string | null;
+    }>;
 }
 
 interface Props {
@@ -369,6 +376,42 @@ export default function Show({ invoice, company }: Props) {
                                     {invoice.order.title}
                                 </Link>
                             </p>
+                        </>
+                    )}
+
+                    {/* Linked subscriptions */}
+                    {invoice.subscriptions && invoice.subscriptions.length > 0 && (
+                        <>
+                            <Separator className="my-6 bg-border" />
+                            <div>
+                                <p className="text-xs text-muted-foreground mb-2">Služby:</p>
+                                {invoice.subscriptions.map((sub) => (
+                                    <div key={sub.id} className="flex items-center gap-2 text-sm mb-1">
+                                        <span>{sub.type === 'domena' ? '🌐' : '🖥️'}</span>
+                                        <Link
+                                            href={`/neniweb/${sub.id}`}
+                                            className="text-primary hover:underline"
+                                        >
+                                            {sub.name}
+                                        </Link>
+                                        <span className="text-muted-foreground text-xs">
+                                            — {sub.type === 'domena' ? 'doména' : 'hosting'}
+                                            {sub.expires_at && ` (exp. ${new Date(sub.expires_at).toLocaleDateString('cs-CZ')})`}
+                                        </span>
+                                    </div>
+                                ))}
+                                {invoice.status === 'zaplacena' && invoice.subscriptions.some(s => s.type === 'domena') && (
+                                    <a
+                                        href="https://portal.vas-hosting.cz"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="mt-3 inline-flex items-center gap-2 text-sm text-amber-500 hover:text-amber-400"
+                                    >
+                                        <ExternalLink className="h-4 w-4" />
+                                        Obnovit domény u registrátora
+                                    </a>
+                                )}
+                            </div>
                         </>
                     )}
                 </div>

@@ -28,6 +28,7 @@ interface Subscription {
     starts_at: string;
     expires_at: string;
     auto_renew: boolean;
+    auto_invoice: boolean;
     is_free: boolean;
     status: string;
     notes: string | null;
@@ -55,6 +56,7 @@ export default function NeniwebEdit({ subscription, customers }: Props) {
         starts_at: subscription.starts_at || '',
         expires_at: subscription.expires_at || '',
         auto_renew: subscription.auto_renew,
+        auto_invoice: subscription.auto_invoice ?? true,
         is_free: subscription.is_free ?? false,
         status: subscription.status,
         notes: subscription.notes || '',
