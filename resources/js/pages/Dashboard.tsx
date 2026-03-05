@@ -152,7 +152,7 @@ export default function Dashboard({ stats, mrr, revenueByDivision, revenueData, 
         >
             <div className="space-y-6">
                 {/* Row 1: Stat cards */}
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-5">
                     <StatCard
                         label="Aktivní zakázky"
                         value={String(s.active_orders)}

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
@@ -70,11 +71,11 @@ class Invoice extends Model
         return $this->status !== 'zaplacena' && $this->due_date->isPast();
     }
 
-    public static function getNextInvoiceNumber(): string
+    public static function getNextInvoiceNumber(string $series = '1'): string
     {
-        return DB::transaction(function () {
+        return DB::transaction(function () use ($series) {
             $year = now()->year;
-            $prefix = (string) $year;
+            $prefix = $year . $series;
 
             $lastInvoice = static::withTrashed()
                 ->where('invoice_number', 'LIKE', $prefix . '%')
@@ -97,5 +98,11 @@ class Invoice extends Model
                 $invoice->variable_symbol = $invoice->invoice_number;
             }
         });
+    }
+
+    public function subscriptions(): BelongsToMany
+    {
+        return $this->belongsToMany(Subscription::class, 'invoice_subscription')
+            ->withPivot('created_at');
     }
 }

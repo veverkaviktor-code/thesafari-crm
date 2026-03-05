@@ -1,4 +1,4 @@
-import { type FormEvent } from 'react';
+import { type FormEvent, useEffect } from 'react';
 import { type InertiaFormProps } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
@@ -39,6 +39,7 @@ export interface NeniwebFormData {
     starts_at: string;
     expires_at: string;
     auto_renew: boolean;
+    auto_invoice: boolean;
     is_free: boolean;
     is_external: boolean;
     status: string;
@@ -61,6 +62,7 @@ export const defaultNeniwebData: NeniwebFormData = {
     starts_at: format(new Date(), 'yyyy-MM-dd'),
     expires_at: '',
     auto_renew: true,
+    auto_invoice: true,
     is_free: false,
     is_external: false,
     status: 'aktivni',
@@ -97,6 +99,12 @@ export default function NeniwebForm({
     onCancel,
 }: NeniwebFormProps) {
     const { data, setData, errors, processing } = form;
+
+    useEffect(() => {
+        if (!data.auto_renew) {
+            setData('auto_invoice', false);
+        }
+    }, [data.auto_renew]);
 
     const isDomain = data.type === 'domena';
     const isService = data.type === 'sluzba';
@@ -184,7 +192,7 @@ export default function NeniwebForm({
 
             {/* Provider / Server — hidden for services */}
             {!isService && (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <Label className="text-muted-foreground">
                             {isDomain ? 'Registrár' : 'Poskytovatel'}
@@ -241,7 +249,7 @@ export default function NeniwebForm({
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <Label className="text-muted-foreground">Nákupní cena (Kč)</Label>
                             <Input
@@ -307,7 +315,7 @@ export default function NeniwebForm({
 
             {/* Service fields — package + monthly price */}
             {isService && (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <Label className="text-muted-foreground">Balíček</Label>
                         <Select
@@ -351,7 +359,7 @@ export default function NeniwebForm({
 
             {/* Monthly fields for hosting — only visible when billing_cycle = monthly and NOT service */}
             {isMonthly && !isService && (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <Label className="text-muted-foreground">Balíček</Label>
                         <Select
@@ -394,7 +402,7 @@ export default function NeniwebForm({
             )}
 
             {/* Dates */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <Label className="text-muted-foreground">Začátek</Label>
                     <Popover>
@@ -497,13 +505,25 @@ export default function NeniwebForm({
             </div>
 
             {/* Flags + Status */}
-            <div className="grid grid-cols-4 gap-4">
-                <div className="flex items-center gap-3 pt-6">
-                    <Switch
-                        checked={data.auto_renew}
-                        onCheckedChange={(v) => setData('auto_renew', v)}
-                    />
-                    <Label className="text-muted-foreground">Auto-renew</Label>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                    <div className="flex items-center gap-3 pt-6">
+                        <Switch
+                            checked={data.auto_renew}
+                            onCheckedChange={(v) => setData('auto_renew', v)}
+                        />
+                        <Label className="text-muted-foreground">Auto-renew</Label>
+                    </div>
+                    <div className="flex items-center gap-3 pt-2">
+                        <Switch
+                            checked={data.auto_invoice}
+                            onCheckedChange={(v) => setData('auto_invoice', v)}
+                            disabled={!data.auto_renew}
+                        />
+                        <Label className={!data.auto_renew ? 'text-muted-foreground/50' : 'text-muted-foreground'}>
+                            Automatická fakturace
+                        </Label>
+                    </div>
                 </div>
                 <div className="flex items-center gap-3 pt-6">
                     <Switch

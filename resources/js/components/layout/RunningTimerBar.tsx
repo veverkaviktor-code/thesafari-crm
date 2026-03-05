@@ -71,10 +71,10 @@ export default function RunningTimerBar({ timer }: Props) {
                 />
             </span>
 
-            {/* Customer + Order link */}
-            <div className="flex items-baseline gap-1.5 truncate">
+            {/* Customer + Order link — full on desktop, order-only on mobile */}
+            <div className="flex min-w-0 items-baseline gap-1.5 truncate">
                 {customerName && (
-                    <span className="text-sm font-medium" style={{ color: '#DFD5A5' }}>
+                    <span className="hidden text-sm font-medium sm:inline" style={{ color: '#DFD5A5' }}>
                         {customerName}
                         <span className="mx-1.5 opacity-50">/</span>
                     </span>
@@ -87,7 +87,7 @@ export default function RunningTimerBar({ timer }: Props) {
                 </Link>
             </div>
 
-            {/* Description */}
+            {/* Description — hidden on mobile */}
             {timer.description && (
                 <span className="hidden truncate text-sm sm:block" style={{ color: '#DFD5A5' }}>
                     — {timer.description}

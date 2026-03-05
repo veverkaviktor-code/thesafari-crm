@@ -385,6 +385,30 @@ class DashboardController extends Controller
             ];
         }
 
+        // 7. Subscriptions to manually invoice (auto_renew=true, auto_invoice=false, expiring soon)
+        $manualInvoiceSubs = Subscription::where('status', 'aktivni')
+            ->where('auto_renew', true)
+            ->where('auto_invoice', false)
+            ->where('is_free', false)
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '>=', now())
+            ->where('expires_at', '<=', now()->addDays(30))
+            ->orderBy('expires_at')
+            ->limit(3)
+            ->get();
+
+        foreach ($manualInvoiceSubs as $sub) {
+            $days = (int) now()->diffInDays($sub->expires_at);
+            $label = $days === 0 ? 'dnes' : ($days === 1 ? 'zítra' : "za {$days} dní");
+            $alerts[] = [
+                'type' => 'warning',
+                'icon' => 'invoice',
+                'title' => "{$sub->name} — ručně fakturovat ({$label})",
+                'subtitle' => ucfirst($sub->type) . ' — auto-fakturace vypnuta',
+                'link' => "/neniweb/{$sub->id}",
+            ];
+        }
+
         // Sort: danger first, then warning
         usort($alerts, fn($a, $b) => ($a['type'] === 'danger' ? 0 : 1) - ($b['type'] === 'danger' ? 0 : 1));
 
