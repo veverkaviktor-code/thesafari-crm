@@ -135,7 +135,8 @@ export default function DataTable<T>({
                 </div>
             )}
 
-            {/* Table */}
+            {/* Table — horizontally scrollable on mobile */}
+            <div className="overflow-x-auto">
             <Table>
                 <TableHeader>
                     <TableRow className="border-border hover:bg-transparent">
@@ -245,6 +246,8 @@ export default function DataTable<T>({
                     )}
                 </TableBody>
             </Table>
+
+            </div>
 
             {/* Pagination */}
             {pagination && (pagination.last_page > 1 || perPageOptions) && (

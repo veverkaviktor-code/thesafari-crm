@@ -192,7 +192,7 @@ export default function NeniwebForm({
 
             {/* Provider / Server — hidden for services */}
             {!isService && (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <Label className="text-muted-foreground">
                             {isDomain ? 'Registrár' : 'Poskytovatel'}
@@ -249,7 +249,7 @@ export default function NeniwebForm({
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <Label className="text-muted-foreground">Nákupní cena (Kč)</Label>
                             <Input
@@ -315,7 +315,7 @@ export default function NeniwebForm({
 
             {/* Service fields — package + monthly price */}
             {isService && (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <Label className="text-muted-foreground">Balíček</Label>
                         <Select
@@ -359,7 +359,7 @@ export default function NeniwebForm({
 
             {/* Monthly fields for hosting — only visible when billing_cycle = monthly and NOT service */}
             {isMonthly && !isService && (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <Label className="text-muted-foreground">Balíček</Label>
                         <Select
@@ -402,7 +402,7 @@ export default function NeniwebForm({
             )}
 
             {/* Dates */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <Label className="text-muted-foreground">Začátek</Label>
                     <Popover>
@@ -505,7 +505,7 @@ export default function NeniwebForm({
             </div>
 
             {/* Flags + Status */}
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                     <div className="flex items-center gap-3 pt-6">
                         <Switch

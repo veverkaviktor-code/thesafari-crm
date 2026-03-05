@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Search } from 'lucide-react';
+import { Menu, Search } from 'lucide-react';
 import { Link } from '@inertiajs/react';
 import NotificationBell from '@/components/layout/NotificationBell';
 import UserMenu from '@/components/layout/UserMenu';
@@ -12,9 +12,10 @@ interface Breadcrumb {
 
 interface TopBarProps {
     breadcrumbs?: Breadcrumb[];
+    onMenuClick?: () => void;
 }
 
-export default function TopBar({ breadcrumbs = [] }: TopBarProps) {
+export default function TopBar({ breadcrumbs = [], onMenuClick }: TopBarProps) {
     const [searchOpen, setSearchOpen] = useState(false);
 
     const toggleSearch = useCallback(() => {
@@ -36,6 +37,17 @@ export default function TopBar({ breadcrumbs = [] }: TopBarProps) {
     return (
         <>
             <header className="flex h-16 shrink-0 items-center gap-4 border-b border-border bg-background px-6">
+                {/* Hamburger — mobile only */}
+                {onMenuClick && (
+                    <button
+                        onClick={onMenuClick}
+                        className="mr-2 p-2 text-muted-foreground hover:text-foreground md:hidden"
+                        aria-label="Otevřít menu"
+                    >
+                        <Menu className="h-5 w-5" />
+                    </button>
+                )}
+
                 {/* Breadcrumbs */}
                 <nav className="flex items-center gap-1.5 text-sm">
                     {breadcrumbs.map((crumb, i) => (
