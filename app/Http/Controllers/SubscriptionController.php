@@ -474,8 +474,21 @@ class SubscriptionController extends Controller
                 ];
 
                 if ($domain) {
-                    // Existing record: NEVER overwrite expires_at — CRM manages expirations
+                    // Domains: registrar API is source of truth for expires_at
+                    if ($info['expiration'] ?? null) {
+                        $data['expires_at'] = $info['expiration'];
+                    }
+                    $oldExpiresAt = $domain->expires_at?->toDateString();
                     $domain->update($data);
+
+                    // If domain expiration changed, update linked hosting
+                    if (isset($data['expires_at']) && $oldExpiresAt !== $data['expires_at']) {
+                        Subscription::where('type', 'hosting')
+                            ->where('name', $domainName)
+                            ->where('customer_id', $domain->customer_id)
+                            ->update(['expires_at' => $data['expires_at']]);
+                    }
+
                     $syncedDomains++;
                 } else {
                     // New record: set expires_at from API for initial import
@@ -521,7 +534,7 @@ class SubscriptionController extends Controller
                 ];
 
                 if ($hosting) {
-                    // Existing record: NEVER overwrite expires_at — CRM manages expirations
+                    // Hostings: CRM manages expires_at (follows domain expiration via portal sync)
                     $hosting->update($data);
                     $syncedHostings++;
                 } else {
@@ -580,7 +593,7 @@ class SubscriptionController extends Controller
                 }
 
                 if ($hosting) {
-                    // Existing record: NEVER overwrite expires_at — CRM manages expirations
+                    // VPS Centrum hostings: CRM manages expires_at (follows domain expiration)
                     $hosting->update($data);
                     $syncedHostings++;
                 } else {
