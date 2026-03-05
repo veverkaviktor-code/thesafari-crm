@@ -34,7 +34,7 @@ class GenerateNotifications extends Command
             $exists = $admin->notifications()
                 ->where('type', InvoiceOverdue::class)
                 ->whereNull('read_at')
-                ->whereRaw("data->>'invoice_id' = ?", [(string) $invoice->id])
+                ->whereRaw("data::jsonb->>'invoice_id' = ?", [(string) $invoice->id])
                 ->exists();
 
             if (!$exists) {
@@ -55,7 +55,7 @@ class GenerateNotifications extends Command
             $exists = $admin->notifications()
                 ->where('type', SubscriptionExpiring::class)
                 ->whereNull('read_at')
-                ->whereRaw("data->>'subscription_id' = ?", [(string) $sub->id])
+                ->whereRaw("data::jsonb->>'subscription_id' = ?", [(string) $sub->id])
                 ->exists();
 
             if (!$exists) {
@@ -76,7 +76,7 @@ class GenerateNotifications extends Command
             $exists = $admin->notifications()
                 ->where('type', SubscriptionExpiring::class)
                 ->whereNull('read_at')
-                ->whereRaw("data->>'subscription_id' = ?", [(string) $sub->id])
+                ->whereRaw("data::jsonb->>'subscription_id' = ?", [(string) $sub->id])
                 ->exists();
 
             if (!$exists) {

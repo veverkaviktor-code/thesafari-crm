@@ -28,7 +28,7 @@ class CheckOverdueInvoices extends Command
                 $exists = $admin->notifications()
                     ->where('type', InvoiceOverdue::class)
                     ->whereNull('read_at')
-                    ->whereRaw("data->>'invoice_id' = ?", [(string) $invoice->id])
+                    ->whereRaw("data::jsonb->>'invoice_id' = ?", [(string) $invoice->id])
                     ->exists();
 
                 if (!$exists) {

@@ -171,7 +171,7 @@ class InvoiceController extends Controller
         $user = auth()->user();
         $user->notifications()
             ->whereNull('read_at')
-            ->whereRaw("data->>'invoice_id' = ?", [(string) $faktury->id])
+            ->whereRaw("data::jsonb->>'invoice_id' = ?", [(string) $faktury->id])
             ->update(['read_at' => now()]);
 
         $faktury->delete();
