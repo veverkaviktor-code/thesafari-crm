@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
@@ -38,6 +39,7 @@ class Subscription extends Model
         'expires_at',
         'managed_since',
         'auto_renew',
+        'auto_invoice',
         'is_free',
         'is_external',
         'status',
@@ -53,6 +55,7 @@ class Subscription extends Model
             'expires_at' => 'date',
             'managed_since' => 'date',
             'auto_renew' => 'boolean',
+            'auto_invoice' => 'boolean',
             'is_free' => 'boolean',
             'is_external' => 'boolean',
             'is_registered_by_us' => 'boolean',
@@ -144,5 +147,18 @@ class Subscription extends Model
     public function lastPayment(): ?SubscriptionPayment
     {
         return $this->payments()->latest('period_end')->first();
+    }
+
+    public function invoices(): BelongsToMany
+    {
+        return $this->belongsToMany(Invoice::class, 'invoice_subscription')
+            ->withPivot('created_at');
+    }
+
+    public function hasOpenInvoice(): bool
+    {
+        return $this->invoices()
+            ->whereIn('status', ['vystavena', 'odeslana'])
+            ->exists();
     }
 }
