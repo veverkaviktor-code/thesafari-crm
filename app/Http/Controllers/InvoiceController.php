@@ -257,8 +257,34 @@ class InvoiceController extends Controller
             'payment_method' => $paymentMethod,
         ]);
 
+        // Order invoice: update order status
         if ($invoice->order_id) {
             $invoice->order->update(['status' => 'fakturovano']);
+        }
+
+        // Subscription invoice: extend hosting + create payment records
+        $invoice->load('subscriptions');
+        if ($invoice->subscriptions->isNotEmpty()) {
+            foreach ($invoice->subscriptions as $subscription) {
+                // Create payment record
+                $subscription->payments()->create([
+                    'amount' => (float) $subscription->sell_yearly ?: (float) $subscription->price_yearly,
+                    'period_start' => $subscription->expires_at,
+                    'period_end' => $subscription->expires_at->copy()->addYear(),
+                    'status' => 'zaplaceno',
+                    'paid_at' => now(),
+                    'invoice_id' => $invoice->id,
+                    'payment_method' => $paymentMethod,
+                ]);
+
+                // Hosting: extend expires_at by 1 year (CRM manages)
+                // Domain: DON'T change — wait for sync from registrar
+                if ($subscription->type !== 'domena') {
+                    $subscription->update([
+                        'expires_at' => $subscription->expires_at->copy()->addYear(),
+                    ]);
+                }
+            }
         }
 
         $invoice->loadMissing('customer');
