@@ -5,6 +5,7 @@ import {
     MessageSquare,
     TrendingUp,
 } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import StatCard from '@/components/dashboard/StatCard';
 import RevenueChart from '@/components/dashboard/RevenueChart';
@@ -112,13 +113,6 @@ interface Props {
         link: string;
     }[];
 }
-
-const formatCurrency = (v: number | null | undefined) =>
-    new Intl.NumberFormat('cs-CZ', {
-        style: 'currency',
-        currency: 'CZK',
-        maximumFractionDigits: 0,
-    }).format(v ?? 0);
 
 function formatRelativeTime(dateStr: string): string {
     const diff = Date.now() - new Date(dateStr).getTime();

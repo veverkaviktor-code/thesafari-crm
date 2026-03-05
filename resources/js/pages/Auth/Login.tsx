@@ -18,7 +18,7 @@ export default function Login() {
 
     return (
         <>
-            <Head title="Prihlaseni" />
+            <Head title="Přihlášení" />
             <div className="dark bg-background min-h-screen">
                 <div className="flex min-h-screen items-center justify-center">
                     <Card className="w-full max-w-sm border-border bg-accent backdrop-blur-xl">
@@ -27,7 +27,7 @@ export default function Login() {
                                 The Safari HQ
                             </CardTitle>
                             <p className="text-sm text-muted-foreground">
-                                Prihlaste se do systemu
+                                Přihlaste se do systému
                             </p>
                         </CardHeader>
                         <CardContent>
@@ -69,7 +69,7 @@ export default function Login() {
                                     disabled={processing}
                                     className="w-full bg-primary text-white hover:bg-primary/80"
                                 >
-                                    {processing ? 'Prihlasuji...' : 'Prihlasit se'}
+                                    {processing ? 'Přihlašuji...' : 'Přihlásit se'}
                                 </Button>
                             </form>
                         </CardContent>

@@ -8,6 +8,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { formatCurrency } from '@/lib/utils';
 
 export interface InvoiceItemRow {
     description: string;
@@ -23,13 +24,6 @@ const units = [
     { value: 'm', label: 'm' },
     { value: 'komplet', label: 'komplet' },
 ];
-
-const formatCurrency = (v: number) =>
-    new Intl.NumberFormat('cs-CZ', {
-        style: 'currency',
-        currency: 'CZK',
-        maximumFractionDigits: 0,
-    }).format(v);
 
 interface Props {
     items: InvoiceItemRow[];

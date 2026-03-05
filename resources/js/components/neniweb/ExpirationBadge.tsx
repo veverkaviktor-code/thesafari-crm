@@ -1,4 +1,5 @@
-import { differenceInDays, parseISO } from 'date-fns';
+import { differenceInDays, parseISO, format } from 'date-fns';
+import { cs } from 'date-fns/locale';
 
 interface ExpirationBadgeProps {
     expiresAt: string | null;
@@ -14,13 +15,14 @@ export default function ExpirationBadge({ expiresAt }: ExpirationBadgeProps) {
     }
 
     const days = differenceInDays(parseISO(expiresAt), new Date());
+    const dateLabel = format(parseISO(expiresAt), 'd. M. yyyy', { locale: cs });
 
     let label: string;
     let className: string;
 
     if (days < 0) {
-        label = 'Expirováno';
-        className = 'bg-red-500/10 text-red-400 border-red-500/20';
+        label = dateLabel;
+        className = 'bg-red-500/20 text-red-400 border-red-500/30';
     } else if (days <= 7) {
         label = `${days} dní`;
         className = 'bg-red-500/10 text-red-400 border-red-500/20';

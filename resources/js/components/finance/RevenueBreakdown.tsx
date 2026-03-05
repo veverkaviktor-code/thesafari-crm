@@ -1,11 +1,5 @@
 import { Bar, BarChart, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
-
-const formatCurrency = (v: number) =>
-    new Intl.NumberFormat('cs-CZ', {
-        style: 'currency',
-        currency: 'CZK',
-        maximumFractionDigits: 0,
-    }).format(v);
+import { formatCurrency } from '@/lib/utils';
 
 interface BreakdownItem {
     label: string;

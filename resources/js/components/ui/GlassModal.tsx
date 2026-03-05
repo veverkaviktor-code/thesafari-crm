@@ -46,6 +46,9 @@ export default function GlassModal({
 
             {/* Modal */}
             <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="glass-modal-title"
                 className={`relative w-full ${maxWidth} max-h-[90vh] flex flex-col rounded-2xl overflow-hidden
                     border border-border
                     bg-card
@@ -54,7 +57,7 @@ export default function GlassModal({
             >
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-border px-8 py-5">
-                    <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+                    <h2 id="glass-modal-title" className="text-lg font-semibold text-foreground">{title}</h2>
                     <button
                         onClick={onClose}
                         className="rounded-xl p-2 text-muted-foreground transition-all hover:bg-accent hover:text-foreground"

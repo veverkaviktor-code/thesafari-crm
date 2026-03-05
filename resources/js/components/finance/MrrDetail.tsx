@@ -1,13 +1,6 @@
 import { router } from '@inertiajs/react';
 import { AlertTriangle } from 'lucide-react';
-import { cn } from '@/lib/utils';
-
-const formatCurrency = (v: number) =>
-    new Intl.NumberFormat('cs-CZ', {
-        style: 'currency',
-        currency: 'CZK',
-        maximumFractionDigits: 0,
-    }).format(v);
+import { cn, formatCurrency } from '@/lib/utils';
 
 interface MrrItem {
     type: string;

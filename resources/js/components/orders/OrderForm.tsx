@@ -1,5 +1,5 @@
 import { type FormEvent } from 'react';
-import { type InertiaFormProps } from '@inertiajs/react';
+import { router, type InertiaFormProps } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
 import { CalendarIcon } from 'lucide-react';
@@ -22,6 +22,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { FieldError } from '@/components/ui/FieldError';
 
 export interface OrderFormData {
     customer_id: string;
@@ -78,7 +79,7 @@ export default function OrderForm({
         if (onCancel) {
             onCancel();
         } else {
-            window.history.back();
+            router.visit('/zakazky');
         }
     };
 
@@ -245,7 +246,3 @@ export default function OrderForm({
     );
 }
 
-function FieldError({ error }: { error?: string }) {
-    if (!error) return null;
-    return <p className="text-xs text-red-400">{error}</p>;
-}

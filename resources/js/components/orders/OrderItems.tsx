@@ -10,6 +10,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { formatCurrency } from '@/lib/utils';
 
 interface OrderItem {
     id: number;
@@ -20,13 +21,6 @@ interface OrderItem {
     unit_price: number;
     total: number;
 }
-
-const formatCurrency = (v: number) =>
-    new Intl.NumberFormat('cs-CZ', {
-        style: 'currency',
-        currency: 'CZK',
-        maximumFractionDigits: 0,
-    }).format(v);
 
 const UNITS = [
     { value: 'ks', label: 'ks' },

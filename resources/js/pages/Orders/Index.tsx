@@ -1,4 +1,4 @@
-import { type FormEvent, useCallback, useMemo, useState } from 'react';
+import { type FormEvent, useCallback, useMemo, useRef, useState } from 'react';
 import { Link, router, useForm } from '@inertiajs/react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
@@ -22,7 +22,7 @@ import OrderForm, {
     defaultOrderData,
     type OrderFormData,
 } from '@/components/orders/OrderForm';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 
 interface Order {
     id: number;
@@ -62,13 +62,6 @@ interface Props {
         direction?: 'asc' | 'desc';
     };
 }
-
-const formatCurrency = (v: number) =>
-    new Intl.NumberFormat('cs-CZ', {
-        style: 'currency',
-        currency: 'CZK',
-        maximumFractionDigits: 0,
-    }).format(v);
 
 function deadlineClass(deadline: string | null): string {
     if (!deadline) return 'text-muted-foreground';
@@ -145,6 +138,7 @@ const baseColumns: Column<Order>[] = [
 
 export default function Index({ orders, customers, filters }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
+    const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [showCreate, setShowCreate] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<Order | null>(null);
     const [deleting, setDeleting] = useState(false);
@@ -214,11 +208,11 @@ export default function Index({ orders, customers, filters }: Props) {
     const handleSearch = useCallback(
         (value: string) => {
             setSearch(value);
-            const timeout = setTimeout(
+            if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+            searchTimeoutRef.current = setTimeout(
                 () => applyFilters({ search: value || undefined }),
                 300,
             );
-            return () => clearTimeout(timeout);
         },
         [applyFilters],
     );

@@ -1,4 +1,5 @@
 import { Separator } from '@/components/ui/separator';
+import { formatCurrency } from '@/lib/utils';
 
 interface PreviewItem {
     description: string;
@@ -17,13 +18,6 @@ interface Props {
     items: PreviewItem[];
     notes?: string;
 }
-
-const formatCurrency = (v: number) =>
-    new Intl.NumberFormat('cs-CZ', {
-        style: 'currency',
-        currency: 'CZK',
-        maximumFractionDigits: 0,
-    }).format(v);
 
 const formatDate = (d: string) =>
     d ? new Date(d).toLocaleDateString('cs-CZ') : '—';

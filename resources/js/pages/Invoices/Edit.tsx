@@ -1,5 +1,6 @@
 import { type FormEvent } from 'react';
-import { useForm } from '@inertiajs/react';
+import { router, useForm } from '@inertiajs/react';
+import { FieldError } from '@/components/ui/FieldError';
 import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
 import { CalendarIcon } from 'lucide-react';
@@ -229,7 +230,7 @@ export default function Edit({ invoice, customers, orders }: Props) {
                         />
 
                         <div className="flex items-center justify-end gap-3">
-                            <Button type="button" variant="ghost" className="text-muted-foreground hover:text-foreground" onClick={() => window.history.back()}>
+                            <Button type="button" variant="ghost" className="text-muted-foreground hover:text-foreground" onClick={() => router.visit('/faktury')}>
                                 Zrušit
                             </Button>
                             <Separator orientation="vertical" className="h-6 bg-border" />
@@ -254,9 +255,4 @@ export default function Edit({ invoice, customers, orders }: Props) {
             </form>
         </AuthenticatedLayout>
     );
-}
-
-function FieldError({ error }: { error?: string }) {
-    if (!error) return null;
-    return <p className="text-xs text-red-400">{error}</p>;
 }

@@ -105,4 +105,14 @@ class Invoice extends Model
         return $this->belongsToMany(Subscription::class, 'invoice_subscription')
             ->withPivot('created_at');
     }
+
+    public function bankTransaction(): BelongsTo
+    {
+        return $this->belongsTo(BankTransaction::class);
+    }
+
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class);
+    }
 }

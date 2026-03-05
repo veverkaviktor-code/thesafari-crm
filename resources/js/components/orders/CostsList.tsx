@@ -3,19 +3,13 @@ import { router } from '@inertiajs/react';
 import { Check, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { formatCurrency } from '@/lib/utils';
 
 interface OrderCost {
     id: number;
     title: string;
     amount: number;
 }
-
-const formatCurrency = (v: number) =>
-    new Intl.NumberFormat('cs-CZ', {
-        style: 'currency',
-        currency: 'CZK',
-        maximumFractionDigits: 0,
-    }).format(v);
 
 interface Props {
     orderId: number;

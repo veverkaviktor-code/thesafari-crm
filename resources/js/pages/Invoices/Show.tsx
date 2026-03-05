@@ -1,4 +1,5 @@
 import { Link, router } from '@inertiajs/react';
+import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
 import {
@@ -70,13 +71,6 @@ interface Props {
         bank_account: string;
     } | null;
 }
-
-const formatCurrency = (v: number) =>
-    new Intl.NumberFormat('cs-CZ', {
-        style: 'currency',
-        currency: 'CZK',
-        maximumFractionDigits: 2,
-    }).format(v);
 
 const formatDate = (d: string) =>
     format(new Date(d), 'd. MMMM yyyy', { locale: cs });

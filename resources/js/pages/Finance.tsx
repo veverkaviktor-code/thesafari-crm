@@ -16,14 +16,7 @@ import RevenueBreakdown from '@/components/finance/RevenueBreakdown';
 import InvoiceAging from '@/components/finance/InvoiceAging';
 import CashflowChart from '@/components/finance/CashflowChart';
 import MrrDetail from '@/components/finance/MrrDetail';
-import { cn } from '@/lib/utils';
-
-const formatCurrency = (v: number) =>
-    new Intl.NumberFormat('cs-CZ', {
-        style: 'currency',
-        currency: 'CZK',
-        maximumFractionDigits: 0,
-    }).format(v);
+import { cn, formatCurrency } from '@/lib/utils';
 
 const formatDate = (d: string) => new Date(d).toLocaleDateString('cs-CZ');
 

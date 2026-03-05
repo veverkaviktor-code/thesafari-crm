@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/react';
 import { FileText, Package, Ticket, ChevronRight } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 
 interface Order {
     id: number;
@@ -34,13 +34,6 @@ interface Props {
     invoices: Invoice[];
     tickets: TicketItem[];
 }
-
-const formatCurrency = (v: number) =>
-    new Intl.NumberFormat('cs-CZ', {
-        style: 'currency',
-        currency: 'CZK',
-        maximumFractionDigits: 0,
-    }).format(v);
 
 const formatDate = (d: string) =>
     new Date(d).toLocaleDateString('cs-CZ');

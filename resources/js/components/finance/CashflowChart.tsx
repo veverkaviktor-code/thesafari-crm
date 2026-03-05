@@ -1,12 +1,5 @@
 import { Bar, BarChart, Line, ComposedChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { cn } from '@/lib/utils';
-
-const formatCurrency = (v: number) =>
-    new Intl.NumberFormat('cs-CZ', {
-        style: 'currency',
-        currency: 'CZK',
-        maximumFractionDigits: 0,
-    }).format(v);
+import { cn, formatCurrency } from '@/lib/utils';
 
 interface CashflowPoint {
     month: string;

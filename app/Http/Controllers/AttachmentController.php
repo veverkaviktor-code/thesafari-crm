@@ -32,15 +32,20 @@ class AttachmentController extends Controller
         $file = $request->file('file');
         $path = $file->store('attachments/' . $request->input('attachable_type') . '/' . $id, 'local');
 
-        $attachment = Attachment::create([
-            'attachable_type' => $type,
-            'attachable_id' => $id,
-            'filename' => $file->getClientOriginalName(),
-            'description' => $request->input('description'),
-            'path' => $path,
-            'mime_type' => $file->getMimeType(),
-            'size' => $file->getSize(),
-        ]);
+        try {
+            Attachment::create([
+                'attachable_type' => $type,
+                'attachable_id' => $id,
+                'filename' => $file->getClientOriginalName(),
+                'description' => $request->input('description'),
+                'path' => $path,
+                'mime_type' => $file->getMimeType(),
+                'size' => $file->getSize(),
+            ]);
+        } catch (\Throwable $e) {
+            Storage::disk('local')->delete($path);
+            throw $e;
+        }
 
         return back()->with('success', 'Soubor nahrán.');
     }

@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect } from 'react';
-import { type InertiaFormProps } from '@inertiajs/react';
+import { type InertiaFormProps, router } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
 import { CalendarIcon, X } from 'lucide-react';
@@ -115,7 +115,7 @@ export default function NeniwebForm({
         if (onCancel) {
             onCancel();
         } else {
-            window.history.back();
+            router.visit('/neniweb');
         }
     };
 

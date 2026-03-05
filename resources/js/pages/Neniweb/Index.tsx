@@ -2,8 +2,7 @@ import { type FormEvent, useState, useCallback } from 'react';
 import { router, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import DataTable from '@/components/ui/DataTable';
-import ExpirationBadge from '@/components/neniweb/ExpirationBadge';
-import { StatusBadge } from '@/components/ui/StatusBadge';
+import { differenceInDays } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -46,6 +45,9 @@ import {
     HardDrive,
     UserPlus,
     SlidersHorizontal,
+    Play,
+    Pause,
+    CircleStop,
 } from 'lucide-react';
 
 const czk = (amount: number) =>
@@ -169,6 +171,20 @@ const statusMap: Record<string, { label: string; variant: string }> = {
     pozastaveno: { label: 'Pozastaveno', variant: 'inactive' },
     zruseno: { label: 'Zrušeno', variant: 'cancelled' },
 };
+
+const statusIconMap: Record<string, { icon: typeof Play; className: string; title: string }> = {
+    aktivni: { icon: Play, className: 'text-emerald-400', title: 'Aktivní' },
+    pozastaveno: { icon: Pause, className: 'text-amber-400', title: 'Pozastaveno' },
+    zruseno: { icon: CircleStop, className: 'text-red-400', title: 'Zrušeno' },
+};
+
+function expirationStyle(expiresAt: string | null): string {
+    if (!expiresAt) return 'text-muted-foreground/50';
+    const days = differenceInDays(new Date(expiresAt), new Date());
+    if (days < 0) return 'text-red-400 bg-red-500/10 rounded px-1.5 py-0.5';
+    if (days <= 30) return 'text-amber-400 bg-amber-500/10 rounded px-1.5 py-0.5';
+    return 'text-emerald-400 bg-emerald-500/10 rounded px-1.5 py-0.5';
+}
 
 const paymentStatusConfig: Record<string, { label: string; className: string }> = {
     zaplaceno: {
@@ -606,11 +622,6 @@ export default function NeniwebIndex({
         value: s,
         label: s,
     }));
-    const externalFilterOpts = [
-        { value: '0', label: 'Naše' },
-        { value: '1', label: 'Externí' },
-    ];
-
     // Build columnFilters record from URL params
     const columnFilters: Record<string, string> = {};
     for (const [k, v] of Object.entries(filters)) {
@@ -687,16 +698,11 @@ export default function NeniwebIndex({
             label: 'Expirace',
             sortable: true,
             render: (sub: Subscription) => sub.expires_at ? (
-                <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
-                        {format(new Date(sub.expires_at), 'd. M. yyyy', {
-                            locale: cs,
-                        })}
-                    </span>
-                    <ExpirationBadge expiresAt={sub.expires_at} />
-                </div>
+                <span className={`text-sm font-medium ${expirationStyle(sub.expires_at)}`}>
+                    {format(new Date(sub.expires_at), 'd. M. yyyy', { locale: cs })}
+                </span>
             ) : (
-                <span className="text-sm text-muted-foreground/50">Nenastaveno</span>
+                <span className="text-sm text-muted-foreground/50">—</span>
             ),
         },
         {
@@ -728,31 +734,27 @@ export default function NeniwebIndex({
             filterKey: 'filter_status',
             filterOptions: statusFilterOpts,
             render: (sub: Subscription) => {
-                const s = statusMap[sub.status];
-                return s ? (
-                    <StatusBadge status={s.variant as 'active' | 'inactive' | 'cancelled'}>{s.label}</StatusBadge>
-                ) : (
-                    <span>{sub.status}</span>
-                );
+                const si = statusIconMap[sub.status];
+                if (!si) return <span>{sub.status}</span>;
+                const Icon = si.icon;
+                return <Icon className={`h-4 w-4 ${si.className}`} title={si.title} />;
             },
-        },
-        {
-            key: 'is_external' as const,
-            label: 'Typ',
-            filterKey: 'filter_external',
-            filterOptions: externalFilterOpts,
-            render: (sub: Subscription) => sub.is_external ? (
-                <span className="text-xs text-zinc-400">Externí</span>
-            ) : (
-                <span className="text-xs text-emerald-400">Naše</span>
-            ),
         },
         {
             key: 'actions' as const,
             label: '',
-            className: 'w-[100px] text-right',
+            className: 'w-[120px] text-right',
             render: (sub: Subscription) => (
                 <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                    {!sub.is_free && sub.customer && (
+                        <button
+                            onClick={() => router.post(`/neniweb/${sub.id}/faktura`)}
+                            className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-blue-500/10 hover:text-blue-400"
+                            title="Vystavit fakturu"
+                        >
+                            <FileText className="h-3.5 w-3.5" />
+                        </button>
+                    )}
                     <button
                         onClick={() => router.visit(`/neniweb/${sub.id}/edit`)}
                         className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
@@ -863,16 +865,11 @@ export default function NeniwebIndex({
             label: 'Expirace',
             sortable: true,
             render: (sub: Subscription) => sub.expires_at ? (
-                <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
-                        {format(new Date(sub.expires_at), 'd. M. yyyy', {
-                            locale: cs,
-                        })}
-                    </span>
-                    <ExpirationBadge expiresAt={sub.expires_at} />
-                </div>
+                <span className={`text-sm font-medium ${expirationStyle(sub.expires_at)}`}>
+                    {format(new Date(sub.expires_at), 'd. M. yyyy', { locale: cs })}
+                </span>
             ) : (
-                <span className="text-sm text-muted-foreground/50">Nenastaveno</span>
+                <span className="text-sm text-muted-foreground/50">—</span>
             ),
         },
         {
@@ -904,31 +901,27 @@ export default function NeniwebIndex({
             filterKey: 'filter_status',
             filterOptions: statusFilterOpts,
             render: (sub: Subscription) => {
-                const s = statusMap[sub.status];
-                return s ? (
-                    <StatusBadge status={s.variant as 'active' | 'inactive' | 'cancelled'}>{s.label}</StatusBadge>
-                ) : (
-                    <span>{sub.status}</span>
-                );
+                const si = statusIconMap[sub.status];
+                if (!si) return <span>{sub.status}</span>;
+                const Icon = si.icon;
+                return <Icon className={`h-4 w-4 ${si.className}`} title={si.title} />;
             },
-        },
-        {
-            key: 'is_external' as const,
-            label: 'Typ',
-            filterKey: 'filter_external',
-            filterOptions: externalFilterOpts,
-            render: (sub: Subscription) => sub.is_external ? (
-                <span className="text-xs text-zinc-400">Externí</span>
-            ) : (
-                <span className="text-xs text-emerald-400">Naše</span>
-            ),
         },
         {
             key: 'actions' as const,
             label: '',
-            className: 'w-[100px] text-right',
+            className: 'w-[120px] text-right',
             render: (sub: Subscription) => (
                 <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                    {!sub.is_free && sub.customer && (
+                        <button
+                            onClick={() => router.post(`/neniweb/${sub.id}/faktura`)}
+                            className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-blue-500/10 hover:text-blue-400"
+                            title="Vystavit fakturu"
+                        >
+                            <FileText className="h-3.5 w-3.5" />
+                        </button>
+                    )}
                     <button
                         onClick={() => router.visit(`/neniweb/${sub.id}/edit`)}
                         className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
@@ -1009,20 +1002,27 @@ export default function NeniwebIndex({
             filterKey: 'filter_status',
             filterOptions: statusFilterOpts,
             render: (sub: Subscription) => {
-                const s = statusMap[sub.status];
-                return s ? (
-                    <StatusBadge status={s.variant as 'active' | 'inactive' | 'cancelled'}>{s.label}</StatusBadge>
-                ) : (
-                    <span>{sub.status}</span>
-                );
+                const si = statusIconMap[sub.status];
+                if (!si) return <span>{sub.status}</span>;
+                const Icon = si.icon;
+                return <Icon className={`h-4 w-4 ${si.className}`} title={si.title} />;
             },
         },
         {
             key: 'actions' as const,
             label: '',
-            className: 'w-[100px] text-right',
+            className: 'w-[120px] text-right',
             render: (sub: Subscription) => (
                 <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                    {!sub.is_free && sub.customer && (
+                        <button
+                            onClick={() => router.post(`/neniweb/${sub.id}/faktura`)}
+                            className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-blue-500/10 hover:text-blue-400"
+                            title="Vystavit fakturu"
+                        >
+                            <FileText className="h-3.5 w-3.5" />
+                        </button>
+                    )}
                     <button
                         onClick={() => router.visit(`/neniweb/${sub.id}/edit`)}
                         className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
@@ -1113,12 +1113,10 @@ export default function NeniwebIndex({
             key: 'status' as const,
             label: 'Stav',
             render: (vps: VpsServer) => {
-                const s = statusMap[vps.status];
-                return s ? (
-                    <StatusBadge status={s.variant as 'active' | 'inactive' | 'cancelled'}>{s.label}</StatusBadge>
-                ) : (
-                    <span>{vps.status}</span>
-                );
+                const si = statusIconMap[vps.status];
+                if (!si) return <span>{vps.status}</span>;
+                const Icon = si.icon;
+                return <Icon className={`h-4 w-4 ${si.className}`} title={si.title} />;
             },
         },
         {

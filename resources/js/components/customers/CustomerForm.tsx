@@ -1,5 +1,5 @@
 import { type FormEvent, type KeyboardEvent, useRef, useState } from 'react';
-import { type InertiaFormProps } from '@inertiajs/react';
+import { router, type InertiaFormProps } from '@inertiajs/react';
 import { Loader2, Plus, Search, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { cn, formatPhone } from '@/lib/utils';
+import { FieldError } from '@/components/ui/FieldError';
 
 export interface CustomerFormData {
     type: 'fyzicka' | 'pravnicka';
@@ -164,7 +165,7 @@ export default function CustomerForm({
         if (onCancel) {
             onCancel();
         } else {
-            window.history.back();
+            router.visit('/zakaznici');
         }
     };
 
@@ -565,7 +566,3 @@ function AddressFields({
     );
 }
 
-function FieldError({ error }: { error?: string }) {
-    if (!error) return null;
-    return <p className="text-xs text-red-400">{error}</p>;
-}

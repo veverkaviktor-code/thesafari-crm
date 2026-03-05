@@ -205,7 +205,7 @@ export default function DataTable<T>({
 
                             return (
                                 <TableRow
-                                    key={i}
+                                    key={getItemId ? getItemId(item) : i}
                                     className={cn(
                                         'border-border',
                                         onRowClick && 'cursor-pointer hover:bg-accent',

@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { router, useForm, usePage } from '@inertiajs/react';
+import { FieldError } from '@/components/ui/FieldError';
 import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
 import { CalendarIcon } from 'lucide-react';
@@ -372,7 +373,7 @@ export default function Create({
                                 type="button"
                                 variant="ghost"
                                 className="text-muted-foreground hover:text-foreground"
-                                onClick={() => window.history.back()}
+                                onClick={() => router.visit('/faktury')}
                             >
                                 Zrušit
                             </Button>
@@ -411,7 +412,3 @@ export default function Create({
     );
 }
 
-function FieldError({ error }: { error?: string }) {
-    if (!error) return null;
-    return <p className="text-xs text-red-400">{error}</p>;
-}

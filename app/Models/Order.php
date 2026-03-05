@@ -71,6 +71,11 @@ class Order extends Model
         return $this->morphMany(Attachment::class, 'attachable');
     }
 
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class);
+    }
+
     public function scopeByStatus($query, ?string $status)
     {
         if (! $status) {

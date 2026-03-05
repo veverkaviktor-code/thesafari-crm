@@ -4,9 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Attachment extends Model
 {
+    use LogsActivity;
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -25,6 +29,13 @@ class Attachment extends Model
             'size' => 'integer',
             'created_at' => 'datetime',
         ];
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty();
     }
 
     public function attachable(): MorphTo

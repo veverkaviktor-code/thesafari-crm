@@ -55,3 +55,35 @@
 **Learning**: Pro jednorázovou opravu existujících dat použít migraci (ne seeder). PostgreSQL `CEIL(EXTRACT(EPOCH FROM (stopped_at - started_at)) / 60)` pro výpočet minut z timestampů.
 **Pattern**: Data fix = migrace. Testovací data = seeder. Nikdy nemíchat.
 **Action**: Při bugfixu kde existují špatná data v DB → vždy vytvořit oprávnou migraci.
+
+---
+
+### 2026-03-06 — Kompletní audit odhalil chybějící auto-invoice command
+**Context**: Scheduler v console.php registroval `subscriptions:auto-invoice`, ale command soubor neexistoval. Auto-fakturace tiše nefungovala.
+**Learning**: Po vytvoření scheduler záznamu VŽDY ověřit, že command existuje. `php artisan schedule:list` na serveru ukáže registrované příkazy. Pokud command chybí, Laravel tiše ignoruje (ne error).
+**Pattern**: Po přidání Schedule::command() → ověřit existenci command třídy + otestovat `php artisan {signature} --help`.
+**Action**: Při auditu vždy cross-referencovat scheduler s existujícími command soubory.
+
+---
+
+### 2026-03-06 — Race condition v invoice numbering
+**Context**: `getNextInvoiceNumber()` běžel ve vlastní transakci, ale `InvoiceController::store()` nebyl v transakci. Dva simultánní requesty mohly dostat stejné číslo.
+**Learning**: `lockForUpdate()` chrání jen uvnitř transakce kde běží. Pokud volající kód není ve stejné (nebo obalující) transakci, lock se uvolní před INSERT.
+**Pattern**: Pokud metoda používá `lockForUpdate()`, volající kód MUSÍ být ve stejné DB::transaction(). Nejlépe celý store() obalit.
+**Action**: Při code review hledat `lockForUpdate()` volání a ověřit, že jsou v transakci s navazujícím zápisem.
+
+---
+
+### 2026-03-06 — PostgreSQL nevytváří indexy na FK sloupcích automaticky
+**Context**: 5 FK sloupců bez indexů (order_items.order_id, subscription_payments.invoice_id, atd.). Seq scan při JOINech.
+**Learning**: Na rozdíl od MySQL, PostgreSQL NEVYTVÁŘÍ automaticky index na cizím klíči. Každý FK sloupec potřebuje explicitní `$table->index()`.
+**Pattern**: Při vytváření migrace s `foreignId()` nebo `constrained()` → vždy přidat `->index()` nebo separátní `$table->index('column')`.
+**Action**: Při auditu DB → vždy kontrolovat FK sloupce vs indexy.
+
+---
+
+### 2026-03-06 — formatCurrency duplikace ve 21 souborech
+**Context**: Identická Intl.NumberFormat funkce copy-pasted ve 23 souborech místo sdílené utility.
+**Learning**: Utility funkce jako formatCurrency, formatDate, formatPhone patří do `lib/utils.ts` od začátku. Duplikace se šíří rychle když se copy-paste z jedné komponenty do další.
+**Pattern**: Jakákoliv funkce použitá ve 2+ souborech → okamžitě extrahovat do utils. Při code review hledat duplicitní `const format*` definice.
+**Action**: Nové utility funkce vždy definovat v lib/utils.ts, nikdy lokálně.

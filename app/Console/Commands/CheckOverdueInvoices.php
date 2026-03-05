@@ -14,7 +14,8 @@ class CheckOverdueInvoices extends Command
 
     public function handle(): void
     {
-        $overdue = Invoice::whereIn('status', ['vystavena', 'odeslana'])
+        $overdue = Invoice::with('customer')
+            ->whereIn('status', ['vystavena', 'odeslana'])
             ->where('due_date', '<', now())
             ->get();
 
@@ -24,8 +25,15 @@ class CheckOverdueInvoices extends Command
             $invoice->update(['status' => 'po_splatnosti']);
 
             if ($admin) {
-                $invoice->load('customer');
-                $admin->notify(new InvoiceOverdue($invoice));
+                $exists = $admin->notifications()
+                    ->where('type', InvoiceOverdue::class)
+                    ->whereNull('read_at')
+                    ->whereRaw("data->>'invoice_id' = ?", [(string) $invoice->id])
+                    ->exists();
+
+                if (!$exists) {
+                    $admin->notify(new InvoiceOverdue($invoice));
+                }
             }
         }
 

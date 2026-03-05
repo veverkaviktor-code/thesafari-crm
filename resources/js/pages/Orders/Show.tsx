@@ -22,7 +22,7 @@ import TimeTracker from '@/components/orders/TimeTracker';
 import CostsList from '@/components/orders/CostsList';
 import OrderItems from '@/components/orders/OrderItems';
 import OrderAttachments from '@/components/orders/OrderAttachments';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 
 interface Attachment {
     id: number;
@@ -93,13 +93,6 @@ interface Props {
     order: Order;
     stats: Stats;
 }
-
-const formatCurrency = (v: number) =>
-    new Intl.NumberFormat('cs-CZ', {
-        style: 'currency',
-        currency: 'CZK',
-        maximumFractionDigits: 0,
-    }).format(v);
 
 function formatHoursMinutes(minutes: number): string {
     const h = Math.floor(minutes / 60);

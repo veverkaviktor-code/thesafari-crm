@@ -70,6 +70,7 @@ Route::middleware('auth')->group(function () {
     Route::post('neniweb/bulk-update', [SubscriptionController::class, 'bulkUpdate'])->name('neniweb.bulk-update');
     Route::post('neniweb/{neniweb}/platby', [SubscriptionController::class, 'storePayment'])->name('neniweb.payments.store');
     Route::put('neniweb/{neniweb}/platby/{payment}/zaplaceno', [SubscriptionController::class, 'markPaymentPaid'])->name('neniweb.payments.paid');
+    Route::post('neniweb/{neniweb}/faktura', [SubscriptionController::class, 'createInvoice'])->name('neniweb.invoice.create');
 
     // VPS servery — sync route musí být PŘED {vp} aby nebyl "sync" brán jako ID
     Route::post('neniweb/vps/sync', [VpsServerController::class, 'syncFromHostings'])->name('vps.sync');

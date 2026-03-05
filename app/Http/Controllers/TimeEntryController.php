@@ -40,6 +40,7 @@ class TimeEntryController extends Controller
     public function update(Request $request, Order $order, TimeEntry $timeEntry)
     {
         abort_if($timeEntry->order_id !== $order->id, 403);
+        abort_if($timeEntry->user_id !== $request->user()->id, 403);
 
         $validated = $request->validate([
             'description'      => 'nullable|string|max:500',
@@ -55,6 +56,7 @@ class TimeEntryController extends Controller
     public function stop(Request $request, Order $order, TimeEntry $timeEntry)
     {
         abort_if($timeEntry->order_id !== $order->id, 403);
+        abort_if($timeEntry->user_id !== $request->user()->id, 403);
 
         if (! $timeEntry->isRunning()) {
             return back()->with('error', 'Timer uz bezi.');
@@ -68,9 +70,10 @@ class TimeEntryController extends Controller
         return back()->with('success', 'Timer zastaven.');
     }
 
-    public function destroy(Order $order, TimeEntry $timeEntry)
+    public function destroy(Request $request, Order $order, TimeEntry $timeEntry)
     {
         abort_if($timeEntry->order_id !== $order->id, 403);
+        abort_if($timeEntry->user_id !== $request->user()->id, 403);
 
         $timeEntry->delete();
 

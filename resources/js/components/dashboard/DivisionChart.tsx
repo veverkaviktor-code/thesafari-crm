@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 
 const DIVISION_LABELS: Record<string, string> = {
     tisk: 'Tisk',
@@ -25,9 +25,6 @@ interface DivisionData {
 interface Props {
     data?: DivisionData[];
 }
-
-const formatCurrency = (v: number) =>
-    new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(v);
 
 export default function DivisionChart({ data }: Props) {
     const chartData = data && data.length > 0 ? data : [];

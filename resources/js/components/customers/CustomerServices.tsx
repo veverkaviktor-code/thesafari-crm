@@ -1,4 +1,5 @@
 import { Server } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 
 interface Subscription {
     id: number;
@@ -32,9 +33,6 @@ const typeLabels: Record<string, string> = {
     domena: 'Doména',
     sluzba: 'Služba',
 };
-
-const formatCurrency = (value: number) =>
-    new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(value);
 
 export default function CustomerServices({ subscriptions, vpsServers = [] }: Props) {
     const hasItems = subscriptions.length > 0 || vpsServers.length > 0;

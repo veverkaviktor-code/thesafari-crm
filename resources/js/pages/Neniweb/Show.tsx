@@ -34,6 +34,7 @@ import {
     CalendarIcon,
     RefreshCw,
     ReceiptText,
+    FileText,
 } from 'lucide-react';
 
 const czk = (amount: number) =>
@@ -53,6 +54,15 @@ interface Payment {
     paid_at: string | null;
     payment_method: string | null;
     notes: string | null;
+}
+
+interface Invoice {
+    id: number;
+    invoice_number: string;
+    issue_date: string;
+    due_date: string;
+    status: string;
+    total: number;
 }
 
 interface Subscription {
@@ -75,6 +85,7 @@ interface Subscription {
     status: string;
     notes: string | null;
     payments: Payment[];
+    invoices: Invoice[];
     days_until_expiry: number | null;
     urgency: string;
     yearly_margin: number;
@@ -120,6 +131,14 @@ const statusMap: Record<string, { label: string; variant: 'active' | 'inactive' 
     aktivni: { label: 'Aktivní', variant: 'active' },
     pozastaveno: { label: 'Pozastaveno', variant: 'inactive' },
     zruseno: { label: 'Zrušeno', variant: 'cancelled' },
+};
+
+const invoiceStatusConfig: Record<string, { label: string; className: string }> = {
+    vystavena: { label: 'Vystavena', className: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+    odeslana: { label: 'Odeslaná', className: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
+    zaplacena: { label: 'Zaplacena', className: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
+    po_splatnosti: { label: 'Po splatnosti', className: 'bg-red-500/20 text-red-400 border-red-500/30' },
+    storno: { label: 'Storno', className: 'bg-muted text-muted-foreground border-border' },
 };
 
 const paymentStatusConfig: Record<string, { label: string; className: string }> = {
@@ -433,6 +452,16 @@ export default function NeniwebShow({ subscription, paymentStats }: Props) {
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
+                        {!subscription.is_free && subscription.customer && (
+                            <Button
+                                variant="ghost"
+                                onClick={() => router.post(`/neniweb/${subscription.id}/faktura`)}
+                                className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 border border-blue-500/25"
+                            >
+                                <FileText className="h-4 w-4 mr-2" />
+                                Vystavit fakturu
+                            </Button>
+                        )}
                         <Button
                             variant="ghost"
                             onClick={() => router.visit(`/neniweb/${subscription.id}/edit`)}
@@ -569,6 +598,47 @@ export default function NeniwebShow({ subscription, paymentStats }: Props) {
                                 </div>
                             )}
                         </div>
+                        {/* Linked invoices */}
+                        {subscription.invoices && subscription.invoices.length > 0 && (
+                            <div className="bg-card border border-border rounded-xl overflow-hidden mt-4">
+                                <div className="flex items-center gap-2 px-5 py-4 border-b border-border">
+                                    <FileText className="h-4 w-4 text-muted-foreground" />
+                                    <h2 className="text-sm font-semibold text-foreground">Faktury</h2>
+                                    <span className="text-xs text-muted-foreground">
+                                        ({subscription.invoices.length})
+                                    </span>
+                                </div>
+                                <div className="divide-y divide-border">
+                                    {subscription.invoices.map((inv) => {
+                                        const invStatus = invoiceStatusConfig[inv.status] ?? invoiceStatusConfig.vystavena;
+                                        return (
+                                            <a
+                                                key={inv.id}
+                                                href={`/faktury/${inv.id}`}
+                                                className="flex items-center justify-between px-5 py-3 hover:bg-muted/30 transition-colors"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-sm font-medium text-foreground">
+                                                        {inv.invoice_number}
+                                                    </span>
+                                                    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${invStatus.className}`}>
+                                                        {invStatus.label}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-4">
+                                                    <span className="text-sm font-medium text-foreground">
+                                                        {czk(Number(inv.total))}
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {format(new Date(inv.issue_date), 'd. M. yyyy', { locale: cs })}
+                                                    </span>
+                                                </div>
+                                            </a>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Info sidebar — 1/3 width */}

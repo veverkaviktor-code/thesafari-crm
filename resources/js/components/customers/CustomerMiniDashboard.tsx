@@ -1,5 +1,5 @@
 import { ClipboardList, Coins, TrendingDown, TrendingUp, Server, Monitor, FileText, CheckCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 
 interface Stats {
     orders_count: number;
@@ -16,13 +16,6 @@ interface Stats {
 interface Props {
     stats: Stats;
 }
-
-const formatCurrency = (value: number) =>
-    new Intl.NumberFormat('cs-CZ', {
-        style: 'currency',
-        currency: 'CZK',
-        maximumFractionDigits: 0,
-    }).format(value);
 
 export default function CustomerMiniDashboard({ stats }: Props) {
     const items = [

@@ -35,3 +35,13 @@ export function formatPhone(phone: string | null | undefined): string {
 
   return `${prefix} ${number.slice(0, 3)} ${number.slice(3, 6)} ${number.slice(6, 9)}`;
 }
+
+export function formatCurrency(amount: number | string | null | undefined): string {
+    const num = typeof amount === 'string' ? parseFloat(amount) : (amount ?? 0);
+    return new Intl.NumberFormat('cs-CZ', {
+        style: 'currency',
+        currency: 'CZK',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+    }).format(num);
+}

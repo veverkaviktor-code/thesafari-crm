@@ -1,4 +1,4 @@
-import { type FormEvent, useCallback, useMemo, useState } from 'react';
+import { type FormEvent, useCallback, useMemo, useRef, useState } from 'react';
 import { router, useForm } from '@inertiajs/react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
@@ -36,6 +36,7 @@ interface Props {
 
 export default function Index({ customers, filters }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
+    const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [showCreate, setShowCreate] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<CustomerRow | null>(null);
     const [deleting, setDeleting] = useState(false);
@@ -105,11 +106,11 @@ export default function Index({ customers, filters }: Props) {
     const handleSearch = useCallback(
         (value: string) => {
             setSearch(value);
-            const timeout = setTimeout(
+            if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+            searchTimeoutRef.current = setTimeout(
                 () => applyFilters({ search: value || undefined }),
                 300,
             );
-            return () => clearTimeout(timeout);
         },
         [applyFilters],
     );

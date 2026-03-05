@@ -3,7 +3,7 @@ import { router } from '@inertiajs/react';
 import { Check, Clock, Pause, Pencil, Play, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 
 interface TimeEntry {
     id: number;
@@ -15,13 +15,6 @@ interface TimeEntry {
     billable_hours: number;
     cost: number;
 }
-
-const formatCurrency = (v: number) =>
-    new Intl.NumberFormat('cs-CZ', {
-        style: 'currency',
-        currency: 'CZK',
-        maximumFractionDigits: 0,
-    }).format(v);
 
 function formatDuration(totalSeconds: number): string {
     const h = Math.floor(totalSeconds / 3600);

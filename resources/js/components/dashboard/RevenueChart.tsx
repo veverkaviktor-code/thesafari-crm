@@ -8,7 +8,7 @@ import {
     XAxis,
     YAxis,
 } from 'recharts';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 
 type Period = '3M' | '6M' | '1Y';
 
@@ -17,13 +17,6 @@ const periods: { value: Period; label: string }[] = [
     { value: '6M', label: '6M' },
     { value: '1Y', label: 'Rok' },
 ];
-
-const formatCurrency = (v: number) =>
-    new Intl.NumberFormat('cs-CZ', {
-        style: 'currency',
-        currency: 'CZK',
-        maximumFractionDigits: 0,
-    }).format(v);
 
 interface RevenueDataPoint {
     month: string;

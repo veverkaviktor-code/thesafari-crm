@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\Invoice;
 use App\Models\Subscription;
 use App\Models\SubscriptionPayment;
 use App\Models\VpsServer;
 use App\Services\VasHostingService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class SubscriptionController extends Controller
@@ -219,7 +221,11 @@ class SubscriptionController extends Controller
 
     public function show(Subscription $neniweb)
     {
-        $neniweb->load(['customer', 'payments' => fn ($q) => $q->orderBy('period_end', 'desc')]);
+        $neniweb->load([
+            'customer',
+            'payments' => fn ($q) => $q->orderBy('period_end', 'desc'),
+            'invoices' => fn ($q) => $q->orderBy('issue_date', 'desc'),
+        ]);
 
         $paymentStats = [
             'total_paid' => (float) $neniweb->payments()->paid()->sum('amount'),
@@ -434,9 +440,101 @@ class SubscriptionController extends Controller
     }
 
     /**
-     * Sync domains from vas-hosting API
-     * New API returns: { "domain.cz": { id, expiration, storageQuota, storageUsed, storageFree }, ... }
+     * Create an invoice from a subscription (domain/hosting/service).
+     * Groups domain + hosting with the same name into one invoice.
      */
+    public function createInvoice(Subscription $neniweb)
+    {
+        if (!$neniweb->customer_id) {
+            return back()->with('error', 'Nelze vystavit fakturu — služba nemá přiřazeného zákazníka.');
+        }
+
+        // Find related subscriptions with the same name + customer (e.g. domain + hosting)
+        $subscriptions = Subscription::where('name', $neniweb->name)
+            ->where('customer_id', $neniweb->customer_id)
+            ->where('status', 'aktivni')
+            ->where('is_free', false)
+            ->get();
+
+        if ($subscriptions->isEmpty()) {
+            return back()->with('error', 'Žádné fakturovatelné služby.');
+        }
+
+        // Check for existing unpaid invoice
+        $hasUnpaid = $neniweb->invoices()
+            ->whereIn('status', ['vystavena', 'odeslana'])
+            ->exists();
+
+        if ($hasUnpaid) {
+            return back()->with('error', 'Pro tuto službu již existuje nevyřízená faktura.');
+        }
+
+        $invoice = DB::transaction(function () use ($subscriptions) {
+            $items = [];
+            foreach ($subscriptions as $sub) {
+                $price = (float) $sub->sell_yearly ?: (float) $sub->price_yearly;
+                if ($price <= 0) continue;
+
+                $typeLabel = match ($sub->type) {
+                    'domena' => 'Obnova domény',
+                    'hosting' => 'Hosting',
+                    'sluzba' => 'Služba',
+                    default => 'Služba',
+                };
+
+                $items[] = [
+                    'subscription' => $sub,
+                    'description' => "{$typeLabel} {$sub->name} (1 rok)",
+                    'quantity' => 1,
+                    'unit' => 'rok',
+                    'unit_price' => $price,
+                    'total_price' => $price,
+                ];
+            }
+
+            if (empty($items)) {
+                return null;
+            }
+
+            $total = collect($items)->sum('total_price');
+            $customer = $subscriptions->first()->customer;
+            $invoiceNumber = Invoice::getNextInvoiceNumber('6');
+
+            $invoice = Invoice::create([
+                'customer_id' => $customer->id,
+                'invoice_number' => $invoiceNumber,
+                'variable_symbol' => $invoiceNumber,
+                'issue_date' => now()->toDateString(),
+                'due_date' => now()->addDays(14)->toDateString(),
+                'status' => 'vystavena',
+                'payment_method' => 'banka',
+                'total' => $total,
+            ]);
+
+            foreach ($items as $i => $item) {
+                $invoice->items()->create([
+                    'description' => $item['description'],
+                    'quantity' => $item['quantity'],
+                    'unit' => $item['unit'],
+                    'unit_price' => $item['unit_price'],
+                    'total_price' => $item['total_price'],
+                    'sort_order' => $i,
+                ]);
+
+                $invoice->subscriptions()->attach($item['subscription']->id);
+            }
+
+            return $invoice;
+        });
+
+        if (!$invoice) {
+            return back()->with('error', 'Služby mají nulovou cenu — nelze vystavit fakturu.');
+        }
+
+        return redirect()->route('faktury.show', $invoice)
+            ->with('success', "Faktura {$invoice->invoice_number} vystavena.");
+    }
+
     /**
      * Sync from both APIs:
      * 1. Portal API (portal.vas-hosting.cz) → 70 domain registrations
@@ -444,177 +542,194 @@ class SubscriptionController extends Controller
      */
     public function sync(VasHostingService $vasHosting)
     {
-        $syncedDomains = 0;
-        $createdDomains = 0;
-        $syncedHostings = 0;
-        $createdHostings = 0;
-
-        // --- 1. Sync domains from Portal API ---
-        $portalDomains = $vasHosting->listPortalDomains();
-
-        if (!empty($portalDomains)) {
-            foreach ($portalDomains as $domainName => $info) {
-                $portalId = $info['id'] ?? null;
-
-                $domain = Subscription::where('type', 'domena')
-                    ->where(function ($q) use ($portalId, $domainName) {
-                        $q->where('portal_domain_id', $portalId)
-                          ->orWhere(function ($q2) use ($domainName) {
-                              $q2->whereNull('portal_domain_id')->where('name', $domainName);
-                          });
-                    })
-                    ->first();
-
-                $data = [
-                    'portal_domain_id' => $portalId,
-                    'is_registered_by_us' => $info['isRegisteredByUs'] ?? false,
-                    'ip_address' => $info['ip'] ?? null,
-                    'tariff' => $info['tariff'] ?? null,
-                    'storage_quota_mb' => $info['storageQuota'] ?? 0,
-                    'storage_used_mb' => $info['storageUsed'] ?? 0,
-                    'synced_at' => now(),
-                ];
-
-                if ($domain) {
-                    // Domains: registrar API is source of truth for expires_at
-                    if ($info['expiration'] ?? null) {
-                        $data['expires_at'] = $info['expiration'];
-                    }
-                    $oldExpiresAt = $domain->expires_at?->toDateString();
-                    $domain->update($data);
-
-                    // If domain expiration changed, update linked hosting
-                    if (isset($data['expires_at']) && $oldExpiresAt !== $data['expires_at']) {
-                        Subscription::where('type', 'hosting')
-                            ->where('name', $domainName)
-                            ->where('customer_id', $domain->customer_id)
-                            ->update(['expires_at' => $data['expires_at']]);
-                    }
-
-                    $syncedDomains++;
-                } else {
-                    // New record: set expires_at from API for initial import
-                    if ($info['expiration'] ?? null) {
-                        $data['expires_at'] = $info['expiration'];
-                    }
-                    Subscription::create(array_merge($data, [
-                        'type' => 'domena',
-                        'name' => $domainName,
-                        'provider' => ($info['isRegisteredByUs'] ?? false) ? 'Váš-Hosting' : null,
-                        'status' => 'aktivni',
-                    ]));
-                    $createdDomains++;
-                }
-            }
-        }
-
-        // --- 2. Sync hostings from Server API ---
+        // Fetch data from APIs before transaction to avoid long-held locks
+        $portalDomains  = $vasHosting->listPortalDomains();
         $serverHostings = $vasHosting->listServerHostings();
+        $vpscServers    = $vasHosting->getVpsCentrumServers();
 
-        if (!empty($serverHostings)) {
-            foreach ($serverHostings as $domainName => $info) {
-                $vasId = $info['id'] ?? null;
-
-                $hosting = Subscription::where('type', 'hosting')
-                    ->where(function ($q) use ($vasId, $domainName) {
-                        $q->where('vas_hosting_id', $vasId)
-                          ->orWhere(function ($q2) use ($domainName) {
-                              $q2->whereNull('vas_hosting_id')->where('name', $domainName);
-                          });
-                    })
-                    ->first();
-
-                // Server API returns bytes, convert to MB
-                $quotaMb = (int) round(($info['storageQuota'] ?? 0) / 1048576);
-                $usedMb = (int) round(($info['storageUsed'] ?? 0) / 1048576);
-
-                $data = [
-                    'vas_hosting_id' => $vasId,
-                    'storage_quota_mb' => $quotaMb,
-                    'storage_used_mb' => $usedMb,
-                    'synced_at' => now(),
-                ];
-
-                if ($hosting) {
-                    // Hostings: CRM manages expires_at (follows domain expiration via portal sync)
-                    $hosting->update($data);
-                    $syncedHostings++;
-                } else {
-                    // New record: set expires_at from API for initial import
-                    if ($info['expiration'] ?? null) {
-                        $data['expires_at'] = $info['expiration'];
-                    }
-                    Subscription::create(array_merge($data, [
-                        'type' => 'hosting',
-                        'name' => $domainName,
-                        'provider' => 'Váš-Hosting',
-                        'server' => 'sss06.vas-server.cz',
-                        'status' => 'aktivni',
-                    ]));
-                    $createdHostings++;
-                }
-            }
+        // Pre-fetch VPS Centrum domain lists outside transaction
+        $vpscData = [];
+        foreach ($vpscServers as $server) {
+            $apiKey = $server['api_key'] ?? '';
+            if (empty($apiKey)) continue;
+            $vpscData[] = [
+                'server'  => $server,
+                'domains' => $vasHosting->listVpsCentrumDomains($server['url'], $apiKey),
+                'sizes'   => [], // fetched per-domain below
+            ];
         }
 
-        // --- 3. Sync hostings from VPS Centrum servers (ond08, thaimassage) ---
-        $vpscServers = $vasHosting->getVpsCentrumServers();
-
-        foreach ($vpscServers as $server) {
-            $serverName = $server['name'];
-            $serverUrl = $server['url'];
-            $apiKey = $server['api_key'] ?? '';
-
-            if (empty($apiKey)) continue;
-
-            $vpscDomains = $vasHosting->listVpsCentrumDomains($serverUrl, $apiKey);
-
-            foreach ($vpscDomains as $domainInfo) {
+        // Pre-fetch sizes for VPS Centrum domains
+        foreach ($vpscData as &$vpsc) {
+            foreach ($vpsc['domains'] as $domainInfo) {
                 $domainName = $domainInfo['domena'] ?? '';
                 if (empty($domainName)) continue;
-
-                $hosting = Subscription::where('type', 'hosting')
-                    ->where('name', $domainName)
-                    ->where('server', $serverName)
-                    ->first();
-
-                $data = [
-                    'server' => $serverName,
-                    'storage_quota_mb' => 4096,
-                    'synced_at' => now(),
-                ];
-
-                // Fetch storage size
-                $sizeInfo = $vasHosting->getVpsCentrumDomainSize($serverUrl, $apiKey, $domainName);
-                if ($sizeInfo) {
-                    $totalUsedMb = (int) round(
-                        (float) ($sizeInfo['mail_size_mb'] ?? 0) +
-                        (float) ($sizeInfo['db_size_mb'] ?? 0) +
-                        (float) ($sizeInfo['ftp_size_mb'] ?? 0)
-                    );
-                    $data['storage_used_mb'] = $totalUsedMb;
-                }
-
-                if ($hosting) {
-                    // VPS Centrum hostings: CRM manages expires_at (follows domain expiration)
-                    $hosting->update($data);
-                    $syncedHostings++;
-                } else {
-                    // New record: set expires_at from API for initial import
-                    if ($domainInfo['domena_expirace'] ?? null) {
-                        $data['expires_at'] = $domainInfo['domena_expirace'];
-                    }
-                    Subscription::create(array_merge($data, [
-                        'type' => 'hosting',
-                        'name' => $domainName,
-                        'provider' => 'Váš-Hosting',
-                        'status' => 'aktivni',
-                    ]));
-                    $createdHostings++;
-                }
+                $vpsc['sizes'][$domainName] = $vasHosting->getVpsCentrumDomainSize(
+                    $vpsc['server']['url'],
+                    $vpsc['server']['api_key'],
+                    $domainName
+                );
             }
         }
+        unset($vpsc);
 
-        $totalSynced = $syncedDomains + $syncedHostings;
+        [$syncedDomains, $createdDomains, $syncedHostings, $createdHostings] = DB::transaction(
+            function () use ($portalDomains, $serverHostings, $vpscData) {
+                $syncedDomains   = 0;
+                $createdDomains  = 0;
+                $syncedHostings  = 0;
+                $createdHostings = 0;
+
+                // --- 1. Sync domains from Portal API ---
+                if (!empty($portalDomains)) {
+                    foreach ($portalDomains as $domainName => $info) {
+                        $portalId = $info['id'] ?? null;
+
+                        $domain = Subscription::where('type', 'domena')
+                            ->where(function ($q) use ($portalId, $domainName) {
+                                $q->where('portal_domain_id', $portalId)
+                                  ->orWhere(function ($q2) use ($domainName) {
+                                      $q2->whereNull('portal_domain_id')->where('name', $domainName);
+                                  });
+                            })
+                            ->first();
+
+                        $data = [
+                            'portal_domain_id'   => $portalId,
+                            'is_registered_by_us' => $info['isRegisteredByUs'] ?? false,
+                            'ip_address'          => $info['ip'] ?? null,
+                            'tariff'              => $info['tariff'] ?? null,
+                            'storage_quota_mb'    => $info['storageQuota'] ?? 0,
+                            'storage_used_mb'     => $info['storageUsed'] ?? 0,
+                            'synced_at'           => now(),
+                        ];
+
+                        if ($domain) {
+                            // Domains: registrar API is source of truth for expires_at
+                            if ($info['expiration'] ?? null) {
+                                $data['expires_at'] = $info['expiration'];
+                            }
+                            $oldExpiresAt = $domain->expires_at?->toDateString();
+                            $domain->update($data);
+
+                            // If domain expiration changed, update linked hosting
+                            if (isset($data['expires_at']) && $oldExpiresAt !== $data['expires_at']) {
+                                Subscription::where('type', 'hosting')
+                                    ->where('name', $domainName)
+                                    ->where('customer_id', $domain->customer_id)
+                                    ->update(['expires_at' => $data['expires_at']]);
+                            }
+
+                            $syncedDomains++;
+                        } else {
+                            if ($info['expiration'] ?? null) {
+                                $data['expires_at'] = $info['expiration'];
+                            }
+                            Subscription::create(array_merge($data, [
+                                'type'     => 'domena',
+                                'name'     => $domainName,
+                                'provider' => ($info['isRegisteredByUs'] ?? false) ? 'Váš-Hosting' : null,
+                                'status'   => 'aktivni',
+                            ]));
+                            $createdDomains++;
+                        }
+                    }
+                }
+
+                // --- 2. Sync hostings from Server API ---
+                if (!empty($serverHostings)) {
+                    foreach ($serverHostings as $domainName => $info) {
+                        $vasId = $info['id'] ?? null;
+
+                        $hosting = Subscription::where('type', 'hosting')
+                            ->where(function ($q) use ($vasId, $domainName) {
+                                $q->where('vas_hosting_id', $vasId)
+                                  ->orWhere(function ($q2) use ($domainName) {
+                                      $q2->whereNull('vas_hosting_id')->where('name', $domainName);
+                                  });
+                            })
+                            ->first();
+
+                        $quotaMb = (int) round(($info['storageQuota'] ?? 0) / 1048576);
+                        $usedMb  = (int) round(($info['storageUsed'] ?? 0) / 1048576);
+
+                        $data = [
+                            'vas_hosting_id'   => $vasId,
+                            'storage_quota_mb' => $quotaMb,
+                            'storage_used_mb'  => $usedMb,
+                            'synced_at'        => now(),
+                        ];
+
+                        if ($hosting) {
+                            $hosting->update($data);
+                            $syncedHostings++;
+                        } else {
+                            if ($info['expiration'] ?? null) {
+                                $data['expires_at'] = $info['expiration'];
+                            }
+                            Subscription::create(array_merge($data, [
+                                'type'     => 'hosting',
+                                'name'     => $domainName,
+                                'provider' => 'Váš-Hosting',
+                                'server'   => 'sss06.vas-server.cz',
+                                'status'   => 'aktivni',
+                            ]));
+                            $createdHostings++;
+                        }
+                    }
+                }
+
+                // --- 3. Sync hostings from VPS Centrum servers ---
+                foreach ($vpscData as $vpsc) {
+                    $serverName = $vpsc['server']['name'];
+
+                    foreach ($vpsc['domains'] as $domainInfo) {
+                        $domainName = $domainInfo['domena'] ?? '';
+                        if (empty($domainName)) continue;
+
+                        $hosting = Subscription::where('type', 'hosting')
+                            ->where('name', $domainName)
+                            ->where('server', $serverName)
+                            ->first();
+
+                        $data = [
+                            'server'           => $serverName,
+                            'storage_quota_mb' => 4096,
+                            'synced_at'        => now(),
+                        ];
+
+                        $sizeInfo = $vpsc['sizes'][$domainName] ?? null;
+                        if ($sizeInfo) {
+                            $data['storage_used_mb'] = (int) round(
+                                (float) ($sizeInfo['mail_size_mb'] ?? 0) +
+                                (float) ($sizeInfo['db_size_mb'] ?? 0) +
+                                (float) ($sizeInfo['ftp_size_mb'] ?? 0)
+                            );
+                        }
+
+                        if ($hosting) {
+                            $hosting->update($data);
+                            $syncedHostings++;
+                        } else {
+                            if ($domainInfo['domena_expirace'] ?? null) {
+                                $data['expires_at'] = $domainInfo['domena_expirace'];
+                            }
+                            Subscription::create(array_merge($data, [
+                                'type'     => 'hosting',
+                                'name'     => $domainName,
+                                'provider' => 'Váš-Hosting',
+                                'status'   => 'aktivni',
+                            ]));
+                            $createdHostings++;
+                        }
+                    }
+                }
+
+                return [$syncedDomains, $createdDomains, $syncedHostings, $createdHostings];
+            }
+        );
+
+        $totalSynced  = $syncedDomains + $syncedHostings;
         $totalCreated = $createdDomains + $createdHostings;
 
         if ($totalSynced === 0 && $totalCreated === 0 && empty($portalDomains) && empty($serverHostings)) {

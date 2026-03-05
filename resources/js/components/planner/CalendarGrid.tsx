@@ -16,7 +16,7 @@ import { cs } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 
 interface CalendarEvent {
     id: number;
@@ -46,9 +46,6 @@ const EVENT_TYPE_LABELS: Record<CalendarEvent['type'], string> = {
 };
 
 const DAY_HEADERS = ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne'];
-
-const formatCurrency = (v: number) =>
-    new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(v);
 
 export default function CalendarGrid({ events, onTaskClick }: CalendarGridProps) {
     const [currentMonth, setCurrentMonth] = useState(new Date());

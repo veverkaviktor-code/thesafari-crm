@@ -74,36 +74,40 @@ class InvoiceController extends Controller
 
     public function store(InvoiceRequest $request)
     {
-        $invoiceNumber = Invoice::getNextInvoiceNumber();
-        $items = collect($request->input('items'))->map(function ($item) {
-            $item['total_price'] = $item['total_price'] ?? (float) $item['quantity'] * (float) $item['unit_price'];
-            return $item;
-        })->toArray();
-        $total = collect($items)->sum('total_price');
+        $invoice = DB::transaction(function () use ($request) {
+            $invoiceNumber = Invoice::getNextInvoiceNumber();
+            $items = collect($request->input('items'))->map(function ($item) {
+                $item['total_price'] = $item['total_price'] ?? (float) $item['quantity'] * (float) $item['unit_price'];
+                return $item;
+            })->toArray();
+            $total = collect($items)->sum('total_price');
 
-        $invoice = Invoice::create([
-            'customer_id' => $request->input('customer_id'),
-            'order_id' => $request->input('order_id'),
-            'invoice_number' => $invoiceNumber,
-            'variable_symbol' => $invoiceNumber,
-            'issue_date' => $request->input('issue_date'),
-            'due_date' => $request->input('due_date'),
-            'status' => $request->input('status', 'vystavena'),
-            'payment_method' => $request->input('payment_method', 'banka'),
-            'total' => $total,
-            'notes' => $request->input('notes'),
-        ]);
-
-        foreach ($items as $i => $item) {
-            $invoice->items()->create([
-                'description' => $item['description'],
-                'quantity' => $item['quantity'],
-                'unit' => $item['unit'] ?? 'ks',
-                'unit_price' => $item['unit_price'],
-                'total_price' => $item['total_price'],
-                'sort_order' => $i,
+            $invoice = Invoice::create([
+                'customer_id' => $request->input('customer_id'),
+                'order_id' => $request->input('order_id'),
+                'invoice_number' => $invoiceNumber,
+                'variable_symbol' => $invoiceNumber,
+                'issue_date' => $request->input('issue_date'),
+                'due_date' => $request->input('due_date'),
+                'status' => $request->input('status', 'vystavena'),
+                'payment_method' => $request->input('payment_method', 'banka'),
+                'total' => $total,
+                'notes' => $request->input('notes'),
             ]);
-        }
+
+            foreach ($items as $i => $item) {
+                $invoice->items()->create([
+                    'description' => $item['description'],
+                    'quantity' => $item['quantity'],
+                    'unit' => $item['unit'] ?? 'ks',
+                    'unit_price' => $item['unit_price'],
+                    'total_price' => $item['total_price'],
+                    'sort_order' => $i,
+                ]);
+            }
+
+            return $invoice;
+        });
 
         return redirect()->route('faktury.show', $invoice)
             ->with('success', 'Faktura vytvorena.');
@@ -266,11 +270,13 @@ class InvoiceController extends Controller
         $invoice->load('subscriptions');
         if ($invoice->subscriptions->isNotEmpty()) {
             foreach ($invoice->subscriptions as $subscription) {
+                $expiresAt = $subscription->expires_at ?? now();
+
                 // Create payment record
                 $subscription->payments()->create([
                     'amount' => (float) $subscription->sell_yearly ?: (float) $subscription->price_yearly,
-                    'period_start' => $subscription->expires_at,
-                    'period_end' => $subscription->expires_at->copy()->addYear(),
+                    'period_start' => $expiresAt,
+                    'period_end' => $expiresAt->copy()->addYear(),
                     'status' => 'zaplaceno',
                     'paid_at' => now(),
                     'invoice_id' => $invoice->id,
@@ -281,7 +287,7 @@ class InvoiceController extends Controller
                 // Domain: DON'T change — wait for sync from registrar
                 if ($subscription->type !== 'domena') {
                     $subscription->update([
-                        'expires_at' => $subscription->expires_at->copy()->addYear(),
+                        'expires_at' => $expiresAt->copy()->addYear(),
                     ]);
                 }
             }
