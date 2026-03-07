@@ -55,4 +55,9 @@ return [
         ],
     ],
 
+    'fio' => [
+        'token' => env('FIO_API_TOKEN'),
+        'base_url' => env('FIO_API_URL', 'https://fioapi.fio.cz/v1/rest'),
+    ],
+
 ];
