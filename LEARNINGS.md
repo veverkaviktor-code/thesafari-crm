@@ -87,3 +87,19 @@
 **Learning**: Utility funkce jako formatCurrency, formatDate, formatPhone patří do `lib/utils.ts` od začátku. Duplikace se šíří rychle když se copy-paste z jedné komponenty do další.
 **Pattern**: Jakákoliv funkce použitá ve 2+ souborech → okamžitě extrahovat do utils. Při code review hledat duplicitní `const format*` definice.
 **Action**: Nové utility funkce vždy definovat v lib/utils.ts, nikdy lokálně.
+
+---
+
+### 2026-03-06 — PostgreSQL notifications.data je text, ne jsonb
+**Context**: `notifications:generate` command padal s `operator does not exist: text ->> unknown`. Laravel notifications tabulka má `data` jako `text`, ne `jsonb`.
+**Learning**: PostgreSQL vyžaduje explicitní cast `data::jsonb->>'key'` pokud sloupec je `text` ale obsahuje JSON. MySQL toto toleruje, PostgreSQL ne.
+**Pattern**: Při práci s JSON operátory v PostgreSQL vždy ověřit typ sloupce. Pokud je `text`, použít `::jsonb` cast. Platí pro notifications, activity_log a další tabulky s JSON v text sloupcích.
+**Action**: Při psaní `whereRaw` s JSON operátory → vždy `column::jsonb->>'key'`, nikdy `column->>'key'` (pokud sloupec není nativně jsonb).
+
+---
+
+### 2026-03-06 — Playwright walkthrough jako verifikační standard
+**Context**: Po deployi 54 souborů potřeba ověřit, že vše funguje. Manuální kontrola by trvala dlouho.
+**Learning**: Playwright browser automation (navigate + snapshot + fill + click + wait) umožňuje systematický walkthrough všech stránek za ~5 minut. Accessibility snapshot je lepší než screenshot — obsahuje text, role, stavy, refs pro interakci.
+**Pattern**: Po větším deployi → Playwright walkthrough: (1) login, (2) každá stránka v navigaci, (3) interaktivní testy (search, form submit, modal open), (4) console error check.
+**Action**: Pro CRM audit/deploy vždy zahrnout browser verifikaci jako poslední krok.

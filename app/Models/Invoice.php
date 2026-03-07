@@ -31,6 +31,8 @@ class Invoice extends Model
         'notes',
         'pdf_path',
         'bank_transaction_id',
+        'reminder_count',
+        'last_reminder_at',
     ];
 
     protected function casts(): array
@@ -40,6 +42,7 @@ class Invoice extends Model
             'due_date' => 'date',
             'paid_at' => 'datetime',
             'sent_at' => 'datetime',
+            'last_reminder_at' => 'datetime',
             'total' => 'decimal:2',
         ];
     }

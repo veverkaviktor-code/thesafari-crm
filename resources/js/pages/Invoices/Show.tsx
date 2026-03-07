@@ -51,6 +51,8 @@ interface Invoice {
     payment_method: string;
     total: number;
     notes: string | null;
+    reminder_count: number;
+    last_reminder_at: string | null;
     customer: {
         id: number;
         name: string;
@@ -141,6 +143,16 @@ export default function Show({ invoice, company, unmatchedTransactions }: Props)
                             {invoice.invoice_number}
                         </h1>
                         <InvoiceStatusBadge status={invoice.status} />
+                        {invoice.reminder_count > 0 && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2.5 py-0.5 text-xs font-medium text-red-400">
+                                {invoice.reminder_count}. upomínka
+                                {invoice.last_reminder_at && (
+                                    <span className="text-red-400/60">
+                                        ({new Date(invoice.last_reminder_at).toLocaleDateString('cs-CZ')})
+                                    </span>
+                                )}
+                            </span>
+                        )}
                     </div>
                     <div className="flex items-center gap-2">
                         <Button

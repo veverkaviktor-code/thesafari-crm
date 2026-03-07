@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('invoices:check-overdue')->dailyAt('08:00');
         $schedule->command('subscriptions:check-expiring')->dailyAt('08:30');
         $schedule->command('notifications:generate')->dailyAt('09:00');
+        $schedule->command('invoices:send-reminders')->dailyAt('09:30');
     })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [

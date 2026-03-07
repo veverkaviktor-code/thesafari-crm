@@ -25,7 +25,9 @@ Laravel 12 + Inertia.js + React 19 + TypeScript + Tailwind 4 + Shadcn/UI + Postg
 - **Přílohy** — file upload/download na zákazníky, zakázky, tikety
 - **Globální vyhledávání** — SearchPalette (Cmd+K) přes zákazníky, zakázky, faktury, tikety
 
-### Round 5 — Audit opravy (2026-03-06)
+### Round 5 — Audit + opravy + verifikace (2026-03-06) ✅ NASAZENO
+**Commity:** `28d77a5` (hlavní audit, 54 souborů) + `827e649` (jsonb cast fix, 3 soubory)
+
 **Backend:**
 - FIX: Auto-invoice command (dříve chyběl, scheduler selhal tiše)
 - FIX: Race condition v invoice numbering (store obaleno do DB::transaction)
@@ -35,6 +37,7 @@ Laravel 12 + Inertia.js + React 19 + TypeScript + Tailwind 4 + Shadcn/UI + Postg
 - FIX: Scheduler konsolidace (vše v bootstrap/app.php, seřazeno 07:00-09:00)
 - FIX: CheckOverdueInvoices deduplikace notifikací
 - FIX: Attachment upload s try/catch (cleanup souboru při DB chybě)
+- FIX: `data::jsonb->>'key'` cast v 3 souborech (notifications.data je text, ne jsonb)
 - ADD: LogsActivity na User, CompanySetting, Attachment
 - ADD: Chybějící relace (Invoice→bankTransaction, Invoice→tasks, BankTransaction→invoices, Customer→tasks/vpsServers, Order→tasks, User→timeEntries)
 
@@ -51,6 +54,8 @@ Laravel 12 + Inertia.js + React 19 + TypeScript + Tailwind 4 + Shadcn/UI + Postg
 - ADD: Indexy na FK sloupce (order_items.order_id, subscription_payments.invoice_id, time_entries.started_at, time_entries(order_id,user_id), tickets(customer_id,status), tasks(customer_id,status))
 - FIX: users timestamps → timestampTz (konzistence)
 - FIX: billing_cycle normalizace ('one_time' → 'once', zpevněný CHECK)
+
+**Verifikace (Playwright):** Všech 11 stránek ověřeno v prohlížeči — Dashboard, Zákazníci (+ detail + search), Zakázky, Faktury (+ detail), Finance, Požadavky, Neniweb, Plánovač, Notifikace, Nastavení. 0 JS errorů.
 
 ### Budoucí (backlog)
 - [ ] Air Bank API integrace (bankovní výpisy, párování plateb)

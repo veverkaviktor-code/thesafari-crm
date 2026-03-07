@@ -42,16 +42,13 @@ class AutoInvoiceSubscriptions extends Command
             return 0;
         }
 
-        // Group by customer_id + name (domain + hosting = 1 invoice)
-        $groups = $subscriptions->groupBy(function ($sub) {
-            return $sub->customer_id . '|' . $sub->name;
-        });
+        // Group by customer_id — one invoice per customer with all services
+        $groups = $subscriptions->groupBy('customer_id');
 
         $created = 0;
 
         foreach ($groups as $key => $subs) {
             $customer = $subs->first()->customer;
-            $name = $subs->first()->name;
 
             if (!$customer) {
                 Log::warning("AutoInvoice: subscription {$subs->first()->id} has no customer, skipping.");
@@ -91,8 +88,8 @@ class AutoInvoiceSubscriptions extends Command
             $earliestExpiry = $subs->min('expires_at');
 
             if ($dryRun) {
-                $subTypes = $subs->pluck('type')->unique()->implode('+');
-                $this->line("  [{$subTypes}] {$name} — {$customer->name} — " . number_format($total, 0) . " Kč (exp. {$earliestExpiry->format('d.m.Y')})");
+                $serviceNames = collect($items)->pluck('description')->implode(', ');
+                $this->line("  {$customer->name} — {$serviceNames} — " . number_format($total, 0) . " Kč (splatnost {$earliestExpiry->format('d.m.Y')})");
                 $created++;
                 continue;
             }
