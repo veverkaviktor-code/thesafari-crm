@@ -99,7 +99,7 @@ export default function Index({ invoices, filters, trashedCount }: Props) {
     const handleSyncBank = () => {
         setSyncing(true);
         router.post(
-            route('invoices.syncBank'),
+            '/faktury/sync-bank',
             {},
             {
                 onSuccess: () => setSyncing(false),

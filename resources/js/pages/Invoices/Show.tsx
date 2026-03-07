@@ -115,7 +115,7 @@ export default function Show({ invoice, company, unmatchedTransactions }: Props)
         if (!selectedBankTx) return;
         setMatchingBank(true);
         router.post(
-            route('invoices.matchBank', invoice.id),
+            `/faktury/${invoice.id}/match-bank`,
             { bank_transaction_id: selectedBankTx },
             {
                 preserveScroll: true,
