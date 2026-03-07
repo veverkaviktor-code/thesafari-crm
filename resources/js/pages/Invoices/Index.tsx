@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Link, router } from '@inertiajs/react';
 import { formatCurrency } from '@/lib/utils';
-import { Download, MailCheck, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { Download, MailCheck, Pencil, Plus, RefreshCw, RotateCcw, Trash2 } from 'lucide-react';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import DataTable, { type Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/button';
@@ -68,6 +68,7 @@ export default function Index({ invoices, filters, trashedCount }: Props) {
     const [deleteTarget, setDeleteTarget] = useState<Invoice | null>(null);
     const [deleting, setDeleting] = useState(false);
     const [restoring, setRestoring] = useState<number | null>(null);
+    const [syncing, setSyncing] = useState(false);
 
     const isTrashed = filters.trashed === '1';
 
@@ -93,6 +94,18 @@ export default function Index({ invoices, filters, trashedCount }: Props) {
             onSuccess: () => setRestoring(null),
             onError: () => setRestoring(null),
         });
+    };
+
+    const handleSyncBank = () => {
+        setSyncing(true);
+        router.post(
+            route('invoices.syncBank'),
+            {},
+            {
+                onSuccess: () => setSyncing(false),
+                onError: () => setSyncing(false),
+            },
+        );
     };
 
     const activeColumns = useMemo<Column<Invoice>[]>(() => [
@@ -279,6 +292,16 @@ export default function Index({ invoices, filters, trashedCount }: Props) {
                         Faktury
                     </h1>
                     <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleSyncBank}
+                            disabled={syncing}
+                            className="border-border text-muted-foreground hover:text-foreground"
+                        >
+                            <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+                            {syncing ? 'Synchronizuji...' : 'Sync z banky'}
+                        </Button>
                         <Button
                             asChild
                             variant="outline"

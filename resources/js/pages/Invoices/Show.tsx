@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, router } from '@inertiajs/react';
 import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -8,6 +9,7 @@ import {
     CreditCard,
     Download,
     ExternalLink,
+    Landmark,
     Mail,
     MailCheck,
     Pencil,
@@ -18,6 +20,16 @@ import { Separator } from '@/components/ui/separator';
 import InvoiceStatusBadge, {
     type InvoiceStatus,
 } from '@/components/invoices/InvoiceStatusBadge';
+
+interface BankTransaction {
+    id: number;
+    date: string;
+    amount: number;
+    variable_symbol: string | null;
+    counter_account: string | null;
+    counter_account_name: string | null;
+    description: string | null;
+}
 
 interface InvoiceItem {
     id: number;
@@ -57,6 +69,7 @@ interface Invoice {
         type: string;
         expires_at: string | null;
     }>;
+    bank_transaction?: BankTransaction;
 }
 
 interface Props {
@@ -70,12 +83,13 @@ interface Props {
         zip: string;
         bank_account: string;
     } | null;
+    unmatchedTransactions: BankTransaction[];
 }
 
 const formatDate = (d: string) =>
     format(new Date(d), 'd. MMMM yyyy', { locale: cs });
 
-export default function Show({ invoice, company }: Props) {
+export default function Show({ invoice, company, unmatchedTransactions }: Props) {
     const co = company ?? {
         name: 'The Safari s.r.o.',
         ico: '',
@@ -86,12 +100,29 @@ export default function Show({ invoice, company }: Props) {
         bank_account: '',
     };
 
+    const [selectedBankTx, setSelectedBankTx] = useState('');
+    const [matchingBank, setMatchingBank] = useState(false);
+
     const handleMarkPaid = (method: 'banka' | 'hotovost') => {
         router.post(`/faktury/${invoice.id}/paid`, { payment_method: method }, { preserveScroll: true });
     };
 
     const handleSendEmail = () => {
         router.post(`/faktury/${invoice.id}/send`, {}, { preserveScroll: true });
+    };
+
+    const handleMatchBank = () => {
+        if (!selectedBankTx) return;
+        setMatchingBank(true);
+        router.post(
+            route('invoices.matchBank', invoice.id),
+            { bank_transaction_id: selectedBankTx },
+            {
+                preserveScroll: true,
+                onSuccess: () => setMatchingBank(false),
+                onError: () => setMatchingBank(false),
+            },
+        );
     };
 
     return (
@@ -409,6 +440,80 @@ export default function Show({ invoice, company }: Props) {
                         </>
                     )}
                 </div>
+
+                {/* Spárovaná bankovní transakce */}
+                {invoice.bank_transaction && (
+                    <div className="rounded-lg border border-emerald-800/40 bg-emerald-950/20 p-4">
+                        <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+                            <Landmark className="h-4 w-4 text-emerald-400" />
+                            Spárovaná bankovní transakce
+                        </h3>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                            <span className="text-muted-foreground">Datum:</span>
+                            <span className="text-foreground">
+                                {new Date(invoice.bank_transaction.date).toLocaleDateString('cs-CZ')}
+                            </span>
+                            <span className="text-muted-foreground">Částka:</span>
+                            <span className="font-medium text-emerald-400">
+                                {formatCurrency(invoice.bank_transaction.amount)}
+                            </span>
+                            <span className="text-muted-foreground">Od:</span>
+                            <span className="text-foreground">
+                                {invoice.bank_transaction.counter_account_name ||
+                                    invoice.bank_transaction.counter_account ||
+                                    '—'}
+                            </span>
+                            <span className="text-muted-foreground">VS:</span>
+                            <span className="text-foreground">
+                                {invoice.bank_transaction.variable_symbol || '—'}
+                            </span>
+                            {invoice.bank_transaction.description && (
+                                <>
+                                    <span className="text-muted-foreground">Poznámka:</span>
+                                    <span className="text-foreground">
+                                        {invoice.bank_transaction.description}
+                                    </span>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Manuální párování — zobrazit pouze pokud faktura není zaplacena a existují nespárované transakce */}
+                {invoice.status !== 'zaplacena' && unmatchedTransactions.length > 0 && (
+                    <div className="rounded-lg border border-amber-800/40 bg-amber-950/20 p-4">
+                        <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+                            <Landmark className="h-4 w-4 text-amber-400" />
+                            Spárovat s bankovní transakcí
+                        </h3>
+                        <div className="space-y-3">
+                            <select
+                                value={selectedBankTx}
+                                onChange={(e) => setSelectedBankTx(e.target.value)}
+                                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                            >
+                                <option value="">Vyberte transakci...</option>
+                                {unmatchedTransactions.map((tx) => (
+                                    <option key={tx.id} value={tx.id}>
+                                        {new Date(tx.date).toLocaleDateString('cs-CZ')} |{' '}
+                                        {formatCurrency(tx.amount)} | VS:{' '}
+                                        {tx.variable_symbol || '—'} |{' '}
+                                        {tx.counter_account_name || tx.counter_account || '—'}
+                                    </option>
+                                ))}
+                            </select>
+                            <Button
+                                size="sm"
+                                disabled={!selectedBankTx || matchingBank}
+                                onClick={handleMatchBank}
+                                className="bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50"
+                            >
+                                <Landmark className="h-4 w-4" />
+                                {matchingBank ? 'Páruji...' : 'Spárovat a označit jako zaplacenou'}
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </div>
         </AuthenticatedLayout>
     );
