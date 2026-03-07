@@ -472,6 +472,9 @@ class SubscriptionController extends Controller
         $invoice = DB::transaction(function () use ($subscriptions) {
             $items = [];
             foreach ($subscriptions as $sub) {
+                // Skip external domains — registered elsewhere, customer pays their registrar
+                if ($sub->type === 'domena' && !$sub->is_registered_by_us) continue;
+
                 $price = (float) $sub->sell_yearly ?: (float) $sub->price_yearly;
                 if ($price <= 0) continue;
 
