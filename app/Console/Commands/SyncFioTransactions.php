@@ -63,6 +63,8 @@ class SyncFioTransactions extends Command
 
         $this->printStats();
 
+        cache()->put('last_bank_sync', now()->toIso8601String());
+
         Log::info('fio:sync dokončen', [
             'fetched' => $this->countFetched,
             'saved' => $this->countSaved,

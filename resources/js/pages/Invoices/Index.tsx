@@ -293,23 +293,16 @@ export default function Index({ invoices, filters, trashedCount, lastBankSync }:
                         Faktury
                     </h1>
                     <div className="flex items-center gap-2">
-                        <div className="flex flex-col items-end gap-0.5">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handleSyncBank}
-                                disabled={syncing}
-                                className="border-border text-muted-foreground hover:text-foreground"
-                            >
-                                <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
-                                {syncing ? 'Synchronizuji...' : 'Sync z banky'}
-                            </Button>
-                            {lastBankSync && (
-                                <span className="text-[11px] text-muted-foreground/60 leading-none">
-                                    {new Date(lastBankSync).toLocaleString('cs-CZ', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                            )}
-                        </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleSyncBank}
+                            disabled={syncing}
+                            className="border-border text-muted-foreground hover:text-foreground"
+                        >
+                            <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+                            {syncing ? 'Synchronizuji...' : 'Sync z banky'}
+                        </Button>
                         <Button
                             asChild
                             variant="outline"
@@ -332,8 +325,9 @@ export default function Index({ invoices, filters, trashedCount, lastBankSync }:
                     </div>
                 </div>
 
-                {/* Tabs: Aktivní / Smazané */}
-                <div className="flex items-center gap-1 border-b border-border">
+                {/* Bank sync status + Tabs */}
+                <div className="flex items-center justify-between border-b border-border">
+                    <div className="flex items-center gap-1">
                     <button
                         onClick={() => applyFilters({ trashed: undefined, status: undefined, search: undefined })}
                         className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
@@ -359,6 +353,12 @@ export default function Index({ invoices, filters, trashedCount, lastBankSync }:
                             </span>
                         )}
                     </button>
+                    </div>
+                    {lastBankSync && (
+                        <span className="text-xs text-muted-foreground pb-2">
+                            Poslední sync: {new Date(lastBankSync).toLocaleString('cs-CZ', { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                    )}
                 </div>
 
                 <DataTable<Invoice>

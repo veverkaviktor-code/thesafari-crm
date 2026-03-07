@@ -42,7 +42,7 @@ class InvoiceController extends Controller
             'invoices' => $invoices,
             'filters' => $request->only(['search', 'status', 'customer_id', 'date_from', 'date_to', 'trashed']),
             'trashedCount' => $trashedCount,
-            'lastBankSync' => \App\Models\BankTransaction::max('created_at'),
+            'lastBankSync' => cache('last_bank_sync'),
         ]);
     }
 
@@ -350,7 +350,7 @@ class InvoiceController extends Controller
     public function syncFromBank()
     {
         \Artisan::call('fio:sync');
-        $output = \Artisan::output();
+        cache()->put('last_bank_sync', now()->toIso8601String());
 
         return back()->with('success', 'Synchronizace z banky dokončena.');
     }
