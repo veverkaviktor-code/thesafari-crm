@@ -34,29 +34,29 @@
                     <!-- Body -->
                     <tr>
                         <td style="padding: 24px 40px;">
-                            <p style="margin: 0 0 16px 0; font-size: 15px;">Dobry den,</p>
+                            <p style="margin: 0 0 16px 0; font-size: 15px;">Dobrý den,</p>
 
                             <p style="margin: 0 0 8px 0; font-size: 15px;">
                                 {{ $serviceDescription }}
                             </p>
 
                             <p style="margin: 0 0 20px 0; font-size: 15px;">
-                                V priloze zasilame fakturu c. <strong>{{ $invoice->invoice_number }}</strong> na castku <strong>{{ number_format((float) $invoice->total, 0, ',', ' ') }} Kc</strong>.
+                                V příloze zasíláme fakturu č. <strong>{{ $invoice->invoice_number }}</strong> na částku <strong>{{ number_format((float) $invoice->total, 0, ',', ' ') }} Kč</strong>.
                             </p>
 
                             <!-- Payment details table -->
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin: 0 0 20px 0;">
                                 <tr>
-                                    <td style="padding: 10px 16px; background-color: #f8f8f8; border: 1px solid #e5e5e5; font-weight: 600; font-size: 14px; width: 180px;">Cislo uctu</td>
+                                    <td style="padding: 10px 16px; background-color: #f8f8f8; border: 1px solid #e5e5e5; font-weight: 600; font-size: 14px; width: 180px;">Číslo účtu</td>
                                     <td style="padding: 10px 16px; border: 1px solid #e5e5e5; font-size: 14px;">{{ $company->bank_account }}</td>
                                 </tr>
                                 <tr>
-                                    <td style="padding: 10px 16px; background-color: #f8f8f8; border: 1px solid #e5e5e5; font-weight: 600; font-size: 14px;">Variabilni symbol</td>
+                                    <td style="padding: 10px 16px; background-color: #f8f8f8; border: 1px solid #e5e5e5; font-weight: 600; font-size: 14px;">Variabilní symbol</td>
                                     <td style="padding: 10px 16px; border: 1px solid #e5e5e5; font-size: 14px;">{{ $invoice->variable_symbol }}</td>
                                 </tr>
                                 <tr>
-                                    <td style="padding: 10px 16px; background-color: #f8f8f8; border: 1px solid #e5e5e5; font-weight: 600; font-size: 14px;">Castka</td>
-                                    <td style="padding: 10px 16px; border: 1px solid #e5e5e5; font-size: 14px;">{{ number_format((float) $invoice->total, 0, ',', ' ') }} Kc</td>
+                                    <td style="padding: 10px 16px; background-color: #f8f8f8; border: 1px solid #e5e5e5; font-weight: 600; font-size: 14px;">Částka</td>
+                                    <td style="padding: 10px 16px; border: 1px solid #e5e5e5; font-size: 14px;">{{ number_format((float) $invoice->total, 0, ',', ' ') }} Kč</td>
                                 </tr>
                                 <tr>
                                     <td style="padding: 10px 16px; background-color: #f8f8f8; border: 1px solid #e5e5e5; font-weight: 600; font-size: 14px;">Splatnost</td>
@@ -65,10 +65,10 @@
                             </table>
 
                             <p style="margin: 0 0 16px 0; font-size: 14px; color: #666666;">
-                                Pro platbu muzete vyuzit QR kod na fakture.
+                                Pro platbu můžete využít QR kód na faktuře.
                             </p>
 
-                            <p style="margin: 0; font-size: 15px;">Dekujeme,</p>
+                            <p style="margin: 0; font-size: 15px;">Děkujeme,</p>
                         </td>
                     </tr>
 
@@ -85,7 +85,7 @@
                                             <a href="https://neniweb.cz" style="color: #D97706; text-decoration: none;">Neniweb.cz</a>
                                         </p>
                                         <p style="margin: 6px 0 0 0; color: #888888; font-size: 13px; font-style: italic;">
-                                            Vas partner pro reklamu, webove stranky, grafiku, tisk a automatizace.
+                                            Váš partner pro reklamu, webové stránky, grafiku, tisk a automatizace.
                                         </p>
                                     </td>
                                 </tr>
@@ -96,8 +96,11 @@
                     <!-- Footer -->
                     <tr>
                         <td style="padding: 16px 40px; background-color: #fafafa; border-top: 1px solid #eeeeee;">
-                            <p style="margin: 0; color: #999999; font-size: 12px; text-align: center;">
-                                Tento e-mail byl odeslan automaticky. Prosime, neodpovidejte na nej.
+                            <p style="margin: 0 0 8px 0; color: #666666; font-size: 12px; text-align: center;">
+                                V případě dotazů nás kontaktujte na <a href="mailto:viktor@thesafari.cz" style="color: #D97706; text-decoration: none;">viktor@thesafari.cz</a> nebo telefonicky na <a href="tel:+420735905989" style="color: #D97706; text-decoration: none;">735 905 989</a>.
+                            </p>
+                            <p style="margin: 0; color: #999999; font-size: 11px; text-align: center;">
+                                Tento e-mail byl odeslán automaticky. Prosíme, neodpovídejte na něj.
                             </p>
                         </td>
                     </tr>
