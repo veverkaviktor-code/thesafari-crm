@@ -42,6 +42,7 @@ class InvoiceController extends Controller
             'invoices' => $invoices,
             'filters' => $request->only(['search', 'status', 'customer_id', 'date_from', 'date_to', 'trashed']),
             'trashedCount' => $trashedCount,
+            'lastBankSync' => \App\Models\BankTransaction::max('created_at'),
         ]);
     }
 

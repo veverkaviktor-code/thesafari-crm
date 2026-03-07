@@ -50,6 +50,7 @@ interface Props {
         trashed?: string;
     };
     trashedCount: number;
+    lastBankSync: string | null;
 }
 
 const formatDate = (d: string) => new Date(d).toLocaleDateString('cs-CZ');
@@ -62,7 +63,7 @@ function dueDateClass(dueDate: string, status: string): string {
     return 'text-muted-foreground';
 }
 
-export default function Index({ invoices, filters, trashedCount }: Props) {
+export default function Index({ invoices, filters, trashedCount, lastBankSync }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
     const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<Invoice | null>(null);
@@ -292,16 +293,23 @@ export default function Index({ invoices, filters, trashedCount }: Props) {
                         Faktury
                     </h1>
                     <div className="flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleSyncBank}
-                            disabled={syncing}
-                            className="border-border text-muted-foreground hover:text-foreground"
-                        >
-                            <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
-                            {syncing ? 'Synchronizuji...' : 'Sync z banky'}
-                        </Button>
+                        <div className="flex flex-col items-end gap-0.5">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleSyncBank}
+                                disabled={syncing}
+                                className="border-border text-muted-foreground hover:text-foreground"
+                            >
+                                <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+                                {syncing ? 'Synchronizuji...' : 'Sync z banky'}
+                            </Button>
+                            {lastBankSync && (
+                                <span className="text-[11px] text-muted-foreground/60 leading-none">
+                                    {new Date(lastBankSync).toLocaleString('cs-CZ', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                            )}
+                        </div>
                         <Button
                             asChild
                             variant="outline"
