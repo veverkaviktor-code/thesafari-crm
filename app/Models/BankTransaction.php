@@ -19,7 +19,10 @@ class BankTransaction extends Model
         'amount',
         'variable_symbol',
         'counter_account',
+        'counter_account_name',
         'description',
+        'transaction_type',
+        'raw_data',
         'matched',
     ];
 
@@ -29,7 +32,7 @@ class BankTransaction extends Model
             'date' => 'date',
             'amount' => 'decimal:2',
             'matched' => 'boolean',
-            'created_at' => 'datetime',
+            'raw_data' => 'array',
         ];
     }
 
