@@ -264,43 +264,7 @@ class InvoiceController extends Controller
     {
         $paymentMethod = $request->input('payment_method', $invoice->payment_method ?? 'banka');
 
-        $invoice->update([
-            'status' => 'zaplacena',
-            'paid_at' => now(),
-            'payment_method' => $paymentMethod,
-        ]);
-
-        // Order invoice: update order status
-        if ($invoice->order_id) {
-            $invoice->order->update(['status' => 'fakturovano']);
-        }
-
-        // Subscription invoice: extend hosting + create payment records
-        $invoice->load('subscriptions');
-        if ($invoice->subscriptions->isNotEmpty()) {
-            foreach ($invoice->subscriptions as $subscription) {
-                $expiresAt = $subscription->expires_at ?? now();
-
-                // Create payment record
-                $subscription->payments()->create([
-                    'amount' => (float) $subscription->sell_yearly ?: (float) $subscription->price_yearly,
-                    'period_start' => $expiresAt,
-                    'period_end' => $expiresAt->copy()->addYear(),
-                    'status' => 'zaplaceno',
-                    'paid_at' => now(),
-                    'invoice_id' => $invoice->id,
-                    'payment_method' => $paymentMethod,
-                ]);
-
-                // Hosting: extend expires_at by 1 year (CRM manages)
-                // Domain: DON'T change — wait for sync from registrar
-                if ($subscription->type !== 'domena') {
-                    $subscription->update([
-                        'expires_at' => $expiresAt->copy()->addYear(),
-                    ]);
-                }
-            }
-        }
+        $invoice->processPayment($paymentMethod);
 
         $invoice->loadMissing('customer');
         $user = auth()->user();
@@ -363,41 +327,8 @@ class InvoiceController extends Controller
         }
 
         DB::transaction(function () use ($invoice, $bankTx) {
-            $paymentMethod = 'banka';
-
             $bankTx->update(['matched' => true]);
-
-            $invoice->update([
-                'status' => 'zaplacena',
-                'paid_at' => now(),
-                'payment_method' => $paymentMethod,
-                'bank_transaction_id' => $bankTx->id,
-            ]);
-
-            if ($invoice->order_id) {
-                $invoice->order->update(['status' => 'fakturovano']);
-            }
-
-            $invoice->load('subscriptions');
-            foreach ($invoice->subscriptions as $subscription) {
-                $expiresAt = $subscription->expires_at ?? now();
-
-                $subscription->payments()->create([
-                    'amount' => (float) $subscription->sell_yearly ?: (float) $subscription->price_yearly,
-                    'period_start' => $expiresAt,
-                    'period_end' => $expiresAt->copy()->addYear(),
-                    'status' => 'zaplaceno',
-                    'paid_at' => now(),
-                    'invoice_id' => $invoice->id,
-                    'payment_method' => $paymentMethod,
-                ]);
-
-                if ($subscription->type !== 'domena') {
-                    $subscription->update([
-                        'expires_at' => $expiresAt->copy()->addYear(),
-                    ]);
-                }
-            }
+            $invoice->processPayment('banka', $bankTx->id);
         });
 
         $admin = auth()->user();

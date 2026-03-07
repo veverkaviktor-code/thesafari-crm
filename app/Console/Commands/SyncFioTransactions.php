@@ -215,67 +215,21 @@ class SyncFioTransactions extends Command
             return;
         }
 
-        DB::transaction(function () use ($bankTransaction, $invoice, $admin) {
-            $paymentMethod = 'banka';
-
-            // --- Přesná kopie logiky z InvoiceController::markAsPaid() ---
-
-            $invoice->update([
-                'status'           => 'zaplacena',
-                'paid_at'          => now(),
-                'payment_method'   => $paymentMethod,
-                'bank_transaction_id' => $bankTransaction->id,
-            ]);
-
-            // Order invoice: update order status
-            if ($invoice->order_id) {
-                $invoice->order->update(['status' => 'fakturovano']);
-            }
-
-            // Subscription invoice: extend hosting + create payment records
-            $invoice->load('subscriptions');
-            if ($invoice->subscriptions->isNotEmpty()) {
-                foreach ($invoice->subscriptions as $subscription) {
-                    $expiresAt = $subscription->expires_at ?? now();
-
-                    // Create payment record
-                    $subscription->payments()->create([
-                        'amount'         => (float) $subscription->sell_yearly ?: (float) $subscription->price_yearly,
-                        'period_start'   => $expiresAt,
-                        'period_end'     => $expiresAt->copy()->addYear(),
-                        'status'         => 'zaplaceno',
-                        'paid_at'        => now(),
-                        'invoice_id'     => $invoice->id,
-                        'payment_method' => $paymentMethod,
-                    ]);
-
-                    // Hosting: extend expires_at by 1 year (CRM manages)
-                    // Domain: DON'T change — wait for sync from registrar
-                    if ($subscription->type !== 'domena') {
-                        $subscription->update([
-                            'expires_at' => $expiresAt->copy()->addYear(),
-                        ]);
-                    }
-                }
-            }
-
-            // --- Konec kopie z markAsPaid() ---
-
-            // Označit transakci jako spárovanou
+        DB::transaction(function () use ($bankTransaction, $invoice) {
+            $invoice->processPayment('banka', $bankTransaction->id);
             $bankTransaction->update(['matched' => true]);
-
-            // Notifikace admina
-            $invoice->loadMissing('customer');
-            if ($admin) {
-                $admin->notify(new PaymentReceived($invoice));
-            }
-
-            Log::info('fio:sync auto-match', [
-                'bank_id'        => $bankTransaction->bank_id,
-                'invoice_number' => $invoice->invoice_number,
-                'amount'         => $bankTransaction->amount,
-            ]);
         });
+
+        $invoice->loadMissing('customer');
+        if ($admin) {
+            $admin->notify(new PaymentReceived($invoice));
+        }
+
+        Log::info('fio:sync auto-match', [
+            'bank_id'        => $bankTransaction->bank_id,
+            'invoice_number' => $invoice->invoice_number,
+            'amount'         => $bankTransaction->amount,
+        ]);
     }
 
     private function printStats(): void

@@ -115,4 +115,51 @@ class Invoice extends Model
     {
         return $this->hasMany(Task::class);
     }
+
+    /**
+     * Označí fakturu jako zaplacenou a provede všechny navazující akce.
+     * Centrální metoda — volána z InvoiceController, SyncFioTransactions i matchBankTransaction.
+     */
+    public function processPayment(string $paymentMethod = 'banka', ?int $bankTransactionId = null): void
+    {
+        $updateData = [
+            'status'         => 'zaplacena',
+            'paid_at'        => now(),
+            'payment_method' => $paymentMethod,
+        ];
+
+        if ($bankTransactionId) {
+            $updateData['bank_transaction_id'] = $bankTransactionId;
+        }
+
+        $this->update($updateData);
+
+        // Order: update status
+        if ($this->order_id) {
+            $this->order->update(['status' => 'fakturovano']);
+        }
+
+        // Subscriptions: create payment records + extend expires_at
+        $this->load('subscriptions');
+        foreach ($this->subscriptions as $subscription) {
+            $expiresAt = $subscription->expires_at ?? now();
+
+            $subscription->payments()->create([
+                'amount'         => (float) $subscription->sell_yearly ?: (float) $subscription->price_yearly,
+                'period_start'   => $expiresAt,
+                'period_end'     => $expiresAt->copy()->addYear(),
+                'status'         => 'zaplaceno',
+                'paid_at'        => now(),
+                'invoice_id'     => $this->id,
+                'payment_method' => $paymentMethod,
+            ]);
+
+            // Hosting: extend by 1 year. Domain: DON'T — wait for registrar sync.
+            if ($subscription->type !== 'domena') {
+                $subscription->update([
+                    'expires_at' => $expiresAt->copy()->addYear(),
+                ]);
+            }
+        }
+    }
 }
