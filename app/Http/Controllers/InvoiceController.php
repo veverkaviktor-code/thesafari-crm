@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\InvoiceRequest;
+use App\Models\BankTransaction;
 use App\Models\CompanySetting;
 use App\Models\Customer;
 use App\Models\Invoice;
@@ -47,10 +48,17 @@ class InvoiceController extends Controller
     public function show(Invoice $faktury)
     {
         $invoice = $faktury;
-        $invoice->load(['items', 'customer', 'order', 'subscriptions:id,name,type,expires_at']);
+        $invoice->load(['items', 'customer', 'order', 'subscriptions:id,name,type,expires_at', 'bankTransaction']);
 
         return Inertia::render('Invoices/Show', [
             'invoice' => $invoice,
+            'unmatchedTransactions' => $invoice->status !== 'zaplacena'
+                ? BankTransaction::unmatched()
+                    ->where('amount', '>', 0)
+                    ->orderByDesc('date')
+                    ->limit(20)
+                    ->get(['id', 'date', 'amount', 'variable_symbol', 'counter_account_name', 'counter_account', 'description'])
+                : [],
         ]);
     }
 
@@ -339,6 +347,72 @@ class InvoiceController extends Controller
             'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="faktury-export.csv"',
         ]);
+    }
+
+    public function matchBankTransaction(Request $request, Invoice $invoice)
+    {
+        $request->validate([
+            'bank_transaction_id' => 'required|exists:bank_transactions,id',
+        ]);
+
+        $bankTx = BankTransaction::findOrFail($request->bank_transaction_id);
+
+        if ($bankTx->matched) {
+            return back()->with('error', 'Tato transakce je již spárována s jinou fakturou.');
+        }
+
+        DB::transaction(function () use ($invoice, $bankTx) {
+            $paymentMethod = 'banka';
+
+            $bankTx->update(['matched' => true]);
+
+            $invoice->update([
+                'status' => 'zaplacena',
+                'paid_at' => now(),
+                'payment_method' => $paymentMethod,
+                'bank_transaction_id' => $bankTx->id,
+            ]);
+
+            if ($invoice->order_id) {
+                $invoice->order->update(['status' => 'fakturovano']);
+            }
+
+            $invoice->load('subscriptions');
+            foreach ($invoice->subscriptions as $subscription) {
+                $expiresAt = $subscription->expires_at ?? now();
+
+                $subscription->payments()->create([
+                    'amount' => (float) $subscription->sell_yearly ?: (float) $subscription->price_yearly,
+                    'period_start' => $expiresAt,
+                    'period_end' => $expiresAt->copy()->addYear(),
+                    'status' => 'zaplaceno',
+                    'paid_at' => now(),
+                    'invoice_id' => $invoice->id,
+                    'payment_method' => $paymentMethod,
+                ]);
+
+                if ($subscription->type !== 'domena') {
+                    $subscription->update([
+                        'expires_at' => $expiresAt->copy()->addYear(),
+                    ]);
+                }
+            }
+        });
+
+        $admin = auth()->user();
+        if ($admin) {
+            $admin->notify(new \App\Notifications\PaymentReceived($invoice));
+        }
+
+        return back()->with('success', "Faktura #{$invoice->invoice_number} spárována a označena jako zaplacená.");
+    }
+
+    public function syncFromBank()
+    {
+        \Artisan::call('fio:sync');
+        $output = \Artisan::output();
+
+        return back()->with('success', 'Synchronizace z banky dokončena.');
     }
 
     private function generateSpdString(Invoice $invoice, CompanySetting $company): string

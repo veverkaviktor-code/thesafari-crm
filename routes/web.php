@@ -51,6 +51,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('zakazky/{order}/polozky/{orderItem}', [OrderItemController::class, 'destroy'])->name('order-items.destroy');
 
     Route::get('faktury/export', [InvoiceController::class, 'exportCsv'])->name('faktury.export');
+    Route::post('faktury/sync-bank', [InvoiceController::class, 'syncFromBank'])->name('invoices.syncBank');
     Route::resource('faktury', InvoiceController::class);
     Route::get('faktury/{faktury}/upravit', [InvoiceController::class, 'edit']);
     Route::get('faktury/{invoice}/pdf', [InvoiceController::class, 'downloadPdf'])->name('faktury.pdf');
@@ -58,6 +59,7 @@ Route::middleware('auth')->group(function () {
     Route::post('faktury/{invoice}/paid', [InvoiceController::class, 'markAsPaid'])->name('faktury.paid');
     Route::post('faktury/{id}/restore', [InvoiceController::class, 'restore'])->name('faktury.restore');
     Route::delete('faktury/{id}/force-delete', [InvoiceController::class, 'forceDelete'])->name('faktury.forceDelete');
+    Route::post('faktury/{faktury}/match-bank', [InvoiceController::class, 'matchBankTransaction'])->name('invoices.matchBank');
 
     Route::get('finance', [FinanceController::class, 'index'])->name('finance');
 
