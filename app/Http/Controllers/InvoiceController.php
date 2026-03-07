@@ -246,7 +246,12 @@ class InvoiceController extends Controller
         $pdfContent = $pdf->output();
         $filename = "faktura-{$invoice->invoice_number}.pdf";
 
-        Mail::raw("Dobrý den,\n\nv příloze zasíláme fakturu č. {$invoice->invoice_number}.\n\nS pozdravem,\n{$company->company_name}", function ($message) use ($invoice, $pdfContent, $filename) {
+        $htmlBody = view('emails.invoice', [
+            'invoice' => $invoice,
+            'company' => $company,
+        ])->render();
+
+        Mail::html($htmlBody, function ($message) use ($invoice, $pdfContent, $filename) {
             $message->to($invoice->customer->email)
                 ->subject("Faktura č. {$invoice->invoice_number}")
                 ->attachData($pdfContent, $filename, ['mime' => 'application/pdf']);
