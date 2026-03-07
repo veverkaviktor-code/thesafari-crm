@@ -128,9 +128,9 @@ class SendInvoiceReminders extends Command
         ])->render();
 
         $subject = match ($reminderNumber) {
-            1 => "Připomínka: Faktura č. {$invoice->invoice_number} po splatnosti",
-            2 => "2. upomínka: Faktura č. {$invoice->invoice_number} — {$daysOverdue} dní po splatnosti",
-            3 => "Poslední upomínka: Faktura č. {$invoice->invoice_number}",
+            1 => "Připomínka platby — faktura č. {$invoice->invoice_number}",
+            2 => "Upomínka — faktura č. {$invoice->invoice_number} ({$daysOverdue} dní po splatnosti)",
+            3 => "Poslední upomínka — faktura č. {$invoice->invoice_number} — 7 dní do pozastavení služeb",
         };
 
         Mail::html($htmlBody, function ($message) use ($invoice, $pdfContent, $filename, $subject) {

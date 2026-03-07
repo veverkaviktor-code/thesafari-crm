@@ -27,19 +27,6 @@
                         </td>
                     </tr>
 
-                    <!-- Reminder badge -->
-                    <tr>
-                        <td style="padding: 20px 40px 0 40px; text-align: center;">
-                            @if($reminderNumber === 1)
-                                <span style="display: inline-block; padding: 4px 16px; background-color: #FEF3C7; color: #92400E; border-radius: 20px; font-size: 13px; font-weight: 600;">Připomínka platby</span>
-                            @elseif($reminderNumber === 2)
-                                <span style="display: inline-block; padding: 4px 16px; background-color: #FED7AA; color: #9A3412; border-radius: 20px; font-size: 13px; font-weight: 600;">2. upomínka</span>
-                            @else
-                                <span style="display: inline-block; padding: 4px 16px; background-color: #FECACA; color: #991B1B; border-radius: 20px; font-size: 13px; font-weight: 600;">Poslední upomínka</span>
-                            @endif
-                        </td>
-                    </tr>
-
                     <!-- Body -->
                     <tr>
                         <td style="padding: 24px 40px;">
@@ -47,24 +34,24 @@
 
                             @if($reminderNumber === 1)
                                 <p style="margin: 0 0 16px 0; font-size: 15px;">
-                                    dovolujeme si Vás upozornit, že faktura č. <strong>{{ $invoice->invoice_number }}</strong> na částku <strong>{{ number_format((float) $invoice->total, 0, ',', ' ') }} Kč</strong> je {{ $daysOverdue }} dní po splatnosti.
+                                    naše účetní koala si při kontrole všimla, že u faktury č. <strong>{{ $invoice->invoice_number }}</strong> na částku <strong>{{ number_format((float) $invoice->total, 0, ',', ' ') }} Kč</strong> zřejmě došlo k opomenutí úhrady. Splatnost byla {{ $invoice->due_date->format('j. n. Y') }}, tedy před {{ $daysOverdue }} dny.
                                 </p>
                                 <p style="margin: 0 0 20px 0; font-size: 15px;">
-                                    Pokud jste platbu již odeslali, považujte tento e-mail za bezpředmětný.
+                                    Prosíme o kontrolu a případné uhrazení. Pokud jste platbu již odeslali, klidně tento e-mail ignorujte — platby se někdy míjejí.
                                 </p>
                             @elseif($reminderNumber === 2)
                                 <p style="margin: 0 0 16px 0; font-size: 15px;">
-                                    opětovně si Vás dovolujeme upozornit na neuhrazenou fakturu č. <strong>{{ $invoice->invoice_number }}</strong> na částku <strong>{{ number_format((float) $invoice->total, 0, ',', ' ') }} Kč</strong>, která je již <strong>{{ $daysOverdue }} dní po splatnosti</strong>.
+                                    jééj, naše koala se na nás zase obrátila — faktura č. <strong>{{ $invoice->invoice_number }}</strong> na částku <strong>{{ number_format((float) $invoice->total, 0, ',', ' ') }} Kč</strong> stále není uhrazená a je již <strong>{{ $daysOverdue }} dní po splatnosti</strong>.
                                 </p>
                                 <p style="margin: 0 0 20px 0; font-size: 15px;">
-                                    Prosíme o neprodlené uhrazení. V případě nejasností nás neváhejte kontaktovat.
+                                    Prosíme o co nejrychlejší uhrazení. Rádi bychom Vás upozornili, že v případě neuhrazení dojde k <strong>automatickému pozastavení služeb po 30 dnech</strong> od data splatnosti.
                                 </p>
                             @else
                                 <p style="margin: 0 0 16px 0; font-size: 15px;">
-                                    zasíláme Vám <strong>poslední upomínku</strong> k úhradě faktury č. <strong>{{ $invoice->invoice_number }}</strong> na částku <strong>{{ number_format((float) $invoice->total, 0, ',', ' ') }} Kč</strong>, která je <strong>{{ $daysOverdue }} dní po splatnosti</strong>.
+                                    tentokrát to myslíme vážně — faktura č. <strong>{{ $invoice->invoice_number }}</strong> na částku <strong>{{ number_format((float) $invoice->total, 0, ',', ' ') }} Kč</strong> je <strong>{{ $daysOverdue }} dní po splatnosti</strong> a do pozastavení služeb zbývá posledních 7 dní.
                                 </p>
                                 <p style="margin: 0 0 20px 0; font-size: 15px;">
-                                    Pokud nebude platba připsána na náš účet do 7 dnů, budeme nuceni přistoupit k pozastavení poskytovaných služeb.
+                                    Prosíme o neprodlenou úhradu, abychom nemuseli přistoupit k omezení Vašich služeb (webový hosting, domény apod.). Nechceme to a věříme, že Vy také ne.
                                 </p>
                             @endif
 

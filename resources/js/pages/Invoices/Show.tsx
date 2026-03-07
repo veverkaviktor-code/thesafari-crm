@@ -143,16 +143,6 @@ export default function Show({ invoice, company, unmatchedTransactions }: Props)
                             {invoice.invoice_number}
                         </h1>
                         <InvoiceStatusBadge status={invoice.status} />
-                        {invoice.reminder_count > 0 && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2.5 py-0.5 text-xs font-medium text-red-400">
-                                {invoice.reminder_count}. upomínka
-                                {invoice.last_reminder_at && (
-                                    <span className="text-red-400/60">
-                                        ({new Date(invoice.last_reminder_at).toLocaleDateString('cs-CZ')})
-                                    </span>
-                                )}
-                            </span>
-                        )}
                     </div>
                     <div className="flex items-center gap-2">
                         <Button
@@ -327,6 +317,25 @@ export default function Show({ invoice, company, unmatchedTransactions }: Props)
                             )}
                         </div>
                     </div>
+
+                    {invoice.reminder_count > 0 && (
+                        <div className="mt-6 flex justify-end">
+                            <div className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium ${
+                                invoice.reminder_count >= 3
+                                    ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                                    : invoice.reminder_count >= 2
+                                        ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                        : 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20'
+                            }`}>
+                                <span>{invoice.reminder_count === 1 ? 'Připomínka odeslána' : invoice.reminder_count === 2 ? '2. upomínka odeslána' : 'Poslední upomínka odeslána'}</span>
+                                {invoice.last_reminder_at && (
+                                    <span className="opacity-60 text-xs">
+                                        {new Date(invoice.last_reminder_at).toLocaleDateString('cs-CZ')}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    )}
 
                     <Separator className="my-6 bg-border" />
 
