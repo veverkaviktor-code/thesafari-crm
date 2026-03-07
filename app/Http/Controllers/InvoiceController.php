@@ -227,7 +227,7 @@ class InvoiceController extends Controller
 
     public function sendEmail(Invoice $invoice)
     {
-        $invoice->load(['items', 'customer']);
+        $invoice->load(['items', 'customer', 'subscriptions', 'order']);
 
         if (! $invoice->customer->email) {
             return back()->with('error', 'Zakaznik nema e-mail.');
@@ -246,9 +246,12 @@ class InvoiceController extends Controller
         $pdfContent = $pdf->output();
         $filename = "faktura-{$invoice->invoice_number}.pdf";
 
+        $serviceDescription = $this->buildServiceDescription($invoice);
+
         $htmlBody = view('emails.invoice', [
             'invoice' => $invoice,
             'company' => $company,
+            'serviceDescription' => $serviceDescription,
         ])->render();
 
         Mail::html($htmlBody, function ($message) use ($invoice, $pdfContent, $filename) {
@@ -350,6 +353,34 @@ class InvoiceController extends Controller
         $output = \Artisan::output();
 
         return back()->with('success', 'Synchronizace z banky dokončena.');
+    }
+
+    private function buildServiceDescription(Invoice $invoice): string
+    {
+        $subs = $invoice->subscriptions;
+
+        if ($subs->isNotEmpty()) {
+            $types = $subs->pluck('type')->unique();
+            $hasDomena = $types->contains('domena');
+            $hasHosting = $types->contains('hosting');
+            $hasSluzba = $types->contains('sluzba');
+
+            $parts = [];
+            if ($hasHosting) $parts[] = 'hostingu';
+            if ($hasDomena) $parts[] = 'domény';
+            if ($hasSluzba) $parts[] = 'webových služeb';
+
+            if ($parts) {
+                $names = $subs->pluck('name')->unique()->implode(', ');
+                return 'Fakturujeme vám za služby ' . implode(' a ', $parts) . ' (' . $names . ').';
+            }
+        }
+
+        if ($invoice->order) {
+            return 'Fakturujeme vám za zakázku „' . $invoice->order->title . '".';
+        }
+
+        return 'Fakturujeme vám za poskytnuté služby dle přiložené faktury.';
     }
 
     private function generateSpdString(Invoice $invoice, CompanySetting $company): string
