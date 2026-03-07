@@ -43,7 +43,11 @@ class FioApiService
 
             return $this->parseResponse($response->json());
         } catch (\Exception $e) {
-            Log::error('Fio API: Výjimka při stahování transakcí', ['message' => $e->getMessage()]);
+            Log::error('Fio API: Výjimka při stahování transakcí', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
             return null;
         }
     }
@@ -145,10 +149,19 @@ class FioApiService
 
     private function parseDate(mixed $timestamp): ?string
     {
-        if (!$timestamp) {
+        if ($timestamp === null || $timestamp === '') {
             return null;
         }
-        return date('Y-m-d', (int) ($timestamp / 1000));
+
+        // Fio API vrací datum buď jako milisekundový timestamp (number)
+        // nebo jako string "2026-03-07+0200"
+        if (is_numeric($timestamp)) {
+            return date('Y-m-d', (int) ($timestamp / 1000));
+        }
+
+        // String formát — parsovat přes strtotime
+        $parsed = strtotime((string) $timestamp);
+        return $parsed !== false ? date('Y-m-d', $parsed) : null;
     }
 
     private function formatCounterAccount(?string $account, ?string $bankCode): ?string
