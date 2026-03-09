@@ -63,12 +63,12 @@ class EstimateController extends Controller
     public function update(Request $request, Estimate $kalkulator)
     {
         $validated = $request->validate([
-            'name'        => 'required|string|max:255',
-            'customer_id' => 'nullable|exists:customers,id',
-            'deadline'    => 'nullable|date',
-            'notes'       => 'nullable|string',
-            'status'      => 'nullable|in:draft,sent,accepted,rejected',
-            'total_price' => 'nullable|numeric|min:0',
+            'name'        => 'sometimes|required|string|max:255',
+            'customer_id' => 'sometimes|nullable|exists:customers,id',
+            'deadline'    => 'sometimes|nullable|date',
+            'notes'       => 'sometimes|nullable|string',
+            'status'      => 'sometimes|nullable|in:draft,sent,accepted,rejected',
+            'total_price' => 'sometimes|nullable|numeric|min:0',
         ]);
 
         $kalkulator->update($validated);

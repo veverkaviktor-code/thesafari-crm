@@ -95,7 +95,7 @@
                                 V případě dotazů nás kontaktujte na <a href="mailto:viktor@thesafari.cz" style="color: #D97706; text-decoration: none;">viktor@thesafari.cz</a> nebo telefonicky na <a href="tel:+420735905989" style="color: #D97706; text-decoration: none;">735 905 989</a>.
                             </p>
                             <p style="margin: 0; color: #999999; font-size: 11px; text-align: center;">
-                                Tento e-mail byl odeslán automaticky.
+                                Tento e-mail byl odeslán automaticky. Prosíme, neodpovídejte na něj.
                             </p>
                         </td>
                     </tr>

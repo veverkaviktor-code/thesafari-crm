@@ -1,6 +1,6 @@
+import { Link } from '@inertiajs/react';
 import { router } from '@inertiajs/react';
-import { FileText, Package, Ticket, ChevronRight } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FileText, Package, Server, ChevronRight } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
 
 interface Order {
@@ -21,18 +21,27 @@ interface Invoice {
     due_date: string;
 }
 
-interface TicketItem {
+interface Subscription {
     id: number;
-    subject: string;
+    type: 'hosting' | 'domena' | 'sluzba';
+    name: string;
     status: string;
-    priority: string;
-    created_at: string;
+    expires_at: string | null;
+}
+
+interface VpsServer {
+    id: number;
+    name: string;
+    status: string;
+    price_yearly: number;
+    hostings_count: number;
 }
 
 interface Props {
     orders: Order[];
     invoices: Invoice[];
-    tickets: TicketItem[];
+    subscriptions: Subscription[];
+    vpsServers: VpsServer[];
 }
 
 const formatDate = (d: string) =>
@@ -64,18 +73,16 @@ const invoiceStatusConfig: Record<string, { label: string; className: string }> 
     storno: { label: 'Storno', className: 'bg-gray-500/15 text-muted-foreground border-gray-500/25' },
 };
 
-const ticketStatusConfig: Record<string, { label: string; className: string }> = {
-    novy: { label: 'Nový', className: 'bg-blue-500/15 text-blue-500 border-blue-500/25' },
-    v_reseni: { label: 'V řešení', className: 'bg-amber-500/15 text-amber-500 border-amber-500/25' },
-    ceka_na_zakaznika: { label: 'Čeká na zákazníka', className: 'bg-orange-500/15 text-orange-500 border-orange-500/25' },
-    vyreseno: { label: 'Vyřešeno', className: 'bg-emerald-500/15 text-emerald-500 border-emerald-500/25' },
-    uzavreno: { label: 'Uzavřeno', className: 'bg-gray-500/15 text-muted-foreground border-gray-500/25' },
+const subscriptionStatusConfig: Record<string, { label: string; className: string }> = {
+    aktivni: { label: 'Aktivní', className: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' },
+    pozastaveno: { label: 'Pozastaveno', className: 'bg-amber-500/15 text-amber-400 border-amber-500/25' },
+    zruseno: { label: 'Zrušeno', className: 'bg-red-500/15 text-red-400 border-red-500/25' },
 };
 
-const priorityConfig: Record<string, { label: string; className: string }> = {
-    low: { label: 'Nízká', className: 'bg-gray-500/15 text-muted-foreground border-gray-500/25' },
-    medium: { label: 'Normální', className: 'bg-blue-500/15 text-blue-500 border-blue-500/25' },
-    high: { label: 'Vysoká', className: 'bg-amber-500/15 text-amber-500 border-amber-500/25' },
+const typeLabels: Record<string, string> = {
+    hosting: 'Hosting',
+    domena: 'Doména',
+    sluzba: 'Služba',
 };
 
 function Badge({ label, className }: { label: string; className: string }) {
@@ -106,146 +113,177 @@ function EmptyState({ icon: Icon, message }: { icon: React.ElementType; message:
     );
 }
 
-export default function CustomerTabs({ orders, invoices, tickets }: Props) {
+export default function CustomerTabs({ orders, invoices, subscriptions, vpsServers }: Props) {
+    const totalServices = subscriptions.length + vpsServers.length;
+
     return (
-        <Tabs defaultValue="orders" className="rounded-xl border border-border bg-card">
-            <TabsList className="w-full justify-start border-b border-border bg-transparent px-4 pt-2">
-                <TabsTrigger
-                    value="orders"
-                    className="text-muted-foreground data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
-                >
-                    Zakázky ({orders.length})
-                </TabsTrigger>
-                <TabsTrigger
-                    value="invoices"
-                    className="text-muted-foreground data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
-                >
-                    Faktury ({invoices.length})
-                </TabsTrigger>
-                <TabsTrigger
-                    value="tickets"
-                    className="text-muted-foreground data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
-                >
-                    Požadavky ({tickets.length})
-                </TabsTrigger>
-            </TabsList>
-
-            {/* Orders */}
-            <TabsContent value="orders" className="mt-0 p-4">
-                {orders.length === 0 ? (
-                    <EmptyState icon={Package} message="Žádné zakázky" />
-                ) : (
-                    <div className="space-y-3">
-                        {orders.map((order) => {
-                            const dl = deadlineInfo(order.deadline);
-                            const statusCfg = orderStatusConfig[order.status] ?? orderStatusConfig.nova;
-                            const divCfg = divisionConfig[order.division] ?? divisionConfig.tisk;
-                            return (
-                                <button
-                                    key={order.id}
-                                    onClick={() => router.visit(`/zakazky/${order.id}`)}
-                                    className="group flex w-full items-center justify-between rounded-lg border border-border bg-accent/50 p-4 text-left transition-colors hover:bg-accent"
-                                >
-                                    <div className="min-w-0 flex-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className="truncate font-medium text-foreground">
-                                                {order.title}
-                                            </span>
-                                            <Badge {...statusCfg} />
-                                        </div>
-                                        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-                                            <Badge {...divCfg} />
-                                            <span className="text-foreground/70">
-                                                {formatCurrency(order.price)}
-                                            </span>
-                                            {dl && (
-                                                <span className={dl.className}>
-                                                    {dl.text}
+        <div className="grid gap-4 lg:grid-cols-3">
+            {/* Zakazky */}
+            <div className="rounded-xl border border-border bg-card">
+                <div className="border-b border-border px-4 py-3">
+                    <h3 className="text-sm font-semibold text-foreground">
+                        Zakázky ({orders.length})
+                    </h3>
+                </div>
+                <div className="p-4">
+                    {orders.length === 0 ? (
+                        <EmptyState icon={Package} message="Žádné zakázky" />
+                    ) : (
+                        <div className="space-y-2">
+                            {orders.map((order) => {
+                                const dl = deadlineInfo(order.deadline);
+                                const statusCfg = orderStatusConfig[order.status] ?? orderStatusConfig.nova;
+                                const divCfg = divisionConfig[order.division] ?? divisionConfig.tisk;
+                                return (
+                                    <button
+                                        key={order.id}
+                                        onClick={() => router.visit(`/zakazky/${order.id}`)}
+                                        className="group flex w-full items-center justify-between rounded-lg border border-border bg-accent/50 p-3 text-left transition-colors hover:bg-accent"
+                                    >
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="truncate font-medium text-foreground">
+                                                    {order.title}
                                                 </span>
-                                            )}
+                                                <Badge {...statusCfg} />
+                                            </div>
+                                            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                                                <Badge {...divCfg} />
+                                                <span className="text-foreground/70">
+                                                    {formatCurrency(order.price)}
+                                                </span>
+                                                {dl && (
+                                                    <span className={dl.className}>
+                                                        {dl.text}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-                                </button>
-                            );
-                        })}
-                    </div>
-                )}
-            </TabsContent>
+                                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            </div>
 
-            {/* Invoices */}
-            <TabsContent value="invoices" className="mt-0 p-4">
-                {invoices.length === 0 ? (
-                    <EmptyState icon={FileText} message="Žádné faktury" />
-                ) : (
-                    <div className="space-y-3">
-                        {invoices.map((invoice) => {
-                            const statusCfg = invoiceStatusConfig[invoice.status] ?? invoiceStatusConfig.nova;
-                            const isOverdue = invoice.status !== 'zaplacena' && new Date(invoice.due_date) < new Date();
-                            return (
-                                <button
-                                    key={invoice.id}
-                                    onClick={() => router.visit(`/faktury/${invoice.id}`)}
-                                    className="group flex w-full items-center justify-between rounded-lg border border-border bg-accent/50 p-4 text-left transition-colors hover:bg-accent"
-                                >
-                                    <div className="min-w-0 flex-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-medium text-foreground">
-                                                #{invoice.invoice_number}
-                                            </span>
-                                            <Badge {...statusCfg} />
+            {/* Faktury */}
+            <div className="rounded-xl border border-border bg-card">
+                <div className="border-b border-border px-4 py-3">
+                    <h3 className="text-sm font-semibold text-foreground">
+                        Faktury ({invoices.length})
+                    </h3>
+                </div>
+                <div className="p-4">
+                    {invoices.length === 0 ? (
+                        <EmptyState icon={FileText} message="Žádné faktury" />
+                    ) : (
+                        <div className="space-y-2">
+                            {invoices.map((invoice) => {
+                                const statusCfg = invoiceStatusConfig[invoice.status] ?? invoiceStatusConfig.nova;
+                                const isOverdue = invoice.status !== 'zaplacena' && new Date(invoice.due_date) < new Date();
+                                return (
+                                    <button
+                                        key={invoice.id}
+                                        onClick={() => router.visit(`/faktury/${invoice.id}`)}
+                                        className="group flex w-full items-center justify-between rounded-lg border border-border bg-accent/50 p-3 text-left transition-colors hover:bg-accent"
+                                    >
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-medium text-foreground">
+                                                    #{invoice.invoice_number}
+                                                </span>
+                                                <Badge {...statusCfg} />
+                                            </div>
+                                            <div className="mt-1.5 flex items-center gap-3 text-sm">
+                                                <span className="font-medium text-foreground/70">
+                                                    {formatCurrency(invoice.total)}
+                                                </span>
+                                                <span className={isOverdue ? 'text-red-400' : 'text-muted-foreground'}>
+                                                    Splatnost: {formatDate(invoice.due_date)}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div className="mt-1.5 flex items-center gap-3 text-sm">
-                                            <span className="font-medium text-foreground/70">
-                                                {formatCurrency(invoice.total)}
-                                            </span>
-                                            <span className={isOverdue ? 'text-red-400' : 'text-muted-foreground'}>
-                                                Splatnost: {formatDate(invoice.due_date)}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-                                </button>
-                            );
-                        })}
-                    </div>
-                )}
-            </TabsContent>
+                                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            </div>
 
-            {/* Tickets */}
-            <TabsContent value="tickets" className="mt-0 p-4">
-                {tickets.length === 0 ? (
-                    <EmptyState icon={Ticket} message="Žádné požadavky" />
-                ) : (
-                    <div className="space-y-3">
-                        {tickets.map((ticket) => {
-                            const statusCfg = ticketStatusConfig[ticket.status] ?? ticketStatusConfig.novy;
-                            const prioCfg = priorityConfig[ticket.priority] ?? priorityConfig.normalni;
-                            return (
-                                <button
-                                    key={ticket.id}
-                                    onClick={() => router.visit(`/pozadavky/${ticket.id}`)}
-                                    className="group flex w-full items-center justify-between rounded-lg border border-border bg-accent/50 p-4 text-left transition-colors hover:bg-accent"
+            {/* Služby */}
+            <div className="rounded-xl border border-border bg-card">
+                <div className="border-b border-border px-4 py-3">
+                    <h3 className="text-sm font-semibold text-foreground">
+                        Služby ({totalServices})
+                    </h3>
+                </div>
+                <div className="p-4">
+                    {totalServices === 0 ? (
+                        <EmptyState icon={Server} message="Žádné aktivní služby" />
+                    ) : (
+                        <div className="space-y-2">
+                            {vpsServers.map((vps) => (
+                                <div
+                                    key={`vps-${vps.id}`}
+                                    className="flex items-center justify-between rounded-lg border border-border bg-accent/50 p-3"
                                 >
-                                    <div className="min-w-0 flex-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className="truncate font-medium text-foreground">
-                                                {ticket.subject}
-                                            </span>
-                                            <Badge {...statusCfg} />
-                                            <Badge {...prioCfg} />
-                                        </div>
-                                        <div className="mt-1.5 text-sm text-muted-foreground">
-                                            {formatDate(ticket.created_at)}
+                                    <div className="flex items-center gap-2">
+                                        <Server className="h-4 w-4 text-amber-500" />
+                                        <div>
+                                            <p className="text-sm font-medium text-foreground">
+                                                {vps.name}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                                VPS &middot; {vps.hostings_count} hostingů &middot; {formatCurrency(vps.price_yearly)}/rok
+                                            </p>
                                         </div>
                                     </div>
-                                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-                                </button>
-                            );
-                        })}
-                    </div>
-                )}
-            </TabsContent>
-        </Tabs>
+                                    <Badge
+                                        label={vps.status === 'aktivni' ? 'Aktivní' : 'Neaktivní'}
+                                        className={vps.status === 'aktivni'
+                                            ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25'
+                                            : 'bg-zinc-500/15 text-zinc-400 border-zinc-500/25'
+                                        }
+                                    />
+                                </div>
+                            ))}
+                            {subscriptions.map((sub) => {
+                                const statusInfo = subscriptionStatusConfig[sub.status];
+                                return (
+                                    <Link
+                                        key={sub.id}
+                                        href={`/neniweb/${sub.id}`}
+                                        className="group flex items-center justify-between rounded-lg border border-border bg-accent/50 p-3 transition-colors hover:bg-accent"
+                                    >
+                                        <div>
+                                            <p className="text-sm font-medium text-foreground">
+                                                {sub.name}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {typeLabels[sub.type] ?? sub.type}
+                                                {sub.expires_at && (
+                                                    <>
+                                                        {' '}&middot; do{' '}
+                                                        {new Date(sub.expires_at).toLocaleDateString('cs-CZ')}
+                                                    </>
+                                                )}
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {statusInfo && <Badge {...statusInfo} />}
+                                            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                                        </div>
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
     );
 }

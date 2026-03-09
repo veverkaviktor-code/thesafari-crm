@@ -139,7 +139,7 @@ class InvoiceController extends Controller
         });
 
         return redirect()->route('faktury.show', $invoice)
-            ->with('success', 'Faktura vytvorena.');
+            ->with('success', 'Faktura vytvořena.');
     }
 
     public function edit(Invoice $faktury)
@@ -191,7 +191,7 @@ class InvoiceController extends Controller
         });
 
         return redirect()->route('faktury.show', $invoice)
-            ->with('success', 'Faktura aktualizovana.');
+            ->with('success', 'Faktura aktualizována.');
     }
 
     public function destroy(Invoice $faktury)
@@ -250,7 +250,7 @@ class InvoiceController extends Controller
         $invoice->load(['items', 'customer', 'subscriptions', 'order']);
 
         if (! $invoice->customer->email) {
-            return back()->with('error', 'Zakaznik nema e-mail.');
+            return back()->with('error', 'Zákazník nemá e-mail.');
         }
 
         $company = CompanySetting::get();
@@ -301,7 +301,7 @@ class InvoiceController extends Controller
             'status' => 'odeslana',
         ]);
 
-        return back()->with('success', 'Faktura odeslana na ' . $invoice->customer->email);
+        return back()->with('success', 'Faktura odeslána na ' . $invoice->customer->email);
     }
 
     public function markAsPaid(Request $request, Invoice $invoice)
@@ -443,13 +443,13 @@ class InvoiceController extends Controller
 
     private function buildServiceDescription(Invoice $invoice): string
     {
-        $subs = $invoice->subscriptions;
+        $items = $invoice->items;
 
-        if ($subs->isNotEmpty()) {
-            $types = $subs->pluck('type')->unique();
-            $hasDomena = $types->contains('domena');
-            $hasHosting = $types->contains('hosting');
-            $hasSluzba = $types->contains('sluzba');
+        if ($items->isNotEmpty()) {
+            $descriptions = $items->pluck('description')->filter()->unique();
+            $hasHosting = $descriptions->contains(fn ($d) => stripos($d, 'hosting') !== false);
+            $hasDomena = $descriptions->contains(fn ($d) => stripos($d, 'doména') !== false || stripos($d, 'domena') !== false || stripos($d, 'Registrace') !== false);
+            $hasSluzba = $descriptions->contains(fn ($d) => stripos($d, 'služb') !== false || stripos($d, 'web') !== false);
 
             $parts = [];
             if ($hasHosting) $parts[] = 'hostingu';
@@ -457,9 +457,11 @@ class InvoiceController extends Controller
             if ($hasSluzba) $parts[] = 'webových služeb';
 
             if ($parts) {
-                $names = $subs->pluck('name')->unique()->implode(', ');
+                $names = $descriptions->implode(', ');
                 return 'Fakturujeme vám za služby ' . implode(' a ', $parts) . ' (' . $names . ').';
             }
+
+            return 'Fakturujeme vám za: ' . $descriptions->implode(', ') . '.';
         }
 
         if ($invoice->order) {

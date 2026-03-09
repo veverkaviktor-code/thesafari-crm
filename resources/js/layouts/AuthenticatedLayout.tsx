@@ -84,6 +84,9 @@ export default function AuthenticatedLayout({
                 )}
                 <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6">
                     {children}
+                    <footer className="mt-12 border-t border-border pt-4 pb-2 text-center text-xs text-muted-foreground/50">
+                        The Safari HQ &middot; v1.0.0
+                    </footer>
                 </main>
             </div>
         </div>

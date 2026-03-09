@@ -76,8 +76,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('finance', [FinanceController::class, 'index'])->name('finance');
 
-    Route::resource('pozadavky', TicketController::class);
-    Route::post('pozadavky/{ticket}/reply', [TicketController::class, 'reply'])->name('pozadavky.reply');
+    // Legacy pozadavky routes removed — use /zpravy instead (redirect below)
 
     // Pevné neniweb routy PŘED resource (bez {neniweb} parametru — jinak by Laravel bral za ID)
     Route::post('neniweb/activate-domain', [SubscriptionController::class, 'activateDomain'])->name('neniweb.activate-domain');

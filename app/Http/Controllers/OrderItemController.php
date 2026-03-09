@@ -24,7 +24,7 @@ class OrderItemController extends Controller
             $this->recalcPrice($order);
         });
 
-        return back()->with('success', 'Polozka pridana.');
+        return back()->with('success', 'Položka přidána.');
     }
 
     public function update(Request $request, Order $order, OrderItem $orderItem)
@@ -44,7 +44,7 @@ class OrderItemController extends Controller
             $this->recalcPrice($order);
         });
 
-        return back()->with('success', 'Polozka upravena.');
+        return back()->with('success', 'Položka upravena.');
     }
 
     public function destroy(Order $order, OrderItem $orderItem)
@@ -56,7 +56,7 @@ class OrderItemController extends Controller
             $this->recalcPrice($order);
         });
 
-        return back()->with('success', 'Polozka smazana.');
+        return back()->with('success', 'Položka smazána.');
     }
 
     private function recalcPrice(Order $order): void

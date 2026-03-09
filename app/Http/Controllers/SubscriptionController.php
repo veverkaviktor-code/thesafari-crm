@@ -485,9 +485,19 @@ class SubscriptionController extends Controller
                     default => 'Služba',
                 };
 
+                // Build period string from subscription dates
+                $periodStr = '1 rok';
+                if ($sub->expires_at) {
+                    $expiry = \Carbon\Carbon::parse($sub->expires_at);
+                    $start = $sub->billing_cycle === 'mesicni'
+                        ? $expiry->copy()->subMonth()
+                        : $expiry->copy()->subYear();
+                    $periodStr = $start->format('j. n. Y') . ' – ' . $expiry->format('j. n. Y');
+                }
+
                 $items[] = [
                     'subscription' => $sub,
-                    'description' => "{$typeLabel} {$sub->name} (1 rok)",
+                    'description' => "{$typeLabel} {$sub->name} ({$periodStr})",
                     'quantity' => 1,
                     'unit' => 'rok',
                     'unit_price' => $price,
@@ -536,6 +546,94 @@ class SubscriptionController extends Controller
 
         return redirect()->route('faktury.show', $invoice)
             ->with('success', "Faktura {$invoice->invoice_number} vystavena.");
+    }
+
+    /**
+     * Create a single merged invoice for ALL active non-free subscriptions of a customer.
+     * Skips external domains (is_registered_by_us=false).
+     */
+    public function createCustomerInvoice(\App\Models\Customer $customer)
+    {
+        $subscriptions = Subscription::where('customer_id', $customer->id)
+            ->where('status', 'aktivni')
+            ->where('is_free', false)
+            ->get();
+
+        if ($subscriptions->isEmpty()) {
+            return back()->with('error', 'Zákazník nemá žádné fakturovatelné služby.');
+        }
+
+        $invoice = DB::transaction(function () use ($subscriptions, $customer) {
+            $items = [];
+            foreach ($subscriptions as $sub) {
+                if ($sub->type === 'domena' && !$sub->is_registered_by_us) continue;
+
+                $price = (float) $sub->sell_yearly ?: (float) $sub->price_yearly;
+                if ($price <= 0) continue;
+
+                $typeLabel = match ($sub->type) {
+                    'domena' => 'Obnova domény',
+                    'hosting' => 'Hosting',
+                    'sluzba' => 'Služba',
+                    default => 'Služba',
+                };
+
+                $periodStr = '1 rok';
+                if ($sub->expires_at) {
+                    $expiry = \Carbon\Carbon::parse($sub->expires_at);
+                    $start = $sub->billing_cycle === 'mesicni'
+                        ? $expiry->copy()->subMonth()
+                        : $expiry->copy()->subYear();
+                    $periodStr = $start->format('j. n. Y') . ' – ' . $expiry->format('j. n. Y');
+                }
+
+                $items[] = [
+                    'subscription' => $sub,
+                    'description' => "{$typeLabel} {$sub->name} ({$periodStr})",
+                    'quantity' => 1,
+                    'unit' => 'rok',
+                    'unit_price' => $price,
+                    'total_price' => $price,
+                ];
+            }
+
+            if (empty($items)) return null;
+
+            $total = collect($items)->sum('total_price');
+            $invoiceNumber = Invoice::getNextInvoiceNumber('6');
+
+            $invoice = Invoice::create([
+                'customer_id' => $customer->id,
+                'invoice_number' => $invoiceNumber,
+                'variable_symbol' => $invoiceNumber,
+                'issue_date' => now()->toDateString(),
+                'due_date' => now()->addDays(14)->toDateString(),
+                'status' => 'vystavena',
+                'payment_method' => 'banka',
+                'total' => $total,
+            ]);
+
+            foreach ($items as $i => $item) {
+                $invoice->items()->create([
+                    'description' => $item['description'],
+                    'quantity' => $item['quantity'],
+                    'unit' => $item['unit'],
+                    'unit_price' => $item['unit_price'],
+                    'total_price' => $item['total_price'],
+                    'sort_order' => $i,
+                ]);
+                $invoice->subscriptions()->attach($item['subscription']->id);
+            }
+
+            return $invoice;
+        });
+
+        if (!$invoice) {
+            return back()->with('error', 'Služby mají nulovou cenu — nelze vystavit fakturu.');
+        }
+
+        return redirect()->route('faktury.show', $invoice)
+            ->with('success', "Souhrnná faktura {$invoice->invoice_number} vystavena.");
     }
 
     /**

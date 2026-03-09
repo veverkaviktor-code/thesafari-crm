@@ -27,7 +27,7 @@ export default function CustomerMiniDashboard({ stats }: Props) {
             bg: 'bg-blue-500/10',
         },
         {
-            label: 'Obrat ze zakázek',
+            label: 'Obrat',
             value: formatCurrency(stats.total_revenue),
             icon: Coins,
             color: 'text-emerald-400',

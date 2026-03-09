@@ -37,14 +37,17 @@ const typeLabels: Record<string, string> = {
 
 export default function CustomerServices({ subscriptions, vpsServers = [] }: Props) {
     const hasItems = subscriptions.length > 0 || vpsServers.length > 0;
+    const totalCount = subscriptions.length + vpsServers.length;
 
     return (
         <div className="rounded-xl border border-border bg-card p-5">
-            <h3 className="mb-4 text-sm font-semibold text-foreground/70">Služby</h3>
+            <h3 className="mb-4 text-sm font-semibold text-foreground/70">
+                Služby {totalCount > 0 && <span className="text-muted-foreground">({totalCount})</span>}
+            </h3>
             {!hasItems ? (
                 <p className="text-sm text-muted-foreground">Žádné aktivní služby</p>
             ) : (
-                <div className="space-y-3">
+                <div className="max-h-[400px] space-y-3 overflow-y-auto pr-1">
                     {vpsServers.map((vps) => (
                         <div
                             key={`vps-${vps.id}`}

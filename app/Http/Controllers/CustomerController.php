@@ -33,10 +33,22 @@ class CustomerController extends Controller
         $customer = $zakaznici;
         $customer->load(['subscriptions']);
 
-        $revenue = (float) $customer->orders()->sum('price');
-        $costs = (float) \App\Models\OrderCost::whereHas('order', fn ($q) =>
+        $orderCosts = (float) \App\Models\OrderCost::whereHas('order', fn ($q) =>
             $q->where('customer_id', $customer->id)
         )->sum('amount');
+        // Subscription costs = what WE pay for hosting/domains we manage
+        $subscriptionCosts = (float) $customer->subscriptions()
+            ->where('status', 'aktivni')
+            ->where(function ($q) {
+                $q->where('type', 'hosting')
+                  ->orWhere(function ($q2) {
+                      $q2->where('type', 'domena')
+                         ->where('is_registered_by_us', true);
+                  });
+            })
+            ->sum('cost_yearly');
+        $totalCosts = $orderCosts + $subscriptionCosts;
+
         $invoiced = (float) $customer->invoices()->sum('total');
         $paid = (float) $customer->invoices()->where('status', 'zaplacena')->sum('total');
         $vpsYearly = (float) \App\Models\VpsServer::where('customer_id', $customer->id)
@@ -44,12 +56,12 @@ class CustomerController extends Controller
 
         $stats = [
             'orders_count' => $customer->orders()->count(),
-            'total_revenue' => $revenue,
-            'total_costs' => $costs,
-            'profit' => round($revenue - $costs, 2),
+            'total_revenue' => $paid,
+            'total_costs' => $totalCosts,
+            'profit' => round($paid - $totalCosts, 2),
             'invoiced' => $invoiced,
             'paid' => $paid,
-            'uninvoiced' => round($revenue - $invoiced, 2),
+            'uninvoiced' => round($invoiced - $paid, 2),
             'active_subscriptions' => $customer->subscriptions()->where('status', 'aktivni')->count(),
             'vps_yearly' => $vpsYearly,
         ];
@@ -64,11 +76,6 @@ class CustomerController extends Controller
             ->latest()
             ->get();
 
-        $tickets = $customer->tickets()
-            ->select('id', 'customer_id', 'subject', 'status', 'priority', 'created_at')
-            ->latest()
-            ->get();
-
         $vpsServers = \App\Models\VpsServer::where('customer_id', $customer->id)
             ->withCount('hostings')
             ->get();
@@ -78,7 +85,6 @@ class CustomerController extends Controller
             'stats' => $stats,
             'orders' => $orders,
             'invoices' => $invoices,
-            'tickets' => $tickets,
             'vpsServers' => $vpsServers,
         ]);
     }
@@ -94,7 +100,7 @@ class CustomerController extends Controller
         $customer = Customer::create($data);
 
         return redirect()->route('zakaznici.show', $customer)
-            ->with('success', 'Zakaznik vytvoren.');
+            ->with('success', 'Zákazník vytvořen.');
     }
 
     public function edit(Customer $zakaznici)
@@ -124,7 +130,7 @@ class CustomerController extends Controller
         $zakaznici->update($data);
 
         return redirect()->route('zakaznici.show', $zakaznici)
-            ->with('success', 'Zakaznik aktualizovan.');
+            ->with('success', 'Zákazník aktualizován.');
     }
 
     public function destroy(Customer $zakaznici)
@@ -132,7 +138,7 @@ class CustomerController extends Controller
         $zakaznici->delete();
 
         return redirect()->route('zakaznici.index')
-            ->with('success', 'Zakaznik smazan.');
+            ->with('success', 'Zákazník smazán.');
     }
 
     private function prepareData(array $validated): array

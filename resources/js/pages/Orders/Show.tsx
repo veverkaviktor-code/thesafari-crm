@@ -201,18 +201,16 @@ export default function Show({ order, stats }: Props) {
                         </Select>
                         <Button
                             asChild
-                            variant="ghost"
                             size="icon"
-                            className="text-muted-foreground hover:text-foreground"
+                            className="bg-[#ad9d8e]/15 text-[#ad9d8e] hover:bg-[#ad9d8e]/25 border border-[#ad9d8e]/25"
                         >
                             <Link href={`/zakazky/${order.id}/upravit`}>
                                 <Pencil className="h-4 w-4" />
                             </Link>
                         </Button>
                         <Button
-                            variant="ghost"
                             size="icon"
-                            className="text-muted-foreground hover:text-red-400"
+                            className="bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/25"
                             onClick={handleDelete}
                         >
                             <Trash2 className="h-4 w-4" />

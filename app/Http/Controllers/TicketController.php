@@ -21,6 +21,7 @@ class TicketController extends Controller
             })
             ->when($request->input('status'), fn ($q, $s) => $q->where('status', $s))
             ->when($request->input('priority'), fn ($q, $p) => $q->where('priority', $p))
+            ->when($request->input('source'), fn ($q, $s) => $q->where('source', $s))
             ->when($request->input('customer_id'), fn ($q, $id) => $q->where('customer_id', $id))
             ->latest()
             ->paginate(25)
@@ -28,13 +29,13 @@ class TicketController extends Controller
 
         return Inertia::render('Tickets/Index', [
             'tickets' => $tickets,
-            'filters' => $request->only(['search', 'status', 'priority', 'customer_id']),
+            'filters' => $request->only(['search', 'status', 'priority', 'source', 'customer_id']),
         ]);
     }
 
-    public function show(Ticket $pozadavky)
+    public function show(Ticket $zpravy)
     {
-        $ticket = $pozadavky;
+        $ticket = $zpravy;
         $ticket->load(['customer', 'messages']);
 
         return Inertia::render('Tickets/Show', [
@@ -79,13 +80,13 @@ class TicketController extends Controller
         $admin = \App\Models\User::where('role', 'admin')->first();
         $admin?->notify(new \App\Notifications\NewTicket($ticket));
 
-        return redirect()->route('pozadavky.show', $ticket)
-            ->with('success', 'Požadavek vytvořen.');
+        return redirect()->route('zpravy.show', $ticket)
+            ->with('success', 'Zpráva vytvořena.');
     }
 
-    public function edit(Ticket $pozadavky)
+    public function edit(Ticket $zpravy)
     {
-        $ticket = $pozadavky;
+        $ticket = $zpravy;
         $customers = Customer::select('id', 'name', 'company', 'email')->orderBy('name')->get();
 
         return Inertia::render('Tickets/Edit', [
@@ -94,9 +95,9 @@ class TicketController extends Controller
         ]);
     }
 
-    public function update(Request $request, Ticket $pozadavky)
+    public function update(Request $request, Ticket $zpravy)
     {
-        $ticket = $pozadavky;
+        $ticket = $zpravy;
 
         $validated = $request->validate([
             'customer_id' => 'nullable|exists:customers,id',
@@ -111,8 +112,8 @@ class TicketController extends Controller
             $ticket->update(['resolved_at' => now()]);
         }
 
-        return redirect()->route('pozadavky.show', $ticket)
-            ->with('success', 'Požadavek aktualizován.');
+        return redirect()->route('zpravy.show', $ticket)
+            ->with('success', 'Zpráva aktualizována.');
     }
 
     public function reply(Request $request, Ticket $ticket)
@@ -143,11 +144,11 @@ class TicketController extends Controller
         return back()->with('success', 'Odpověď odeslána.');
     }
 
-    public function destroy(Ticket $pozadavky)
+    public function destroy(Ticket $zpravy)
     {
-        $pozadavky->delete();
+        $zpravy->delete();
 
-        return redirect()->route('pozadavky.index')
-            ->with('success', 'Požadavek smazán.');
+        return redirect()->route('zpravy.index')
+            ->with('success', 'Zpráva smazána.');
     }
 }

@@ -17,7 +17,7 @@ class OrderCostController extends Controller
 
         $order->costs()->create($validated);
 
-        return back()->with('success', 'Naklad pridan.');
+        return back()->with('success', 'Náklad přidán.');
     }
 
     public function update(Request $request, Order $order, OrderCost $orderCost)
@@ -31,7 +31,7 @@ class OrderCostController extends Controller
 
         $orderCost->update($validated);
 
-        return back()->with('success', 'Naklad upraven.');
+        return back()->with('success', 'Náklad upraven.');
     }
 
     public function destroy(Order $order, OrderCost $orderCost)
@@ -40,6 +40,6 @@ class OrderCostController extends Controller
 
         $orderCost->delete();
 
-        return back()->with('success', 'Naklad smazan.');
+        return back()->with('success', 'Náklad smazán.');
     }
 }

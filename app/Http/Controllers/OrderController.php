@@ -72,7 +72,7 @@ class OrderController extends Controller
         $order = Order::create($request->validated());
 
         return redirect()->route('zakazky.show', $order)
-            ->with('success', 'Zakazka vytvorena.');
+            ->with('success', 'Zakázka vytvořena.');
     }
 
     public function edit(Order $zakazky)
@@ -90,7 +90,7 @@ class OrderController extends Controller
         $zakazky->update($request->validated());
 
         return redirect()->route('zakazky.show', $zakazky)
-            ->with('success', 'Zakazka aktualizovana.');
+            ->with('success', 'Zakázka aktualizována.');
     }
 
     public function destroy(Order $zakazky)
@@ -98,6 +98,6 @@ class OrderController extends Controller
         $zakazky->delete();
 
         return redirect()->route('zakazky.index')
-            ->with('success', 'Zakazka smazana.');
+            ->with('success', 'Zakázka smazána.');
     }
 }

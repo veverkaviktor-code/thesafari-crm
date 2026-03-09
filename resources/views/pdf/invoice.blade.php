@@ -189,7 +189,7 @@
             <div class="invoice-number">č. {{ $invoice->invoice_number }}</div>
         </div>
         <div class="header-right">
-            <img src="{{ storage_path('app/email-assets/safari-logo-invoice.svg') }}" width="300" alt="Safari" style="border: none;">
+            <img src="{{ storage_path('app/email-assets/safari-logo-invoice.svg') }}" width="220" alt="Safari" style="border: none;">
         </div>
     </div>
 
@@ -289,7 +289,6 @@
                 <div class="total-label">Celkem k úhradě</div>
                 <div class="total-value">{{ number_format($invoice->total, 0, ',', ' ') }} Kč</div>
             </div>
-            <div class="neplatce-dph">Nejsme plátci DPH.</div>
         </div>
     </div>
 
@@ -300,7 +299,8 @@
 
     {{-- Footer --}}
     <div class="footer">
-        <div class="footer-row">
+        <div class="neplatce-dph">Nejsme plátci DPH.</div>
+        <div class="footer-row" style="margin-top: 2mm;">
             <div class="footer-col">{{ $company->company_name }}</div>
             <div class="footer-col center">IČO: {{ $company->ico }}</div>
             <div class="footer-col right">

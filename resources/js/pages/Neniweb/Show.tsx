@@ -504,26 +504,23 @@ export default function NeniwebShow({ subscription, paymentStats }: Props) {
                         )}
                         {!subscription.is_free && subscription.customer && (
                             <Button
-                                variant="ghost"
                                 onClick={() => router.post(`/neniweb/${subscription.id}/faktura`)}
-                                className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 border border-blue-500/25"
+                                className="bg-[#ad9d8e] text-white hover:bg-[#ad9d8e]/90 border-0"
                             >
                                 <FileText className="h-4 w-4 mr-2" />
                                 Vystavit fakturu
                             </Button>
                         )}
                         <Button
-                            variant="ghost"
                             onClick={() => router.visit(`/neniweb/${subscription.id}/edit`)}
-                            className="text-muted-foreground hover:text-foreground border border-border"
+                            className="bg-[#ad9d8e]/15 text-[#ad9d8e] hover:bg-[#ad9d8e]/25 border border-[#ad9d8e]/25"
                         >
                             <Pencil className="h-4 w-4 mr-2" />
                             Upravit
                         </Button>
                         <Button
-                            variant="ghost"
                             onClick={handleDelete}
-                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-red-500/20"
+                            className="bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/25"
                         >
                             <Trash2 className="h-4 w-4 mr-2" />
                             Smazat

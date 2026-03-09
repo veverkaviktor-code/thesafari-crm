@@ -246,7 +246,7 @@ class DashboardController extends Controller
                         ? "/zakazky/{$a->subject->order_id}"
                         : ($subjectType === 'Order' ? "/zakazky/{$a->subject_id}" : null),
                     'Invoice'             => "/faktury/{$a->subject_id}",
-                    'Ticket'              => "/pozadavky/{$a->subject_id}",
+                    'Ticket'              => "/zpravy/{$a->subject_id}",
                     'Subscription', 'SubscriptionPayment' => $subjectType === 'SubscriptionPayment'
                         ? ($a->subject?->subscription_id ? "/neniweb/{$a->subject->subscription_id}" : null)
                         : "/neniweb/{$a->subject_id}",

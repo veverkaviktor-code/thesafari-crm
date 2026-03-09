@@ -28,10 +28,10 @@ export default function RecentTickets({ tickets }: Props) {
         <div className="rounded-xl border border-border bg-card p-5">
             <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-muted-foreground">
-                    Požadavky k řešení
+                    Zprávy k řešení
                 </h3>
                 <Link
-                    href="/pozadavky"
+                    href="/zpravy"
                     className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
                 >
                     Zobrazit vše
@@ -41,7 +41,7 @@ export default function RecentTickets({ tickets }: Props) {
             <div className="space-y-2">
                 {items.length === 0 && (
                     <p className="py-6 text-center text-sm text-muted-foreground">
-                        Žádné otevřené požadavky
+                        Žádné otevřené zprávy
                     </p>
                 )}
                 {items.map((ticket) => {

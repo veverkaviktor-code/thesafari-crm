@@ -326,6 +326,7 @@ export default function PlannerIndex({ tasks, calendarEvents, filters, customers
                         searchPlaceholder="Hledat úkoly..."
                         onPageChange={(page) => applyFilters({ page: String(page) })}
                         emptyMessage="Žádné úkoly"
+                        onRowClick={(task) => setEditTarget(task)}
                         toolbar={
                             <div className="flex items-center gap-3">
                                 <Select

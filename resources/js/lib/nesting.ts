@@ -173,29 +173,9 @@ function buildPiecesForItem(
     const lengthOnRoll = shorterIsW ? h : w;   // goes along roll length
     const rotated = !shorterIsW;               // rotated if we swapped w/h
 
-    // widthOnRoll > printWidth → split
-    const strips = splitIntoStrips(itemId, widthOnRoll, lengthOnRoll, printWidth, overlap, rotated);
-
-    // Edge case: each strip's height (lengthOnRoll) might also exceed printWidth.
-    // Recursively split along the length axis as well.
-    const finalPieces: NestingPiece[] = [];
-    for (const strip of strips) {
-        if (strip.height > printWidth) {
-            const subStrips = splitIntoStrips(
-                itemId,
-                strip.height,
-                strip.width,
-                printWidth,
-                overlap,
-                !strip.rotated,
-            );
-            finalPieces.push(...subStrips);
-        } else {
-            finalPieces.push(strip);
-        }
-    }
-
-    return finalPieces;
+    // widthOnRoll > printWidth → split into strips along roll width.
+    // Roll length is continuous — no need to split along length axis.
+    return splitIntoStrips(itemId, widthOnRoll, lengthOnRoll, printWidth, overlap, rotated);
 }
 
 // ---------------------------------------------------------------------------

@@ -21,9 +21,9 @@ class NewTicket extends Notification
     {
         return [
             'type' => 'new_ticket',
-            'title' => "Nový požadavek: {$this->ticket->subject}",
+            'title' => "Nová zpráva: {$this->ticket->subject}",
             'message' => "Od: " . ($this->ticket->customer?->name ?? $this->ticket->source_email),
-            'link' => "/pozadavky/{$this->ticket->id}",
+            'link' => "/zpravy/{$this->ticket->id}",
             'ticket_id' => $this->ticket->id,
         ];
     }

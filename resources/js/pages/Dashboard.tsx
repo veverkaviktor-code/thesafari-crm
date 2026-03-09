@@ -172,7 +172,7 @@ export default function Dashboard({ stats, mrr, revenueByDivision, revenueData, 
                         iconBg="bg-red-500/10"
                     />
                     <StatCard
-                        label="Otevřené požadavky"
+                        label="Otevřené zprávy"
                         value={String(s.open_tickets)}
                         icon={MessageSquare}
                         iconColor="text-emerald-500"

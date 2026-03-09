@@ -12,6 +12,7 @@ import {
     Globe,
     LayoutDashboard,
     MessageSquare,
+    ScrollText,
     Settings,
     TrendingUp,
     Users,
@@ -37,11 +38,12 @@ const mainNav: NavItem[] = [
     { label: 'Zakázky', href: '/zakazky', icon: ClipboardList },
     { label: 'Faktury', href: '/faktury', icon: FileText },
     { label: 'Finance', href: '/finance', icon: TrendingUp },
-    { label: 'Požadavky', href: '/pozadavky', icon: MessageSquare },
+    { label: 'Zprávy', href: '/zpravy', icon: MessageSquare },
     { label: 'Neniweb', href: '/neniweb', icon: Globe },
     { label: 'Kalkulátor', href: '/kalkulator', icon: Calculator },
     { label: 'To Do', href: '/planovac', icon: CalendarCheck },
     { label: 'Notifikace', href: '/notifikace', icon: Bell },
+    { label: 'Logy', href: '/logy', icon: ScrollText },
 ];
 
 const bottomNav: NavItem[] = [
@@ -73,13 +75,12 @@ export default function Sidebar() {
                     collapsed ? 'justify-center px-0' : 'px-4'
                 )}>
                     {!collapsed && (
-                        <div className="flex flex-1 items-center gap-3 overflow-hidden">
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
-                                S
-                            </div>
-                            <span className="whitespace-nowrap text-sm font-semibold text-foreground">
-                                The Safari HQ
-                            </span>
+                        <div className="flex flex-1 items-center overflow-hidden px-1">
+                            <img
+                                src="/logo-dark.svg"
+                                alt="The Safari"
+                                className="h-7"
+                            />
                         </div>
                     )}
                     <button

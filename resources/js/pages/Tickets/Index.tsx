@@ -18,6 +18,7 @@ interface Ticket {
     status: string;
     priority: string;
     source_email: string;
+    source: string | null;
     created_at: string;
     resolved_at: string | null;
     messages_count?: number;
@@ -35,6 +36,7 @@ interface Props {
         search?: string;
         status?: string;
         priority?: string;
+        source?: string;
         sort_by?: string;
         sort_dir?: string;
     };
@@ -67,6 +69,24 @@ const baseColumns = [
                 {ticket.customer ? (ticket.customer.company || ticket.customer.name) : '—'}
             </span>
         ),
+    },
+    {
+        key: 'source' as const,
+        label: 'Zdroj',
+        render: (ticket: Ticket) => {
+            const sourceLabels: Record<string, { label: string; className: string }> = {
+                podpora: { label: 'Podpora', className: 'bg-blue-500/15 text-blue-500 border-blue-500/25' },
+                'neniweb.cz': { label: 'neniweb.cz', className: 'bg-violet-500/15 text-violet-500 border-violet-500/25' },
+                email: { label: 'E-mail', className: 'bg-amber-500/15 text-amber-500 border-amber-500/25' },
+            };
+            const cfg = ticket.source ? sourceLabels[ticket.source] : null;
+            if (!cfg) return <span className="text-muted-foreground/50">—</span>;
+            return (
+                <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${cfg.className}`}>
+                    {cfg.label}
+                </span>
+            );
+        },
     },
     {
         key: 'priority' as const,
@@ -108,13 +128,14 @@ const baseColumns = [
 export default function TicketsIndex({ tickets, filters }: Props) {
     const [statusFilter, setStatusFilter] = useState(filters.status || 'all');
     const [priorityFilter, setPriorityFilter] = useState(filters.priority || 'all');
+    const [sourceFilter, setSourceFilter] = useState(filters.source || 'all');
     const [deleteTarget, setDeleteTarget] = useState<Ticket | null>(null);
     const [deleting, setDeleting] = useState(false);
 
     const handleDelete = () => {
         if (!deleteTarget) return;
         setDeleting(true);
-        router.delete(`/pozadavky/${deleteTarget.id}`, {
+        router.delete(`/zpravy/${deleteTarget.id}`, {
             onSuccess: () => {
                 setDeleteTarget(null);
                 setDeleting(false);
@@ -132,7 +153,7 @@ export default function TicketsIndex({ tickets, filters }: Props) {
             render: (row: Ticket) => (
                 <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                     <button
-                        onClick={() => router.visit(`/pozadavky/${row.id}/edit`)}
+                        onClick={() => router.visit(`/zpravy/${row.id}/edit`)}
                         className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                         title="Upravit"
                     >
@@ -155,24 +176,25 @@ export default function TicketsIndex({ tickets, filters }: Props) {
             ...(filters.search ? { search: filters.search } : {}),
             ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
             ...(priorityFilter !== 'all' ? { priority: priorityFilter } : {}),
+            ...(sourceFilter !== 'all' ? { source: sourceFilter } : {}),
             ...overrides,
         };
         Object.keys(params).forEach((k) => {
             if (params[k] === 'all' || params[k] === '') delete params[k];
         });
-        router.get('/pozadavky', params, { preserveState: true });
+        router.get('/zpravy', params, { preserveState: true });
     }
 
     return (
         <AuthenticatedLayout
-            title="Požadavky"
-            breadcrumbs={[{ label: 'Požadavky' }]}
+            title="Zprávy"
+            breadcrumbs={[{ label: 'Zprávy' }]}
         >
             <div className="space-y-6">
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <h1 className="text-2xl font-semibold text-foreground">
-                        Požadavky
+                        Zprávy
                     </h1>
                 </div>
 
@@ -196,7 +218,7 @@ export default function TicketsIndex({ tickets, filters }: Props) {
                         applyFilters({ sort_by: field, sort_dir: newDir });
                     }}
                     onPageChange={(page) => applyFilters({ page: String(page) })}
-                    onRowClick={(ticket) => router.visit(`/pozadavky/${ticket.id}`)}
+                    onRowClick={(ticket) => router.visit(`/zpravy/${ticket.id}`)}
                     toolbar={
                         <div className="flex items-center gap-3">
                             <Select
@@ -228,17 +250,31 @@ export default function TicketsIndex({ tickets, filters }: Props) {
                                     <SelectItem value="high">Vysoká</SelectItem>
                                 </SelectContent>
                             </Select>
+                            <Select
+                                value={sourceFilter}
+                                onValueChange={(v) => { setSourceFilter(v); applyFilters({ source: v }); }}
+                            >
+                                <SelectTrigger className="w-[150px] bg-muted border-border text-foreground/80">
+                                    <SelectValue placeholder="Zdroj" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-card border-border">
+                                    <SelectItem value="all">Všechny zdroje</SelectItem>
+                                    <SelectItem value="podpora">Podpora</SelectItem>
+                                    <SelectItem value="neniweb.cz">neniweb.cz</SelectItem>
+                                    <SelectItem value="email">E-mail</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                     }
-                    emptyMessage="Žádné požadavky"
+                    emptyMessage="Žádné zprávy"
                 />
             </div>
 
             {/* Delete confirmation modal */}
-            <GlassModal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="Smazat požadavek" maxWidth="max-w-md">
+            <GlassModal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="Smazat zprávu" maxWidth="max-w-md">
                 <div className="space-y-6">
                     <p className="text-sm text-muted-foreground">
-                        Opravdu chcete smazat požadavek{' '}
+                        Opravdu chcete smazat zprávu{' '}
                         <span className="font-semibold text-foreground">{deleteTarget?.subject}</span>?
                     </p>
                     <div className="flex justify-end gap-3">

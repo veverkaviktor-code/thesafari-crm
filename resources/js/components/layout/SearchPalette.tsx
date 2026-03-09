@@ -36,7 +36,7 @@ const typeConfig: Record<string, { icon: typeof User; label: string; color: stri
     order:        { icon: FileText,      label: 'Zakázky',     color: 'text-primary' },
     invoice:      { icon: FileText,      label: 'Faktury',     color: 'text-[#D4A574]' },
     estimate:     { icon: Calculator,    label: 'Kalkulace',   color: 'text-amber-400' },
-    ticket:       { icon: MessageSquare, label: 'Požadavky',   color: 'text-orange-500' },
+    ticket:       { icon: MessageSquare, label: 'Zprávy',      color: 'text-orange-500' },
     task:         { icon: CheckSquare,   label: 'Úkoly',       color: 'text-violet-500' },
 };
 

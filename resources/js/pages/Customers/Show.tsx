@@ -1,6 +1,5 @@
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import CustomerProfile from '@/components/customers/CustomerProfile';
-import CustomerServices from '@/components/customers/CustomerServices';
 import CustomerMiniDashboard from '@/components/customers/CustomerMiniDashboard';
 import CustomerTabs from '@/components/customers/CustomerTabs';
 
@@ -70,13 +69,6 @@ interface Props {
         total: number;
         due_date: string;
     }[];
-    tickets: {
-        id: number;
-        subject: string;
-        status: string;
-        priority: string;
-        created_at: string;
-    }[];
 }
 
 export default function Show({
@@ -84,7 +76,6 @@ export default function Show({
     stats,
     orders,
     invoices,
-    tickets,
     vpsServers,
 }: Props) {
     return (
@@ -97,15 +88,11 @@ export default function Show({
         >
             <div className="space-y-6">
                 {/* Top: Profile + Sidebar */}
-                <div className="grid gap-6 lg:grid-cols-3">
+                <div className="grid gap-6 lg:grid-cols-3 items-start">
                     <div className="lg:col-span-2">
                         <CustomerProfile customer={customer} />
                     </div>
-                    <div className="space-y-6">
-                        <CustomerServices
-                            subscriptions={customer.subscriptions ?? []}
-                            vpsServers={vpsServers ?? []}
-                        />
+                    <div className="sticky top-24">
                         <CustomerMiniDashboard
                             stats={
                                 stats ?? {
@@ -119,11 +106,12 @@ export default function Show({
                     </div>
                 </div>
 
-                {/* Bottom: Tabs */}
+                {/* Bottom: 3 columns */}
                 <CustomerTabs
                     orders={orders ?? []}
                     invoices={invoices ?? []}
-                    tickets={tickets ?? []}
+                    subscriptions={customer.subscriptions ?? []}
+                    vpsServers={vpsServers ?? []}
                 />
             </div>
         </AuthenticatedLayout>

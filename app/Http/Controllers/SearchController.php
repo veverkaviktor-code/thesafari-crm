@@ -117,7 +117,7 @@ class SearchController extends Controller
                 'id' => $t->id,
                 'title' => $t->subject,
                 'subtitle' => ($t->customer?->name ?? 'Neznámý') . ' · ' . $t->priority,
-                'link' => "/pozadavky/{$t->id}",
+                'link' => "/zpravy/{$t->id}",
                 'type' => 'ticket',
             ]);
 

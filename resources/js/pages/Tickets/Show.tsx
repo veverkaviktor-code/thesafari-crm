@@ -46,14 +46,14 @@ export default function TicketShow({ ticket }: Props) {
     const statusInfo = statusMap[ticket.status];
 
     function handleStatusChange(newStatus: string) {
-        router.put(`/pozadavky/${ticket.id}`, { status: newStatus }, { preserveScroll: true });
+        router.put(`/zpravy/${ticket.id}`, { status: newStatus }, { preserveScroll: true });
     }
 
     return (
         <AuthenticatedLayout
             title={ticket.subject}
             breadcrumbs={[
-                { label: 'Požadavky', href: '/pozadavky' },
+                { label: 'Zprávy', href: '/zpravy' },
                 { label: ticket.subject },
             ]}
         >
@@ -64,7 +64,7 @@ export default function TicketShow({ ticket }: Props) {
                         <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => router.visit('/pozadavky')}
+                            onClick={() => router.visit('/zpravy')}
                             className="text-muted-foreground hover:text-foreground mt-1"
                         >
                             <ArrowLeft className="h-5 w-5" />

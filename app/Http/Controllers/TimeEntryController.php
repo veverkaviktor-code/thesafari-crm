@@ -34,7 +34,7 @@ class TimeEntryController extends Controller
             'hourly_rate' => $request->input('hourly_rate'),
         ]);
 
-        return back()->with('success', 'Timer spusten.');
+        return back()->with('success', 'Timer spuštěn.');
     }
 
     public function update(Request $request, Order $order, TimeEntry $timeEntry)
@@ -50,7 +50,7 @@ class TimeEntryController extends Controller
 
         $timeEntry->update($validated);
 
-        return back()->with('success', 'Zaznam upraven.');
+        return back()->with('success', 'Záznam upraven.');
     }
 
     public function stop(Request $request, Order $order, TimeEntry $timeEntry)
@@ -59,7 +59,7 @@ class TimeEntryController extends Controller
         abort_if($timeEntry->user_id !== $request->user()->id, 403);
 
         if (! $timeEntry->isRunning()) {
-            return back()->with('error', 'Timer uz bezi.');
+            return back()->with('error', 'Timer už běží.');
         }
 
         $timeEntry->update([
@@ -77,6 +77,6 @@ class TimeEntryController extends Controller
 
         $timeEntry->delete();
 
-        return back()->with('success', 'Casovy zaznam smazan.');
+        return back()->with('success', 'Časový záznam smazán.');
     }
 }

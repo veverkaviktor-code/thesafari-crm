@@ -14,7 +14,7 @@ export default function ReplyForm({ ticketId }: ReplyFormProps) {
 
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
-        post(`/pozadavky/${ticketId}/reply`, {
+        post(`/zpravy/${ticketId}/reply`, {
             preserveScroll: true,
             onSuccess: () => reset('content'),
         });

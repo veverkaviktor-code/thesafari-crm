@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { router } from '@inertiajs/react';
 import {
     ArrowLeft,
@@ -177,6 +177,17 @@ export default function Show({ estimate, customers }: Props) {
             }));
         return calculateEstimateTotal(nestableItems, (key) => MATERIALS[key]);
     }, [estimate.items]);
+
+    // Sync total_price to DB whenever nesting result changes
+    useEffect(() => {
+        const total = nestingResult.grandTotal;
+        if (Math.abs(total - estimate.total_price) > 0.01) {
+            router.put(`/kalkulator/${estimate.id}`, { total_price: total }, {
+                preserveScroll: true,
+                preserveState: true,
+            });
+        }
+    }, [nestingResult.grandTotal]);
 
     // ---------------------------------------------------------------------------
     // Handlers — estimate meta
@@ -367,7 +378,6 @@ export default function Show({ estimate, customers }: Props) {
                 ref={photoInputRef}
                 type="file"
                 accept="image/*"
-                capture="environment"
                 className="hidden"
                 onChange={handlePhotoUpload}
             />
@@ -413,9 +423,8 @@ export default function Show({ estimate, customers }: Props) {
                     </div>
 
                     <Button
-                        variant="ghost"
                         size="icon"
-                        className="shrink-0 text-muted-foreground hover:text-red-400"
+                        className="shrink-0 bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/25"
                         onClick={() => setDeleteEstimateOpen(true)}
                     >
                         <Trash2 className="h-4 w-4" />

@@ -14,7 +14,6 @@ import {
     FileText,
     Landmark,
     Mail,
-    MailCheck,
     Pencil,
     RefreshCw,
 } from 'lucide-react';
@@ -277,9 +276,8 @@ export default function Show({ invoice, company, unmatchedTransactions, activiti
                     <div className="flex items-center gap-2">
                         <Button
                             asChild
-                            variant="outline"
                             size="sm"
-                            className="border-border text-muted-foreground hover:text-foreground"
+                            className="bg-[#ad9d8e] text-white hover:bg-[#ad9d8e]/90 border-0"
                         >
                             <a
                                 href={`/faktury/${invoice.id}/pdf`}
@@ -290,20 +288,13 @@ export default function Show({ invoice, company, unmatchedTransactions, activiti
                             </a>
                         </Button>
                         <Button
-                            variant="outline"
                             size="sm"
-                            className="border-border text-muted-foreground hover:text-foreground"
+                            className="bg-[#ad9d8e] text-white hover:bg-[#ad9d8e]/90 border-0"
                             onClick={handleSendEmail}
                         >
                             <Mail className="h-4 w-4" />
                             Odeslat e-mailem
                         </Button>
-                        {invoice.sent_at && (
-                            <span className="inline-flex items-center gap-1 text-xs text-emerald-400">
-                                <MailCheck className="h-3.5 w-3.5" />
-                                Odesláno {format(new Date(invoice.sent_at), 'd.M.yyyy', { locale: cs })}
-                            </span>
-                        )}
                         {invoice.status !== 'zaplacena' && (
                             <div className="flex items-center gap-1">
                                 <Button
@@ -327,9 +318,8 @@ export default function Show({ invoice, company, unmatchedTransactions, activiti
                         )}
                         <Button
                             asChild
-                            variant="ghost"
                             size="icon-sm"
-                            className="text-muted-foreground hover:text-foreground"
+                            className="bg-[#ad9d8e]/15 text-[#ad9d8e] hover:bg-[#ad9d8e]/25 border border-[#ad9d8e]/25"
                         >
                             <Link href={`/faktury/${invoice.id}/upravit`}>
                                 <Pencil className="h-4 w-4" />
