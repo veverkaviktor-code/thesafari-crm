@@ -120,11 +120,16 @@ class SendInvoiceReminders extends Command
         $pdfContent = $pdf->output();
         $filename = "faktura-{$invoice->invoice_number}.pdf";
 
+        // Generate PNG QR for email body
+        $qrPng = QrCode::format('png')->size(300)->generate($qrData);
+        $qrBase64 = base64_encode((string) $qrPng);
+
         $htmlBody = view('emails.invoice-reminder', [
             'invoice' => $invoice,
             'company' => $company,
             'reminderNumber' => $reminderNumber,
             'daysOverdue' => $daysOverdue,
+            'qrBase64' => $qrBase64,
         ])->render();
 
         $subject = match ($reminderNumber) {

@@ -67,31 +67,36 @@
                                 </p>
                             @endif
 
-                            <!-- Payment details table -->
+                            <!-- Payment details - amber style -->
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin: 0 0 20px 0;">
                                 <tr>
-                                    <td style="padding: 10px 16px; background-color: #f8f8f8; border: 1px solid #e5e5e5; font-weight: 600; font-size: 14px; width: 180px;">Číslo účtu</td>
-                                    <td style="padding: 10px 16px; border: 1px solid #e5e5e5; font-size: 14px;">{{ $company->bank_account }}</td>
+                                    <td style="padding: 10px 16px; background-color: #fffbeb; border: 1px solid #fcd34d; font-weight: 600; font-size: 14px; width: 180px; color: #92400e;">Číslo účtu</td>
+                                    <td style="padding: 10px 16px; background-color: #fffbeb; border: 1px solid #fcd34d; font-size: 14px; color: #92400e;">{{ $company->bank_account }}</td>
                                 </tr>
                                 <tr>
-                                    <td style="padding: 10px 16px; background-color: #f8f8f8; border: 1px solid #e5e5e5; font-weight: 600; font-size: 14px;">Variabilní symbol</td>
-                                    <td style="padding: 10px 16px; border: 1px solid #e5e5e5; font-size: 14px;">{{ $invoice->variable_symbol }}</td>
+                                    <td style="padding: 10px 16px; background-color: #fffbeb; border: 1px solid #fcd34d; font-weight: 600; font-size: 14px; color: #92400e;">Variabilní symbol</td>
+                                    <td style="padding: 10px 16px; background-color: #fffbeb; border: 1px solid #fcd34d; font-size: 14px; color: #92400e;">{{ $invoice->variable_symbol }}</td>
                                 </tr>
                                 <tr>
-                                    <td style="padding: 10px 16px; background-color: #f8f8f8; border: 1px solid #e5e5e5; font-weight: 600; font-size: 14px;">Částka</td>
-                                    <td style="padding: 10px 16px; border: 1px solid #e5e5e5; font-size: 14px;">{{ number_format((float) $invoice->total, 0, ',', ' ') }} Kč</td>
+                                    <td style="padding: 10px 16px; background-color: #fffbeb; border: 1px solid #fcd34d; font-weight: 600; font-size: 14px; color: #92400e;">Částka</td>
+                                    <td style="padding: 10px 16px; background-color: #fffbeb; border: 1px solid #fcd34d; font-size: 14px; color: #92400e;">{{ number_format((float) $invoice->total, 0, ',', ' ') }} Kč</td>
                                 </tr>
                                 <tr>
-                                    <td style="padding: 10px 16px; background-color: #f8f8f8; border: 1px solid #e5e5e5; font-weight: 600; font-size: 14px;">Datum splatnosti</td>
-                                    <td style="padding: 10px 16px; border: 1px solid #e5e5e5; font-size: 14px; color: #DC2626; font-weight: 600;">{{ $invoice->due_date->format('j. n. Y') }}</td>
+                                    <td style="padding: 10px 16px; background-color: #fffbeb; border: 1px solid #fcd34d; font-weight: 600; font-size: 14px; color: #92400e;">Splatnost</td>
+                                    <td style="padding: 10px 16px; background-color: #fffbeb; border: 1px solid #fcd34d; font-size: 14px; color: #DC2626; font-weight: 600;">{{ $invoice->due_date->format('j. n. Y') }}</td>
                                 </tr>
                             </table>
+
+                            @if(!empty($qrBase64))
+                            <div style="text-align: center; margin: 0 0 20px 0;">
+                                <p style="margin: 0 0 8px 0; font-size: 13px; color: #888888;">Zaplaťte jednoduše přes QR kód:</p>
+                                <img src="data:image/png;base64,{{ $qrBase64 }}" alt="QR platba" width="150" height="150" style="display: inline-block;">
+                            </div>
+                            @endif
 
                             <p style="margin: 0 0 16px 0; font-size: 14px; color: #666666;">
                                 Fakturu naleznete v příloze tohoto e-mailu.
                             </p>
-
-                            <p style="margin: 0; font-size: 15px;">S pozdravem,</p>
                         </td>
                     </tr>
 
