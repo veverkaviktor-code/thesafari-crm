@@ -268,10 +268,15 @@ class InvoiceController extends Controller
 
         $serviceDescription = $this->buildServiceDescription($invoice);
 
+        // Generate PNG QR for email body
+        $qrPng = QrCode::format('png')->size(300)->generate($qrData);
+        $qrBase64 = base64_encode((string) $qrPng);
+
         $htmlBody = view('emails.invoice', [
             'invoice' => $invoice,
             'company' => $company,
             'serviceDescription' => $serviceDescription,
+            'qrBase64' => $qrBase64,
         ])->render();
 
         $logoPath = storage_path('app/email-assets/logo-email.png');
