@@ -39,7 +39,7 @@
                             </p>
 
                             <p style="margin: 0 0 20px 0; font-size: 15px;">
-                                V p&rcaron;&iacute;loze zas&iacute;l&aacute;me fakturu &ccaron;. <strong>{{ $invoice->invoice_number }}</strong> na &ccaron;&aacute;stku <strong>{{ number_format((float) $invoice->total, 0, ,,  ) }} K&ccaron;</strong>.
+                                V p&rcaron;&iacute;loze zas&iacute;l&aacute;me fakturu &ccaron;. <strong>{{ $invoice->invoice_number }}</strong> na &ccaron;&aacute;stku <strong>{{ number_format((float) $invoice->total, 0, ',', ' ') }} K&ccaron;</strong>.
                             </p>
 
                             <!-- Payment details - amber style -->
@@ -54,11 +54,11 @@
                                 </tr>
                                 <tr>
                                     <td style="padding: 10px 16px; background-color: #fffbeb; border: 1px solid #fcd34d; font-weight: 600; font-size: 14px; color: #92400e;">&Ccaron;&aacute;stka</td>
-                                    <td style="padding: 10px 16px; background-color: #fffbeb; border: 1px solid #fcd34d; font-size: 14px; color: #92400e;">{{ number_format((float) $invoice->total, 0, ,,  ) }} K&ccaron;</td>
+                                    <td style="padding: 10px 16px; background-color: #fffbeb; border: 1px solid #fcd34d; font-size: 14px; color: #92400e;">{{ number_format((float) $invoice->total, 0, ',', ' ') }} K&ccaron;</td>
                                 </tr>
                                 <tr>
                                     <td style="padding: 10px 16px; background-color: #fffbeb; border: 1px solid #fcd34d; font-weight: 600; font-size: 14px; color: #92400e;">Splatnost</td>
-                                    <td style="padding: 10px 16px; background-color: #fffbeb; border: 1px solid #fcd34d; font-size: 14px; color: #92400e;">{{ $invoice->due_date->format(j. n. Y) }}</td>
+                                    <td style="padding: 10px 16px; background-color: #fffbeb; border: 1px solid #fcd34d; font-size: 14px; color: #92400e;">{{ $invoice->due_date->format('j. n. Y') }}</td>
                                 </tr>
                             </table>
 
