@@ -274,10 +274,21 @@ class InvoiceController extends Controller
             'serviceDescription' => $serviceDescription,
         ])->render();
 
-        Mail::html($htmlBody, function ($message) use ($invoice, $pdfContent, $filename) {
+        $logoPath = storage_path('app/email-assets/logo-email.png');
+        $karelPath = storage_path('app/email-assets/karel-invoice.png');
+
+        Mail::html($htmlBody, function ($message) use ($invoice, $pdfContent, $filename, $logoPath, $karelPath) {
             $message->to($invoice->customer->email)
                 ->subject("Faktura č. {$invoice->invoice_number}")
                 ->attachData($pdfContent, $filename, ['mime' => 'application/pdf']);
+
+            $symfony = $message->getSymfonyMessage();
+            if (file_exists($logoPath)) {
+                $symfony->embedFromPath($logoPath, 'safari-logo', 'image/png');
+            }
+            if (file_exists($karelPath)) {
+                $symfony->embedFromPath($karelPath, 'karel-invoice', 'image/png');
+            }
         });
 
         $invoice->update([
@@ -328,13 +339,18 @@ class InvoiceController extends Controller
                 $karelPath = storage_path('app/email-assets/karel-email.png');
             }
 
-            Mail::html($htmlBody, function ($message) use ($invoice, $karelPath) {
+            $logoPath = storage_path('app/email-assets/logo-email.png');
+
+            Mail::html($htmlBody, function ($message) use ($invoice, $karelPath, $logoPath) {
                 $message->to($invoice->customer->email)
                     ->subject("Platba přijata — faktura č. {$invoice->invoice_number} ✓");
 
+                $symfony = $message->getSymfonyMessage();
+                if (file_exists($logoPath)) {
+                    $symfony->embedFromPath($logoPath, 'safari-logo', 'image/png');
+                }
                 if (file_exists($karelPath)) {
-                    $message->getSymfonyMessage()
-                        ->embedFromPath($karelPath, 'karel-sloth', 'image/png');
+                    $symfony->embedFromPath($karelPath, 'karel-sloth', 'image/png');
                 }
             });
         } catch (\Exception $e) {

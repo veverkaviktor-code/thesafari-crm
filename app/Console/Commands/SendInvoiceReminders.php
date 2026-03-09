@@ -134,15 +134,19 @@ class SendInvoiceReminders extends Command
         };
 
         $karelPath = storage_path("app/email-assets/karel-reminder-{$reminderNumber}.png");
+        $logoPath = storage_path('app/email-assets/logo-email.png');
 
-        Mail::html($htmlBody, function ($message) use ($invoice, $pdfContent, $filename, $subject, $karelPath) {
+        Mail::html($htmlBody, function ($message) use ($invoice, $pdfContent, $filename, $subject, $karelPath, $logoPath) {
             $message->to($invoice->customer->email)
                 ->subject($subject)
                 ->attachData($pdfContent, $filename, ['mime' => 'application/pdf']);
 
+            $symfony = $message->getSymfonyMessage();
+            if (file_exists($logoPath)) {
+                $symfony->embedFromPath($logoPath, 'safari-logo', 'image/png');
+            }
             if (file_exists($karelPath)) {
-                $message->getSymfonyMessage()
-                    ->embedFromPath($karelPath, 'karel-sloth', 'image/png');
+                $symfony->embedFromPath($karelPath, 'karel-sloth', 'image/png');
             }
         });
     }

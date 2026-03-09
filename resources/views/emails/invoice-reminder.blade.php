@@ -12,11 +12,11 @@
 
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #ffffff; border-radius: 8px; overflow: hidden; position: relative;">
 
-                    <!-- Header -->
+                    <!-- Header with logo -->
                     <tr>
                         <td style="padding: 32px 40px 0 40px; text-align: center;">
-                            <h2 style="margin: 0 0 4px 0; font-size: 20px; font-weight: 700; color: #1a1a1a;">TheSafari.cz <span style="color: #cccccc; font-weight: 400;">|</span> <span style="font-weight: 500; color: #888888; font-size: 18px;">Fakturace</span></h2>
-                            <p style="margin: 0; font-size: 13px; color: #888888;">Web &middot; Hosting &middot; Reklama</p>
+                            <img src="cid:safari-logo" alt="TheSafari.cz" width="180" style="display: block; margin: 0 auto 16px auto;">
+                            <p style="margin: 0; font-size: 13px; color: #888888;">Web &middot; Tisk &middot; Reklama</p>
                         </td>
                     </tr>
 
