@@ -30,12 +30,17 @@
                         <td style="padding: 24px 40px;">
                             <p style="margin: 0 0 16px 0; font-size: 15px;">Dobrý den,</p>
 
-                            <p style="margin: 0 0 8px 0; font-size: 15px;">
+                            <p style="margin: 0 0 16px 0; font-size: 15px;">
                                 {{ $serviceDescription }}
                             </p>
 
+                            <p style="margin: 0 0 16px 0; font-size: 15px;">
+                                V příloze posíláme vystavenou fakturu č. <strong>{{ $invoice->invoice_number }}</strong> na částku <strong>{{ number_format((float) $invoice->total, 0, ',', ' ') }} Kč</strong>. Náš Karel, který u nás dělá účetnictví, ji právě zařadil do své evidence. 🦥
+                            </p>
+
                             <p style="margin: 0 0 20px 0; font-size: 15px;">
-                                V příloze zasíláme fakturu č. <strong>{{ $invoice->invoice_number }}</strong> na částku <strong>{{ number_format((float) $invoice->total, 0, ',', ' ') }} Kč</strong>.
+                                Budeme rádi za její úhradu ve stanoveném termínu.<br>
+                                Děkujeme!
                             </p>
 
                             <!-- Payment details - amber style -->
@@ -60,12 +65,10 @@
 
                             @if(!empty($qrBase64))
                             <div style="text-align: center; margin: 0 0 20px 0;">
-                                <p style="margin: 0 0 8px 0; font-size: 13px; color: #888888;">QR kód pro platbu:</p>
+                                <p style="margin: 0 0 8px 0; font-size: 13px; color: #888888;">Zaplaťte jednoduše přes QR kód:</p>
                                 <img src="data:image/png;base64,{{ $qrBase64 }}" alt="QR platba" width="150" height="150" style="display: inline-block;">
                             </div>
                             @endif
-
-                            <p style="margin: 0; font-size: 15px;">Děkujeme,</p>
                         </td>
                     </tr>
 
