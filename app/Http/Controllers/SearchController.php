@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\Estimate;
 use App\Models\Invoice;
 use App\Models\Order;
+use App\Models\Subscription;
+use App\Models\Task;
 use App\Models\Ticket;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,10 +24,12 @@ class SearchController extends Controller
 
         $term = "%{$q}%";
 
-        $customers = Customer::where('name', 'ilike', $term)
-            ->orWhere('company', 'ilike', $term)
-            ->orWhere('email', 'ilike', $term)
-            ->orWhere('ico', 'ilike', $term)
+        $customers = Customer::where(function ($q) use ($term) {
+                $q->where('name', 'ilike', $term)
+                  ->orWhere('company', 'ilike', $term)
+                  ->orWhere('email', 'ilike', $term)
+                  ->orWhere('ico', 'ilike', $term);
+            })
             ->select('id', 'name', 'company', 'email')
             ->limit(5)
             ->get()
@@ -36,8 +41,10 @@ class SearchController extends Controller
                 'type' => 'customer',
             ]);
 
-        $orders = Order::where('title', 'ilike', $term)
-            ->orWhereHas('customer', fn ($cq) => $cq->where('name', 'ilike', $term))
+        $orders = Order::where(function ($q) use ($term) {
+                $q->where('title', 'ilike', $term)
+                  ->orWhereHas('customer', fn ($cq) => $cq->where('name', 'ilike', $term)->orWhere('company', 'ilike', $term));
+            })
             ->with('customer:id,name')
             ->select('id', 'title', 'status', 'customer_id')
             ->limit(5)
@@ -50,8 +57,10 @@ class SearchController extends Controller
                 'type' => 'order',
             ]);
 
-        $invoices = Invoice::where('invoice_number', 'ilike', $term)
-            ->orWhereHas('customer', fn ($cq) => $cq->where('name', 'ilike', $term))
+        $invoices = Invoice::where(function ($q) use ($term) {
+                $q->where('invoice_number', 'ilike', $term)
+                  ->orWhereHas('customer', fn ($cq) => $cq->where('name', 'ilike', $term)->orWhere('company', 'ilike', $term));
+            })
             ->with('customer:id,name')
             ->select('id', 'invoice_number', 'total', 'status', 'customer_id')
             ->limit(5)
@@ -64,8 +73,42 @@ class SearchController extends Controller
                 'type' => 'invoice',
             ]);
 
-        $tickets = Ticket::where('subject', 'ilike', $term)
-            ->orWhere('source_email', 'ilike', $term)
+        $subscriptions = Subscription::where(function ($q) use ($term) {
+                $q->where('name', 'ilike', $term)
+                  ->orWhereHas('customer', fn ($cq) => $cq->where('name', 'ilike', $term)->orWhere('company', 'ilike', $term));
+            })
+            ->with('customer:id,name')
+            ->select('id', 'name', 'type', 'status', 'customer_id')
+            ->limit(5)
+            ->get()
+            ->map(fn ($s) => [
+                'id' => $s->id,
+                'title' => $s->name,
+                'subtitle' => ($s->customer?->name ?? '') . ' · ' . ucfirst($s->type),
+                'link' => "/neniweb/{$s->id}",
+                'type' => 'subscription',
+            ]);
+
+        $estimates = Estimate::where(function ($q) use ($term) {
+                $q->where('name', 'ilike', $term)
+                  ->orWhereHas('customer', fn ($cq) => $cq->where('name', 'ilike', $term)->orWhere('company', 'ilike', $term));
+            })
+            ->with('customer:id,name')
+            ->select('id', 'name', 'status', 'customer_id')
+            ->limit(5)
+            ->get()
+            ->map(fn ($e) => [
+                'id' => $e->id,
+                'title' => $e->name,
+                'subtitle' => ($e->customer?->name ?? 'Bez zákazníka') . ' · ' . $e->status,
+                'link' => "/kalkulator/{$e->id}",
+                'type' => 'estimate',
+            ]);
+
+        $tickets = Ticket::where(function ($q) use ($term) {
+                $q->where('subject', 'ilike', $term)
+                  ->orWhere('source_email', 'ilike', $term);
+            })
             ->with('customer:id,name')
             ->select('id', 'subject', 'status', 'priority', 'customer_id')
             ->limit(5)
@@ -78,12 +121,31 @@ class SearchController extends Controller
                 'type' => 'ticket',
             ]);
 
+        $tasks = Task::where(function ($q) use ($term) {
+                $q->where('title', 'ilike', $term)
+                  ->orWhere('description', 'ilike', $term);
+            })
+            ->open()
+            ->select('id', 'title', 'priority', 'due_date')
+            ->limit(5)
+            ->get()
+            ->map(fn ($t) => [
+                'id'       => $t->id,
+                'title'    => $t->title,
+                'subtitle' => $t->priority . ($t->due_date ? ' · ' . $t->due_date->format('d. n.') : ''),
+                'link'     => '/planovac',
+                'type'     => 'task',
+            ]);
+
         return response()->json([
             'results' => [
-                'customers' => $customers,
-                'orders' => $orders,
-                'invoices' => $invoices,
-                'tickets' => $tickets,
+                'customers'     => $customers,
+                'subscriptions' => $subscriptions,
+                'orders'        => $orders,
+                'invoices'      => $invoices,
+                'estimates'     => $estimates,
+                'tickets'       => $tickets,
+                'tasks'         => $tasks,
             ],
         ]);
     }

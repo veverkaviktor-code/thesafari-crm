@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 export type Division = 'tisk' | 'reklama' | 'polepy' | 'montaze' | 'weby';
 
 const divisionConfig: Record<Division, { label: string; className: string }> = {
-    tisk: { label: 'Tisk', className: 'bg-gray-500/20 text-[#9C9585] border-gray-500/30' },
+    tisk: { label: 'Tisk', className: 'bg-gray-500/20 text-muted-foreground border-gray-500/30' },
     reklama: { label: 'Reklama', className: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
     polepy: { label: 'Polepy', className: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
     montaze: { label: 'Montáže', className: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },

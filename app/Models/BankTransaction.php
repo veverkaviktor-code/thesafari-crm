@@ -3,9 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class BankTransaction extends Model
 {
+    use LogsActivity;
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -14,7 +19,10 @@ class BankTransaction extends Model
         'amount',
         'variable_symbol',
         'counter_account',
+        'counter_account_name',
         'description',
+        'transaction_type',
+        'raw_data',
         'matched',
     ];
 
@@ -24,8 +32,21 @@ class BankTransaction extends Model
             'date' => 'date',
             'amount' => 'decimal:2',
             'matched' => 'boolean',
-            'created_at' => 'datetime',
+            'raw_data' => 'array',
         ];
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->useLogName('bank_transaction');
+    }
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
     }
 
     public function scopeUnmatched($query)

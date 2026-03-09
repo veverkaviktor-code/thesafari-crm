@@ -36,7 +36,7 @@ export default function GlassModal({
     return (
         <div
             ref={overlayRef}
-            className="fixed inset-0 z-50 flex items-center justify-center p-6"
+            className="fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center sm:p-6"
             onClick={(e) => {
                 if (e.target === overlayRef.current) onClose();
             }}
@@ -44,27 +44,32 @@ export default function GlassModal({
             {/* Overlay */}
             <div className="absolute inset-0 bg-black/60" />
 
-            {/* Modal */}
+            {/* Modal — full screen on mobile, centered card on desktop */}
             <div
-                className={`relative w-full ${maxWidth} max-h-[90vh] flex flex-col rounded-2xl overflow-hidden
-                    border border-[#F5F0E8]/[0.06]
-                    bg-[#16140f]
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="glass-modal-title"
+                className={`relative w-full ${maxWidth} flex flex-col overflow-hidden
+                    h-[100dvh] sm:h-auto sm:max-h-[90vh]
+                    sm:rounded-2xl
+                    border-t border-border sm:border
+                    bg-card
                     shadow-2xl shadow-black/50
                 `}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-[#F5F0E8]/[0.06] px-8 py-5">
-                    <h2 className="text-lg font-semibold text-[#F5F0E8]">{title}</h2>
+                <div className="flex items-center justify-between border-b border-border px-5 py-4 sm:px-8 sm:py-5">
+                    <h2 id="glass-modal-title" className="text-lg font-semibold text-foreground">{title}</h2>
                     <button
                         onClick={onClose}
-                        className="rounded-xl p-2 text-[#9C9585] transition-all hover:bg-[#F5F0E8]/[0.05] hover:text-[#F5F0E8]"
+                        className="rounded-xl p-2 text-muted-foreground transition-all hover:bg-accent hover:text-foreground"
                     >
                         <X className="h-5 w-5" />
                     </button>
                 </div>
 
-                {/* Body */}
-                <div className="overflow-y-auto px-8 py-6">{children}</div>
+                {/* Body — scrollable */}
+                <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-8 sm:py-6">{children}</div>
             </div>
         </div>
     );

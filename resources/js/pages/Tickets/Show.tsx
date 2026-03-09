@@ -65,12 +65,12 @@ export default function TicketShow({ ticket }: Props) {
                             variant="ghost"
                             size="icon"
                             onClick={() => router.visit('/pozadavky')}
-                            className="text-[#9C9585] hover:text-[#F5F0E8]/85 mt-1"
+                            className="text-muted-foreground hover:text-foreground mt-1"
                         >
                             <ArrowLeft className="h-5 w-5" />
                         </Button>
                         <div>
-                            <h1 className="text-xl font-semibold text-[#F5F0E8]">{ticket.subject}</h1>
+                            <h1 className="text-xl font-semibold text-foreground">{ticket.subject}</h1>
                             <div className="flex items-center gap-3 mt-2">
                                 <PriorityBadge priority={ticket.priority} />
                                 {statusInfo && (
@@ -80,10 +80,10 @@ export default function TicketShow({ ticket }: Props) {
                         </div>
                     </div>
                     <Select value={ticket.status} onValueChange={handleStatusChange}>
-                        <SelectTrigger className="w-[180px] bg-[#0f0e0c] border-[#F5F0E8]/[0.06] text-[#F5F0E8]/70">
+                        <SelectTrigger className="w-[180px] bg-muted border-border text-muted-foreground">
                             <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="bg-[#16140f] border-[#F5F0E8]/[0.06]">
+                        <SelectContent className="bg-card border-border">
                             <SelectItem value="novy">Nový</SelectItem>
                             <SelectItem value="v_reseni">V řešení</SelectItem>
                             <SelectItem value="ceka_na_zakaznika">Čeká na zákazníka</SelectItem>
@@ -94,35 +94,35 @@ export default function TicketShow({ ticket }: Props) {
 
                 {/* Info cards */}
                 <div className="grid grid-cols-3 gap-4 mb-6">
-                    <div className="bg-[#16140f] rounded-xl border border-[#F5F0E8]/[0.05] p-4">
-                        <div className="flex items-center gap-2 text-[#6B6560] mb-1">
+                    <div className="bg-card rounded-xl border border-border p-4">
+                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
                             <User className="h-4 w-4" />
                             <span className="text-xs font-medium uppercase tracking-wider">Zákazník</span>
                         </div>
                         {ticket.customer ? (
                             <button
                                 onClick={() => router.visit(`/zakaznici/${ticket.customer!.id}`)}
-                                className="text-sm text-amber-400 hover:text-amber-300 font-medium"
+                                className="text-sm text-primary hover:text-primary/80 font-medium"
                             >
                                 {ticket.customer.company || ticket.customer.name}
                             </button>
                         ) : (
-                            <span className="text-sm text-[#9C9585]">Nepřiřazen</span>
+                            <span className="text-sm text-muted-foreground">Nepřiřazen</span>
                         )}
                     </div>
-                    <div className="bg-[#16140f] rounded-xl border border-[#F5F0E8]/[0.05] p-4">
-                        <div className="flex items-center gap-2 text-[#6B6560] mb-1">
+                    <div className="bg-card rounded-xl border border-border p-4">
+                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
                             <Mail className="h-4 w-4" />
                             <span className="text-xs font-medium uppercase tracking-wider">E-mail</span>
                         </div>
-                        <span className="text-sm text-[#F5F0E8]/70">{ticket.source_email}</span>
+                        <span className="text-sm text-muted-foreground">{ticket.source_email}</span>
                     </div>
-                    <div className="bg-[#16140f] rounded-xl border border-[#F5F0E8]/[0.05] p-4">
-                        <div className="flex items-center gap-2 text-[#6B6560] mb-1">
+                    <div className="bg-card rounded-xl border border-border p-4">
+                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
                             <Clock className="h-4 w-4" />
                             <span className="text-xs font-medium uppercase tracking-wider">Vytvořeno</span>
                         </div>
-                        <span className="text-sm text-[#F5F0E8]/70">
+                        <span className="text-sm text-muted-foreground">
                             {format(new Date(ticket.created_at), 'd. MMMM yyyy HH:mm', { locale: cs })}
                         </span>
                         {ticket.resolved_at && (
@@ -134,8 +134,8 @@ export default function TicketShow({ ticket }: Props) {
                 </div>
 
                 {/* Thread */}
-                <div className="bg-[#16140f] rounded-xl border border-[#F5F0E8]/[0.05] p-6">
-                    <h2 className="text-sm font-medium text-[#9C9585] uppercase tracking-wider mb-4">Konverzace</h2>
+                <div className="bg-card rounded-xl border border-border p-6">
+                    <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">Konverzace</h2>
                     <TicketThread messages={ticket.messages} />
                     {ticket.status !== 'vyreseno' && (
                         <div className="mt-6">

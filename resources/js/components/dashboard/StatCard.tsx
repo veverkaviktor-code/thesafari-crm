@@ -21,12 +21,12 @@ export default function StatCard({
     icon: Icon,
     iconColor,
     iconBg,
-    gradient = 'bg-gradient-to-br from-[#16140f] to-[#1a1508]',
+    gradient = 'bg-card',
     trend,
     subtitle,
 }: StatCardProps) {
     return (
-        <div className={cn('rounded-xl border border-[#F5F0E8]/[0.06] p-5', gradient)}>
+        <div className={cn('rounded-xl border border-border p-5', gradient)}>
             <div className="flex items-start justify-between">
                 <div
                     className={cn(
@@ -40,7 +40,7 @@ export default function StatCard({
                     <span
                         className={cn(
                             'text-xs font-medium',
-                            trend.positive ? 'text-[#65A30D]' : 'text-[#DC2626]',
+                            trend.positive ? 'text-lime-600' : 'text-destructive',
                         )}
                     >
                         {trend.positive ? '↑' : '↓'} {trend.value}
@@ -48,12 +48,12 @@ export default function StatCard({
                 )}
             </div>
             <div className="mt-4">
-                <p className="text-sm text-[#9C9585]">{label}</p>
-                <p className="mt-1 text-3xl font-bold tracking-tight text-[#F5F0E8]">
+                <p className="text-sm text-muted-foreground">{label}</p>
+                <p className="mt-1 text-3xl font-bold tracking-tight text-foreground">
                     {value}
                 </p>
                 {subtitle && (
-                    <p className="mt-1 text-xs text-[#6B6560]">{subtitle}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
                 )}
             </div>
         </div>

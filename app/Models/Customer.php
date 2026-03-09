@@ -72,6 +72,16 @@ class Customer extends Model
         return $this->morphMany(Attachment::class, 'attachable');
     }
 
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class);
+    }
+
+    public function vpsServers(): HasMany
+    {
+        return $this->hasMany(VpsServer::class);
+    }
+
     public function scopeSearch($query, ?string $term)
     {
         if (! $term) {

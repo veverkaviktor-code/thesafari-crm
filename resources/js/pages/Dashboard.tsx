@@ -1,16 +1,28 @@
 import {
+    CalendarCheck,
     ClipboardList,
     CreditCard,
     MessageSquare,
     TrendingUp,
 } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import StatCard from '@/components/dashboard/StatCard';
 import RevenueChart from '@/components/dashboard/RevenueChart';
-import ActivityTimeline from '@/components/dashboard/ActivityTimeline';
+import ActivityTimeline, { type Activity } from '@/components/dashboard/ActivityTimeline';
 import RecentTickets from '@/components/dashboard/RecentTickets';
 import DivisionChart from '@/components/dashboard/DivisionChart';
-import { cn } from '@/lib/utils';
+import NeniwebOverview from '@/components/dashboard/NeniwebOverview';
+import AttentionAlerts from '@/components/dashboard/AttentionAlerts';
+import Receivables from '@/components/dashboard/Receivables';
+
+interface TicketItem {
+    id: number;
+    subject: string;
+    customer: string;
+    priority: 'low' | 'medium' | 'high' | 'urgent';
+    created_at: string;
+}
 
 interface Props {
     stats?: {
@@ -18,65 +30,124 @@ interface Props {
         unpaid_amount: number;
         open_tickets: number;
         upcoming_deadlines: number;
-        orders_trend?: { value: string; positive: boolean };
-        invoices_trend?: { value: string; positive: boolean };
-        tickets_trend?: { value: string; positive: boolean };
     };
     mrr?: {
         total: number;
         hosting: number;
         domain: number;
+        service: number;
+        vps: number;
         count: number;
-    };
-    financialSummary?: {
-        revenue: number;
-        costs: number;
-        profit: number;
-        margin: number;
+        costs_monthly: number;
+        margin_monthly: number;
+        arr_total: number;
+        costs_annual: number;
+        margin_annual: number;
     };
     revenueByDivision?: {
         division: string;
         count: number;
         total: number;
     }[];
-    expiringSubscriptions?: unknown[];
+    revenueData?: { month: string; revenue: number; costs: number }[];
+    recentTickets?: TicketItem[];
+    alerts?: {
+        type: 'danger' | 'warning' | 'info';
+        icon: string;
+        title: string;
+        subtitle: string;
+        link: string;
+        subscription_id?: number;
+    }[];
+    ignoredAlerts?: {
+        subscription_id: number;
+        name: string;
+        type: string;
+        ignored_at: string;
+        link: string;
+    }[];
+    neniwebStats?: {
+        active_domains: number;
+        active_hostings: number;
+        expiring_soon: number;
+        expired: number;
+        unpaid_payments: number;
+        total_storage_mb: number;
+        storage_by_server: { server: string; count: number; total_mb: number }[];
+        expiring: {
+            id: number;
+            name: string;
+            type: string;
+            expires_at: string;
+            days: number;
+            urgency: string;
+            customer_name: string | null;
+        }[];
+    };
+    recentActivity?: {
+        id: number;
+        subject_type: string;
+        description: string;
+        created_at: string;
+        icon: Activity['icon'];
+        text: string;
+        changes?: string | null;
+        link?: string | null;
+    }[];
+    taskStats?: {
+        overdue: number;
+        due_today: number;
+        due_this_week: number;
+        total_open: number;
+    };
+    financialSummary?: {
+        total_revenue: number;
+        total_costs: number;
+        total_profit: number;
+        paid: number;
+        unpaid_invoices: number;
+        unpaid_subscriptions: number;
+        not_invoiced: number;
+    };
+    receivables?: {
+        id: number;
+        customer_id: number;
+        customer_name: string;
+        type: 'invoice' | 'order' | 'subscription';
+        label: string;
+        amount: number;
+        status: string;
+        due_date: string | null;
+        days_overdue: number | null;
+        link: string;
+    }[];
 }
 
-const formatCurrency = (v: number | null | undefined) =>
-    new Intl.NumberFormat('cs-CZ', {
-        style: 'currency',
-        currency: 'CZK',
-        maximumFractionDigits: 0,
-    }).format(v ?? 0);
-
-function FinancialMetric({ label, value, color }: { label: string; value: string; color: string }) {
-    return (
-        <div className="text-center">
-            <p className="text-xs text-[#6B6560]">{label}</p>
-            <p className={cn('mt-1 text-2xl font-bold tracking-tight', color)}>{value}</p>
-        </div>
-    );
+function formatRelativeTime(dateStr: string): string {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 1) return 'Právě teď';
+    if (minutes < 60) return `Před ${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `Před ${hours} hod`;
+    const days = Math.floor(hours / 24);
+    if (days === 1) return 'Včera';
+    return `Před ${days} dny`;
 }
 
-export default function Dashboard({ stats, mrr, financialSummary, revenueByDivision }: Props) {
-    const s = stats ?? {
-        active_orders: 12,
-        unpaid_amount: 45000,
-        open_tickets: 3,
-        upcoming_deadlines: 2,
-        orders_trend: { value: '12%', positive: true },
-        invoices_trend: { value: '8%', positive: false },
-        tickets_trend: { value: '25%', positive: true },
-    };
+export default function Dashboard({ stats, mrr, revenueByDivision, revenueData, recentTickets, alerts, ignoredAlerts, recentActivity, neniwebStats, taskStats, financialSummary, receivables }: Props) {
+    const s = stats ?? { active_orders: 0, unpaid_amount: 0, open_tickets: 0, upcoming_deadlines: 0 };
+    const mrrData = mrr ?? { total: 0, hosting: 0, domain: 0, service: 0, vps: 0, count: 0, costs_monthly: 0, margin_monthly: 0, arr_total: 0, costs_annual: 0, margin_annual: 0 };
 
-    const mrrData = mrr ?? { total: 8500, hosting: 6200, domain: 2300, count: 12 };
-
-    const fin = financialSummary ?? {
-        revenue: 590000,
-        costs: 234000,
-        profit: 356000,
-        margin: 60,
-    };
+    const activities: Activity[] = (recentActivity ?? []).map((a) => ({
+        id: a.id,
+        icon: a.icon,
+        text: a.text,
+        time: formatRelativeTime(a.created_at),
+        created_at: a.created_at,
+        changes: a.changes,
+        link: a.link,
+    }));
 
     return (
         <AuthenticatedLayout
@@ -85,16 +156,13 @@ export default function Dashboard({ stats, mrr, financialSummary, revenueByDivis
         >
             <div className="space-y-6">
                 {/* Row 1: Stat cards */}
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-5">
                     <StatCard
                         label="Aktivní zakázky"
                         value={String(s.active_orders)}
                         icon={ClipboardList}
                         iconColor="text-amber-500"
                         iconBg="bg-amber-500/10"
-                        gradient="bg-gradient-to-br from-[#16140f] to-[#1a1508]"
-                        trend={s.orders_trend}
-                        subtitle="od minulého týdne"
                     />
                     <StatCard
                         label="Nezaplacené faktury"
@@ -102,9 +170,6 @@ export default function Dashboard({ stats, mrr, financialSummary, revenueByDivis
                         icon={CreditCard}
                         iconColor="text-red-500"
                         iconBg="bg-red-500/10"
-                        gradient="bg-gradient-to-br from-[#16140f] to-[#1a0f0f]"
-                        trend={s.invoices_trend}
-                        subtitle="od minulého měsíce"
                     />
                     <StatCard
                         label="Otevřené požadavky"
@@ -112,45 +177,51 @@ export default function Dashboard({ stats, mrr, financialSummary, revenueByDivis
                         icon={MessageSquare}
                         iconColor="text-emerald-500"
                         iconBg="bg-emerald-500/10"
-                        gradient="bg-gradient-to-br from-[#16140f] to-[#14170f]"
-                        trend={s.tickets_trend}
-                        subtitle="vyřešeno tento týden"
                     />
                     <StatCard
                         label="Měsíční MRR"
                         value={formatCurrency(mrrData.total)}
                         icon={TrendingUp}
-                        iconColor="text-[#D97706]"
-                        iconBg="bg-[#D97706]/10"
-                        gradient="bg-gradient-to-br from-[#16140f] to-[#1a1508]"
-                        subtitle="z aktivních subscriptions"
+                        iconColor="text-primary"
+                        iconBg="bg-primary/10"
+                        subtitle={`Náklady ${formatCurrency(mrrData.costs_monthly)} · Zisk ${formatCurrency(mrrData.margin_monthly)}`}
+                    />
+                    <StatCard
+                        label="Otevřené úkoly"
+                        value={String(taskStats?.total_open ?? 0)}
+                        icon={CalendarCheck}
+                        iconColor="text-violet-500"
+                        iconBg="bg-violet-500/10"
+                        subtitle={
+                            taskStats?.overdue
+                                ? `${taskStats.overdue} po termínu`
+                                : taskStats?.due_today
+                                    ? `${taskStats.due_today} dnes`
+                                    : undefined
+                        }
                     />
                 </div>
 
-                {/* Row 2: Revenue chart + Division bars */}
+                {/* Row 2: Revenue chart + Financial overview */}
                 <div className="grid gap-6 lg:grid-cols-3">
                     <div className="lg:col-span-2 h-full">
-                        <RevenueChart />
+                        <RevenueChart data={revenueData} />
                     </div>
                     <div className="h-full">
-                        <DivisionChart data={revenueByDivision} mrr={mrr} />
+                        <Receivables items={receivables} summary={financialSummary} />
                     </div>
                 </div>
 
-                {/* Row 3: Financial Summary Bar */}
-                <div className="rounded-xl border border-[#F5F0E8]/[0.06] bg-gradient-to-br from-[#16140f] to-[#1a1508] p-5">
-                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                        <FinancialMetric label="Celkové příjmy" value={formatCurrency(fin.revenue)} color="text-[#D97706]" />
-                        <FinancialMetric label="Celkové náklady" value={formatCurrency(fin.costs)} color="text-[#9C9585]" />
-                        <FinancialMetric label="Čistý zisk" value={formatCurrency(fin.profit)} color="text-[#65A30D]" />
-                        <FinancialMetric label="Marže" value={`${fin.margin} %`} color={fin.margin >= 50 ? 'text-[#65A30D]' : 'text-amber-500'} />
-                    </div>
-                </div>
-
-                {/* Row 4: Activity + Tickets */}
+                {/* Row 3: Neniweb + Attention alerts */}
                 <div className="grid gap-6 lg:grid-cols-2">
-                    <ActivityTimeline />
-                    <RecentTickets />
+                    {neniwebStats && <NeniwebOverview stats={neniwebStats} />}
+                    <AttentionAlerts alerts={alerts} ignoredAlerts={ignoredAlerts} />
+                </div>
+
+                {/* Row 4: Tickets + Activity */}
+                <div className="grid gap-6 lg:grid-cols-2">
+                    <RecentTickets tickets={recentTickets} />
+                    <ActivityTimeline activities={activities} />
                 </div>
             </div>
         </AuthenticatedLayout>

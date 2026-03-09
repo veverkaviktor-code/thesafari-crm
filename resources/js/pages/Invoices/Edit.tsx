@@ -1,5 +1,6 @@
 import { type FormEvent } from 'react';
-import { useForm } from '@inertiajs/react';
+import { router, useForm } from '@inertiajs/react';
+import { FieldError } from '@/components/ui/FieldError';
 import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
 import { CalendarIcon } from 'lucide-react';
@@ -126,13 +127,13 @@ export default function Edit({ invoice, customers, orders }: Props) {
                 <div className="grid gap-6 lg:grid-cols-3">
                     <div className="space-y-6 lg:col-span-2">
                         {/* Basic info */}
-                        <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-6">
-                            <h3 className="mb-4 text-sm font-semibold text-[#F5F0E8]/70">
+                        <div className="rounded-xl border border-border bg-card p-6">
+                            <h3 className="mb-4 text-sm font-semibold text-muted-foreground">
                                 Základní údaje
                             </h3>
                             <div className="grid gap-4 md:grid-cols-2">
                                 <div className="space-y-1.5">
-                                    <Label className="text-[#9C9585]">Zákazník *</Label>
+                                    <Label className="text-muted-foreground">Zákazník *</Label>
                                     <Select
                                         value={data.customer_id}
                                         onValueChange={(v) => {
@@ -140,12 +141,12 @@ export default function Edit({ invoice, customers, orders }: Props) {
                                             setData('order_id', '');
                                         }}
                                     >
-                                        <SelectTrigger className="w-full border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]">
+                                        <SelectTrigger className="w-full border-border bg-accent">
                                             <SelectValue placeholder="Vyberte zákazníka..." />
                                         </SelectTrigger>
-                                        <SelectContent className="border-[#F5F0E8]/[0.06] bg-[#16140f]">
+                                        <SelectContent className="border-border bg-card">
                                             {customers.map((c) => (
-                                                <SelectItem key={c.id} value={String(c.id)} className="focus:bg-[#F5F0E8]/[0.04]">
+                                                <SelectItem key={c.id} value={String(c.id)} className="focus:bg-accent">
                                                     {c.name}{c.company ? ` (${c.company})` : ''}
                                                 </SelectItem>
                                             ))}
@@ -155,17 +156,17 @@ export default function Edit({ invoice, customers, orders }: Props) {
                                 </div>
 
                                 <div className="space-y-1.5">
-                                    <Label className="text-[#9C9585]">Zakázka</Label>
+                                    <Label className="text-muted-foreground">Zakázka</Label>
                                     <Select
                                         value={data.order_id}
                                         onValueChange={(v) => setData('order_id', v)}
                                     >
-                                        <SelectTrigger className="w-full border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]">
+                                        <SelectTrigger className="w-full border-border bg-accent">
                                             <SelectValue placeholder="Bez zakázky" />
                                         </SelectTrigger>
-                                        <SelectContent className="border-[#F5F0E8]/[0.06] bg-[#16140f]">
+                                        <SelectContent className="border-border bg-card">
                                             {filteredOrders.map((o) => (
-                                                <SelectItem key={o.id} value={String(o.id)} className="focus:bg-[#F5F0E8]/[0.04]">
+                                                <SelectItem key={o.id} value={String(o.id)} className="focus:bg-accent">
                                                     {o.title}
                                                 </SelectItem>
                                             ))}
@@ -174,51 +175,51 @@ export default function Edit({ invoice, customers, orders }: Props) {
                                 </div>
 
                                 <div className="space-y-1.5">
-                                    <Label className="text-[#9C9585]">Datum vystavení</Label>
+                                    <Label className="text-muted-foreground">Datum vystavení</Label>
                                     <Popover>
                                         <PopoverTrigger asChild>
-                                            <Button variant="outline" className={cn('w-full justify-start border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04] text-left font-normal', !data.issue_date && 'text-[#6B6560]')}>
-                                                <CalendarIcon className="mr-2 h-4 w-4 text-[#6B6560]" />
+                                            <Button variant="outline" className={cn('w-full justify-start border-border bg-accent text-left font-normal', !data.issue_date && 'text-muted-foreground')}>
+                                                <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
                                                 {issueDateObj ? format(issueDateObj, 'd. MMMM yyyy', { locale: cs }) : 'Vyberte datum...'}
                                             </Button>
                                         </PopoverTrigger>
-                                        <PopoverContent className="w-auto border-[#F5F0E8]/[0.06] bg-[#16140f] p-0" align="start">
+                                        <PopoverContent className="w-auto border-border bg-card p-0" align="start">
                                             <Calendar mode="single" selected={issueDateObj} onSelect={(date) => setData('issue_date', date ? format(date, 'yyyy-MM-dd') : '')} initialFocus />
                                         </PopoverContent>
                                     </Popover>
                                 </div>
 
                                 <div className="space-y-1.5">
-                                    <Label className="text-[#9C9585]">Datum splatnosti</Label>
+                                    <Label className="text-muted-foreground">Datum splatnosti</Label>
                                     <Popover>
                                         <PopoverTrigger asChild>
-                                            <Button variant="outline" className={cn('w-full justify-start border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04] text-left font-normal', !data.due_date && 'text-[#6B6560]')}>
-                                                <CalendarIcon className="mr-2 h-4 w-4 text-[#6B6560]" />
+                                            <Button variant="outline" className={cn('w-full justify-start border-border bg-accent text-left font-normal', !data.due_date && 'text-muted-foreground')}>
+                                                <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
                                                 {dueDateObj ? format(dueDateObj, 'd. MMMM yyyy', { locale: cs }) : 'Vyberte datum...'}
                                             </Button>
                                         </PopoverTrigger>
-                                        <PopoverContent className="w-auto border-[#F5F0E8]/[0.06] bg-[#16140f] p-0" align="start">
+                                        <PopoverContent className="w-auto border-border bg-card p-0" align="start">
                                             <Calendar mode="single" selected={dueDateObj} onSelect={(date) => setData('due_date', date ? format(date, 'yyyy-MM-dd') : '')} initialFocus />
                                         </PopoverContent>
                                     </Popover>
                                 </div>
 
                                 <div className="space-y-1.5">
-                                    <Label className="text-[#9C9585]">Způsob platby</Label>
+                                    <Label className="text-muted-foreground">Způsob platby</Label>
                                     <Select value={data.payment_method} onValueChange={(v) => setData('payment_method', v)}>
-                                        <SelectTrigger className="w-full border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]">
+                                        <SelectTrigger className="w-full border-border bg-accent">
                                             <SelectValue />
                                         </SelectTrigger>
-                                        <SelectContent className="border-[#F5F0E8]/[0.06] bg-[#16140f]">
-                                            <SelectItem value="banka" className="focus:bg-[#F5F0E8]/[0.04]">Bankovní převod</SelectItem>
-                                            <SelectItem value="hotovost" className="focus:bg-[#F5F0E8]/[0.04]">Hotovost</SelectItem>
+                                        <SelectContent className="border-border bg-card">
+                                            <SelectItem value="banka" className="focus:bg-accent">Bankovní převod</SelectItem>
+                                            <SelectItem value="hotovost" className="focus:bg-accent">Hotovost</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
 
                                 <div className="space-y-1.5 md:col-span-2">
-                                    <Label className="text-[#9C9585]">Poznámky</Label>
-                                    <Textarea value={data.notes} onChange={(e) => setData('notes', e.target.value)} placeholder="Poznámky k faktuře..." className="min-h-16 border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]" />
+                                    <Label className="text-muted-foreground">Poznámky</Label>
+                                    <Textarea value={data.notes} onChange={(e) => setData('notes', e.target.value)} placeholder="Poznámky k faktuře..." className="min-h-16 border-border bg-accent" />
                                 </div>
                             </div>
                         </div>
@@ -229,11 +230,11 @@ export default function Edit({ invoice, customers, orders }: Props) {
                         />
 
                         <div className="flex items-center justify-end gap-3">
-                            <Button type="button" variant="ghost" className="text-[#9C9585] hover:text-[#F5F0E8]" onClick={() => window.history.back()}>
+                            <Button type="button" variant="ghost" className="text-muted-foreground hover:text-foreground" onClick={() => router.visit('/faktury')}>
                                 Zrušit
                             </Button>
-                            <Separator orientation="vertical" className="h-6 bg-white/10" />
-                            <Button type="submit" disabled={processing} className="bg-[#D97706] text-white hover:bg-[#B45309]">
+                            <Separator orientation="vertical" className="h-6 bg-border" />
+                            <Button type="submit" disabled={processing} className="bg-primary text-white hover:bg-primary/80">
                                 {processing ? 'Ukládám...' : 'Uložit změny'}
                             </Button>
                         </div>
@@ -254,9 +255,4 @@ export default function Edit({ invoice, customers, orders }: Props) {
             </form>
         </AuthenticatedLayout>
     );
-}
-
-function FieldError({ error }: { error?: string }) {
-    if (!error) return null;
-    return <p className="text-xs text-red-400">{error}</p>;
 }

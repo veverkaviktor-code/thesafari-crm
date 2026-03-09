@@ -33,36 +33,36 @@ export default function UserMenu() {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 rounded-lg p-1.5 transition-colors hover:bg-[#F5F0E8]/[0.04]">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#D97706] text-sm font-semibold text-white">
+                <button className="flex items-center gap-2 rounded-lg p-1.5 transition-colors hover:bg-accent">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
                         {initials}
                     </div>
-                    <span className="hidden text-sm font-medium text-[#F5F0E8]/70 md:block">
+                    <span className="hidden text-sm font-medium text-foreground/70 md:block">
                         {user?.name ?? 'Uživatel'}
                     </span>
                 </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
                 align="end"
-                className="w-48 border-[#F5F0E8]/[0.06] bg-[#16140f] text-[#F5F0E8]/70"
+                className="w-48 border-border bg-popover text-popover-foreground/70"
             >
                 <DropdownMenuItem
-                    className="cursor-pointer gap-2 focus:bg-[#F5F0E8]/[0.04] focus:text-white"
+                    className="cursor-pointer gap-2 focus:bg-accent focus:text-accent-foreground"
                     onClick={() => router.visit('/nastaveni/profil')}
                 >
                     <User className="h-4 w-4" />
                     Profil
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                    className="cursor-pointer gap-2 focus:bg-[#F5F0E8]/[0.04] focus:text-white"
+                    className="cursor-pointer gap-2 focus:bg-accent focus:text-accent-foreground"
                     onClick={() => router.visit('/nastaveni')}
                 >
                     <Settings className="h-4 w-4" />
                     Nastavení
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-white/10" />
+                <DropdownMenuSeparator className="bg-border" />
                 <DropdownMenuItem
-                    className="cursor-pointer gap-2 text-red-400 focus:bg-[#F5F0E8]/[0.04] focus:text-red-300"
+                    className="cursor-pointer gap-2 text-red-400 focus:bg-accent focus:text-red-300"
                     onClick={handleLogout}
                 >
                     <LogOut className="h-4 w-4" />

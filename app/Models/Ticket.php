@@ -20,6 +20,13 @@ class Ticket extends Model
         'priority',
         'source_email',
         'resolved_at',
+        'source',
+        'phone',
+        'website',
+        'first_name',
+        'last_name',
+        'content',
+        'resolved_at',
     ];
 
     protected function casts(): array

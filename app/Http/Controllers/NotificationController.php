@@ -9,13 +9,19 @@ class NotificationController extends Controller
 {
     public function index(Request $request)
     {
-        $notifications = $request->user()
-            ->notifications()
-            ->latest()
-            ->paginate(25);
+        $filter = $request->input('filter', 'all');
+
+        $query = $request->user()->notifications()->latest();
+
+        if ($filter === 'unread') {
+            $query->whereNull('read_at');
+        }
+
+        $notifications = $query->paginate(25)->withQueryString();
 
         return Inertia::render('Notifications/Index', [
             'notifications' => $notifications,
+            'filter' => $filter,
         ]);
     }
 

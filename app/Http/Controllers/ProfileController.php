@@ -12,9 +12,7 @@ class ProfileController extends Controller
 {
     public function edit(Request $request)
     {
-        return Inertia::render('Settings/Profile', [
-            'user' => $request->user()->only('id', 'name', 'email', 'avatar_path'),
-        ]);
+        return redirect()->route('settings.index', ['tab' => 'profile']);
     }
 
     public function update(Request $request)

@@ -75,7 +75,7 @@ export default function Edit({ customer }: Props) {
             ]}
         >
             <div className="mx-auto max-w-3xl">
-                <h1 className="mb-6 text-2xl font-semibold text-white">
+                <h1 className="mb-6 text-2xl font-semibold text-foreground">
                     Upravit zákazníka
                 </h1>
                 <CustomerForm

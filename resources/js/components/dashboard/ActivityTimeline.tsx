@@ -1,54 +1,69 @@
+import { Link } from '@inertiajs/react';
 import {
     CheckCircle2,
+    Clock,
     CreditCard,
     FileText,
     MessageSquare,
+    Package,
+    Receipt,
     UserPlus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface Activity {
+export interface Activity {
     id: number;
-    icon: 'customer' | 'order' | 'invoice' | 'payment' | 'ticket';
+    icon: 'customer' | 'order' | 'invoice' | 'payment' | 'ticket' | 'time_entry' | 'cost' | 'item' | 'task' | 'estimate';
     text: string;
     time: string;
+    created_at: string;
+    changes?: string | null;
+    link?: string | null;
 }
 
 const iconMap = {
-    customer: { icon: UserPlus, color: 'text-amber-500', bg: 'bg-amber-500/10' },
-    order: { icon: FileText, color: 'text-[#D97706]', bg: 'bg-[#D97706]/10' },
-    invoice: { icon: FileText, color: 'text-[#D4A574]', bg: 'bg-[#D4A574]/10' },
-    payment: { icon: CreditCard, color: 'text-[#65A30D]', bg: 'bg-[#65A30D]/10' },
-    ticket: { icon: MessageSquare, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+    customer:   { icon: UserPlus,      color: 'text-amber-500',    bg: 'bg-amber-500/10' },
+    order:      { icon: FileText,      color: 'text-primary',      bg: 'bg-primary/10' },
+    invoice:    { icon: FileText,      color: 'text-[#D4A574]',    bg: 'bg-[#D4A574]/10' },
+    payment:    { icon: CreditCard,    color: 'text-lime-600',     bg: 'bg-lime-600/10' },
+    ticket:     { icon: MessageSquare, color: 'text-orange-500',   bg: 'bg-orange-500/10' },
+    time_entry: { icon: Clock,         color: 'text-sky-500',      bg: 'bg-sky-500/10' },
+    cost:       { icon: Receipt,       color: 'text-rose-500',     bg: 'bg-rose-500/10' },
+    item:       { icon: Package,       color: 'text-violet-500',   bg: 'bg-violet-500/10' },
+    task:       { icon: CheckCircle2,  color: 'text-emerald-500',  bg: 'bg-emerald-500/10' },
+    estimate:   { icon: FileText,      color: 'text-amber-400',    bg: 'bg-amber-400/10' },
 };
-
-const placeholderActivities: Activity[] = [
-    { id: 1, icon: 'customer', text: 'Nový zákazník: Studio Grafika s.r.o.', time: 'Před 2 hodinami' },
-    { id: 2, icon: 'payment', text: 'Faktura #2024-0042 zaplacena (12 500 Kč)', time: 'Před 3 hodinami' },
-    { id: 3, icon: 'order', text: 'Zakázka "Polep dodávky" dokončena', time: 'Před 5 hodinami' },
-    { id: 4, icon: 'ticket', text: 'Nový požadavek: Aktualizace webu neniweb.cz', time: 'Včera' },
-    { id: 5, icon: 'invoice', text: 'Vystavena faktura #2024-0043 (28 000 Kč)', time: 'Včera' },
-    { id: 6, icon: 'customer', text: 'Nový zákazník: Jan Procházka', time: 'Před 2 dny' },
-];
 
 interface Props {
     activities?: Activity[];
 }
 
 export default function ActivityTimeline({ activities }: Props) {
-    const items = activities ?? placeholderActivities;
+    const items = activities ?? [];
+
+    if (items.length === 0) {
+        return (
+            <div className="rounded-xl border border-border bg-card p-5">
+                <h3 className="mb-4 text-sm font-semibold text-muted-foreground">
+                    Poslední aktivita
+                </h3>
+                <p className="text-sm text-muted-foreground">Žádná aktivita</p>
+            </div>
+        );
+    }
 
     return (
-        <div className="rounded-xl border border-[#F5F0E8]/[0.06] bg-gradient-to-br from-[#16140f] to-[#141414] p-5">
-            <h3 className="mb-4 text-sm font-semibold text-[#9C9585]">
+        <div className="rounded-xl border border-border bg-card p-5">
+            <h3 className="mb-4 text-sm font-semibold text-muted-foreground">
                 Poslední aktivita
             </h3>
-            <div className="space-y-4">
+            <div className="max-h-[480px] space-y-4 overflow-y-auto overflow-x-hidden">
                 {items.map((activity, index) => {
-                    const config = iconMap[activity.icon];
+                    const config = iconMap[activity.icon] ?? iconMap.order;
                     const Icon = config.icon;
-                    return (
-                        <div key={activity.id} className="flex gap-3">
+
+                    const content = (
+                        <>
                             <div className="relative flex flex-col items-center">
                                 <div
                                     className={cn(
@@ -61,17 +76,40 @@ export default function ActivityTimeline({ activities }: Props) {
                                     />
                                 </div>
                                 {index < items.length - 1 && (
-                                    <div className="mt-1 h-full w-px bg-[#F5F0E8]/[0.05]" />
+                                    <div className="mt-1 h-full w-px bg-border" />
                                 )}
                             </div>
-                            <div className="pb-4">
-                                <p className="text-sm text-[#F5F0E8]/80">
+                            <div className="pb-4 min-w-0 flex-1">
+                                <p className="text-sm text-foreground/80">
                                     {activity.text}
                                 </p>
-                                <p className="mt-0.5 text-xs text-[#6B6560]">
+                                {activity.changes && (
+                                    <p className="mt-0.5 text-xs text-muted-foreground/70">
+                                        Změněno: {activity.changes}
+                                    </p>
+                                )}
+                                <p className="mt-0.5 text-xs text-muted-foreground">
                                     {activity.time}
                                 </p>
                             </div>
+                        </>
+                    );
+
+                    if (activity.link) {
+                        return (
+                            <Link
+                                key={activity.id}
+                                href={activity.link}
+                                className="flex gap-3 rounded-lg -mx-2 px-2 py-0.5 transition-colors hover:bg-accent/50"
+                            >
+                                {content}
+                            </Link>
+                        );
+                    }
+
+                    return (
+                        <div key={activity.id} className="flex gap-3">
+                            {content}
                         </div>
                     );
                 })}

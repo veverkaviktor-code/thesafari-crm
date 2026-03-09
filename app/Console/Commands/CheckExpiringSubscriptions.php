@@ -41,10 +41,7 @@ class CheckExpiringSubscriptions extends Command
             }
         }
 
-        // Mark expired subscriptions
-        Subscription::where('status', 'aktivni')
-            ->where('expires_at', '<', now())
-            ->update(['status' => 'expirovana']);
+        // Note: Status changes are managed manually by the user — no automatic status updates.
 
         $this->info("Notified {$notified} expiring subscriptions.");
     }

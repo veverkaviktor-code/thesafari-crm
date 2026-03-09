@@ -14,11 +14,13 @@ class OrderRequest extends FormRequest
 
     public function rules(): array
     {
+        $isUpdate = $this->isMethod('PUT') || $this->isMethod('PATCH');
+
         return [
-            'customer_id' => ['required', 'exists:customers,id'],
-            'division' => ['required', Rule::in(['tisk', 'reklama', 'polepy', 'montaze', 'weby'])],
+            'customer_id' => [$isUpdate ? 'sometimes' : 'required', 'exists:customers,id'],
+            'division' => [$isUpdate ? 'sometimes' : 'required', Rule::in(['tisk', 'reklama', 'polepy', 'montaze', 'weby'])],
             'status' => ['sometimes', Rule::in(['nova', 'v_reseni', 'hotovo', 'fakturovano'])],
-            'title' => ['required', 'string', 'max:255'],
+            'title' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'price' => ['nullable', 'numeric', 'min:0'],
             'deadline' => ['nullable', 'date'],

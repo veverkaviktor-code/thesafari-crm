@@ -36,16 +36,13 @@ class OrderController extends Controller
             'customer:id,name,company,email,phone',
             'timeEntries.user:id,name',
             'costs',
+            'items',
+            'attachments',
         ]);
 
         $timeEntries = $order->timeEntries;
         $totalMinutes = $timeEntries->sum(fn ($e) => $e->duration_minutes ?? 0);
-        $totalTimeCost = $timeEntries->sum(function ($e) {
-            if (! $e->duration_minutes || ! $e->hourly_rate) {
-                return 0;
-            }
-            return ($e->duration_minutes / 60) * (float) $e->hourly_rate;
-        });
+        $totalTimeCost = $timeEntries->sum(fn ($e) => $e->cost);
 
         $stats = [
             'total_time_minutes' => $totalMinutes,

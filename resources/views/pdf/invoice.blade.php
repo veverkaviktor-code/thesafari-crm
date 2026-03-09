@@ -6,112 +6,117 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: DejaVu Sans, sans-serif;
-            font-size: 10pt;
+            font-size: 9pt;
             color: #1a1a1a;
-            line-height: 1.5;
+            line-height: 1.4;
         }
-        .container { padding: 20mm 15mm; }
+        .container { padding: 15mm 15mm; }
 
         /* Header */
-        .header { display: table; width: 100%; margin-bottom: 10mm; }
+        .header { display: table; width: 100%; margin-bottom: 6mm; }
         .header-left { display: table-cell; width: 50%; vertical-align: top; }
         .header-right { display: table-cell; width: 50%; vertical-align: top; text-align: right; }
         .invoice-title {
-            font-size: 22pt;
+            font-size: 20pt;
             font-weight: bold;
             color: #D97706;
-            margin-bottom: 2mm;
+            margin-bottom: 1mm;
         }
-        .invoice-number {
-            font-size: 12pt;
-            color: #666;
-        }
+        .invoice-number { font-size: 11pt; color: #666; }
 
         /* Parties */
-        .parties { display: table; width: 100%; margin-bottom: 8mm; }
+        .parties { display: table; width: 100%; margin-bottom: 5mm; }
         .party { display: table-cell; width: 48%; vertical-align: top; }
         .party-spacer { display: table-cell; width: 4%; }
         .party-label {
-            font-size: 8pt;
+            font-size: 7pt;
             text-transform: uppercase;
             letter-spacing: 0.5pt;
             color: #999;
-            margin-bottom: 2mm;
+            margin-bottom: 1mm;
             padding-bottom: 1mm;
             border-bottom: 1px solid #e5e5e5;
         }
         .party-name {
-            font-size: 11pt;
+            font-size: 10pt;
             font-weight: bold;
             margin-bottom: 1mm;
         }
-        .party-detail { font-size: 9pt; color: #444; line-height: 1.6; }
+        .party-detail { font-size: 8.5pt; color: #444; line-height: 1.5; }
 
         /* Meta info */
         .meta-table {
             width: 100%;
-            margin-bottom: 8mm;
+            margin-bottom: 5mm;
             border-collapse: collapse;
         }
         .meta-table td {
-            padding: 2mm 3mm;
-            font-size: 9pt;
+            padding: 1.5mm 2mm;
+            font-size: 8.5pt;
             border-bottom: 1px solid #f0f0f0;
         }
-        .meta-label { color: #888; width: 35%; }
-        .meta-value { font-weight: bold; }
+        .meta-label { color: #888; width: 25%; }
+        .meta-value { font-weight: bold; width: 25%; }
 
         /* Items table */
         .items-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 6mm;
+            margin-bottom: 4mm;
         }
         .items-table thead th {
             background: #f8f8f8;
             border-bottom: 2px solid #D97706;
-            padding: 2.5mm 3mm;
-            font-size: 8.5pt;
+            padding: 2mm 2mm;
+            font-size: 7.5pt;
             text-transform: uppercase;
             letter-spacing: 0.3pt;
             color: #666;
             text-align: left;
+            white-space: nowrap;
         }
         .items-table thead th.right { text-align: right; }
         .items-table tbody td {
-            padding: 2.5mm 3mm;
+            padding: 1.5mm 2mm;
             border-bottom: 1px solid #f0f0f0;
-            font-size: 9.5pt;
+            font-size: 9pt;
+            vertical-align: middle;
         }
-        .items-table tbody td.right { text-align: right; }
+        .items-table tbody td.right {
+            text-align: right;
+            white-space: nowrap;
+        }
+        .items-table tbody td.num {
+            text-align: center;
+            white-space: nowrap;
+        }
 
         /* Total */
         .total-section {
             display: table;
             width: 100%;
-            margin-bottom: 8mm;
+            margin-bottom: 5mm;
         }
         .total-qr {
             display: table-cell;
-            width: 35%;
+            width: 30%;
             vertical-align: top;
         }
         .total-amounts {
             display: table-cell;
-            width: 65%;
+            width: 70%;
             vertical-align: top;
         }
         .total-row {
             display: table;
             width: 100%;
-            margin-bottom: 1mm;
         }
         .total-label {
             display: table-cell;
             width: 60%;
             text-align: right;
             padding: 1.5mm 3mm;
-            font-size: 9.5pt;
+            font-size: 9pt;
             color: #666;
         }
         .total-value {
@@ -119,7 +124,7 @@
             width: 40%;
             text-align: right;
             padding: 1.5mm 3mm;
-            font-size: 9.5pt;
+            font-size: 9pt;
         }
         .total-final {
             border-top: 2px solid #D97706;
@@ -132,45 +137,46 @@
             color: #1a1a1a;
         }
         .total-final .total-value {
-            font-size: 14pt;
+            font-size: 13pt;
             font-weight: bold;
             color: #D97706;
+            white-space: nowrap;
         }
 
         /* QR code */
         .qr-label {
-            font-size: 7.5pt;
+            font-size: 7pt;
             color: #999;
             text-transform: uppercase;
             letter-spacing: 0.3pt;
-            margin-bottom: 2mm;
+            margin-bottom: 1mm;
         }
 
         /* Footer */
         .footer {
-            margin-top: 10mm;
-            padding-top: 4mm;
+            margin-top: 8mm;
+            padding-top: 3mm;
             border-top: 1px solid #e5e5e5;
         }
         .footer-row { display: table; width: 100%; }
-        .footer-col { display: table-cell; width: 33%; font-size: 8pt; color: #999; }
+        .footer-col { display: table-cell; width: 33%; font-size: 7.5pt; color: #999; }
         .footer-col.center { text-align: center; }
         .footer-col.right { text-align: right; }
 
         .notes {
-            margin-top: 4mm;
-            padding: 3mm;
+            margin-top: 3mm;
+            padding: 2mm 3mm;
             background: #fafafa;
             border-left: 3px solid #D97706;
-            font-size: 9pt;
+            font-size: 8.5pt;
             color: #555;
         }
 
         .neplatce-dph {
-            font-size: 8.5pt;
+            font-size: 8pt;
             color: #999;
             font-style: italic;
-            margin-top: 2mm;
+            margin-top: 1mm;
         }
     </style>
 </head>
@@ -183,11 +189,7 @@
             <div class="invoice-number">č. {{ $invoice->invoice_number }}</div>
         </div>
         <div class="header-right">
-            @if($company->logo_path)
-                <img src="{{ storage_path('app/public/' . $company->logo_path) }}" height="40" alt="Logo">
-            @else
-                <div style="font-size: 14pt; font-weight: bold; color: #D97706;">{{ $company->company_name }}</div>
-            @endif
+            <img src="{{ storage_path('app/email-assets/safari-logo-invoice.svg') }}" width="300" alt="Safari" style="border: none;">
         </div>
     </div>
 
@@ -252,10 +254,10 @@
     <table class="items-table">
         <thead>
             <tr>
-                <th style="width: 5%;">#</th>
-                <th style="width: 45%;">Popis</th>
-                <th class="right" style="width: 10%;">Množství</th>
-                <th class="right" style="width: 10%;">Jednotka</th>
+                <th style="width: 4%;">#</th>
+                <th style="width: 50%;">Popis</th>
+                <th class="right" style="width: 8%;">Mn.</th>
+                <th class="right" style="width: 8%;">Jedn.</th>
                 <th class="right" style="width: 15%;">Cena/ks</th>
                 <th class="right" style="width: 15%;">Celkem</th>
             </tr>
@@ -263,12 +265,12 @@
         <tbody>
             @foreach($invoice->items as $i => $item)
             <tr>
-                <td>{{ $i + 1 }}</td>
+                <td class="num">{{ $i + 1 }}</td>
                 <td>{{ $item->description }}</td>
-                <td class="right">{{ rtrim(rtrim(number_format($item->quantity, 2, ',', ' '), '0'), ',') }}</td>
-                <td class="right">{{ $item->unit }}</td>
-                <td class="right">{{ number_format($item->unit_price, 2, ',', ' ') }} Kč</td>
-                <td class="right">{{ number_format($item->total_price, 2, ',', ' ') }} Kč</td>
+                <td class="num">{{ rtrim(rtrim(number_format($item->quantity, 2, ',', ' '), '0'), ',') }}</td>
+                <td class="num">{{ $item->unit }}</td>
+                <td class="right">{{ number_format($item->unit_price, 0, ',', ' ') }} Kč</td>
+                <td class="right">{{ number_format($item->total_price, 0, ',', ' ') }} Kč</td>
             </tr>
             @endforeach
         </tbody>
@@ -279,13 +281,13 @@
         <div class="total-qr">
             @if($qrSvg)
                 <div class="qr-label">QR platba</div>
-                <img src="data:image/svg+xml;base64,{{ $qrSvg }}" width="120" height="120" alt="QR kód">
+                <img src="data:image/svg+xml;base64,{{ $qrSvg }}" width="100" height="100" alt="QR kód">
             @endif
         </div>
         <div class="total-amounts">
             <div class="total-row total-final">
                 <div class="total-label">Celkem k úhradě</div>
-                <div class="total-value">{{ number_format($invoice->total, 2, ',', ' ') }} Kč</div>
+                <div class="total-value">{{ number_format($invoice->total, 0, ',', ' ') }} Kč</div>
             </div>
             <div class="neplatce-dph">Nejsme plátci DPH.</div>
         </div>

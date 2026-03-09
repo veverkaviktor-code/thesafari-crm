@@ -20,7 +20,18 @@ import DivisionBadge, {
 } from '@/components/orders/DivisionBadge';
 import TimeTracker from '@/components/orders/TimeTracker';
 import CostsList from '@/components/orders/CostsList';
-import { cn } from '@/lib/utils';
+import OrderItems from '@/components/orders/OrderItems';
+import OrderAttachments from '@/components/orders/OrderAttachments';
+import { cn, formatCurrency } from '@/lib/utils';
+
+interface Attachment {
+    id: number;
+    filename: string;
+    description: string | null;
+    mime_type: string | null;
+    size: number;
+    created_at: string;
+}
 
 interface TimeEntry {
     id: number;
@@ -29,6 +40,7 @@ interface TimeEntry {
     description: string | null;
     duration_minutes: number;
     hourly_rate: number | null;
+    billable_hours: number;
     cost: number;
 }
 
@@ -36,6 +48,16 @@ interface OrderCost {
     id: number;
     title: string;
     amount: number;
+}
+
+interface OrderItem {
+    id: number;
+    name: string;
+    description: string | null;
+    quantity: number;
+    unit: string;
+    unit_price: number;
+    total: number;
 }
 
 interface Customer {
@@ -56,6 +78,11 @@ interface Order {
     created_at: string;
     time_entries: TimeEntry[];
     costs: OrderCost[];
+    items: OrderItem[];
+    attachments: Attachment[];
+}
+
+interface Stats {
     total_time_minutes: number;
     total_time_cost: number;
     total_costs: number;
@@ -64,17 +91,18 @@ interface Order {
 
 interface Props {
     order: Order;
+    stats: Stats;
 }
 
-const formatCurrency = (v: number) =>
-    new Intl.NumberFormat('cs-CZ', {
-        style: 'currency',
-        currency: 'CZK',
-        maximumFractionDigits: 0,
-    }).format(v);
+function formatHoursMinutes(minutes: number): string {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    if (h === 0) return `${m} min`;
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
 
 function deadlineInfo(deadline: string | null) {
-    if (!deadline) return { text: 'Bez termínu', className: 'text-[#6B6560]' };
+    if (!deadline) return { text: 'Bez termínu', className: 'text-muted-foreground' };
     const diff = new Date(deadline).getTime() - Date.now();
     const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
     const formatted = format(new Date(deadline), 'd. MMMM yyyy', { locale: cs });
@@ -88,12 +116,23 @@ function deadlineInfo(deadline: string | null) {
             text: `${formatted} (za ${days} ${days === 1 ? 'den' : days < 5 ? 'dny' : 'dní'})`,
             className: 'text-amber-400',
         };
-    return { text: formatted, className: 'text-[#F5F0E8]/70' };
+    return { text: formatted, className: 'text-foreground/70' };
 }
 
-export default function Show({ order }: Props) {
+export default function Show({ order, stats }: Props) {
     const deadline = deadlineInfo(order.deadline);
-    const profit = order.price - order.total_time_cost - order.total_costs;
+    const itemsPrice = Number(order.price) || 0;
+    const timeCost = Number(stats.total_time_cost) || 0;
+    const totalRevenue = itemsPrice + timeCost;
+    const materialCosts = Number(stats.total_costs) || 0;
+    const profit = totalRevenue - materialCosts;
+    const margin = totalRevenue > 0 ? (profit / totalRevenue) * 100 : 0;
+    const marginClassName =
+        margin >= 30
+            ? 'text-emerald-400'
+            : margin >= 10
+              ? 'text-amber-400'
+              : 'text-red-400';
 
     const handleStatusChange = (status: string) => {
         router.put(
@@ -127,7 +166,7 @@ export default function Show({ order }: Props) {
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                         <div className="flex items-center gap-3">
-                            <h1 className="text-2xl font-semibold text-white">
+                            <h1 className="text-2xl font-semibold text-foreground">
                                 {order.title}
                             </h1>
                             <OrderStatusBadge status={order.status} />
@@ -136,7 +175,7 @@ export default function Show({ order }: Props) {
                         <div className="mt-2 flex items-center gap-4 text-sm">
                             <Link
                                 href={`/zakaznici/${order.customer.id}`}
-                                className="text-[#D97706] hover:underline"
+                                className="text-primary hover:underline"
                             >
                                 {order.customer.name}
                             </Link>
@@ -150,21 +189,21 @@ export default function Show({ order }: Props) {
                             value={order.status}
                             onValueChange={handleStatusChange}
                         >
-                            <SelectTrigger className="w-[140px] border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]">
+                            <SelectTrigger className="w-[140px] border-border bg-accent">
                                 <SelectValue />
                             </SelectTrigger>
-                            <SelectContent className="border-[#F5F0E8]/[0.06] bg-[#16140f]">
-                                <SelectItem value="nova" className="focus:bg-[#F5F0E8]/[0.04]">Nová</SelectItem>
-                                <SelectItem value="v_reseni" className="focus:bg-[#F5F0E8]/[0.04]">V řešení</SelectItem>
-                                <SelectItem value="hotovo" className="focus:bg-[#F5F0E8]/[0.04]">Hotovo</SelectItem>
-                                <SelectItem value="fakturovano" className="focus:bg-[#F5F0E8]/[0.04]">Fakturováno</SelectItem>
+                            <SelectContent className="border-border bg-card">
+                                <SelectItem value="nova" className="focus:bg-accent">Nová</SelectItem>
+                                <SelectItem value="v_reseni" className="focus:bg-accent">V řešení</SelectItem>
+                                <SelectItem value="hotovo" className="focus:bg-accent">Hotovo</SelectItem>
+                                <SelectItem value="fakturovano" className="focus:bg-accent">Fakturováno</SelectItem>
                             </SelectContent>
                         </Select>
                         <Button
                             asChild
                             variant="ghost"
                             size="icon"
-                            className="text-[#9C9585] hover:text-[#F5F0E8]"
+                            className="text-muted-foreground hover:text-foreground"
                         >
                             <Link href={`/zakazky/${order.id}/upravit`}>
                                 <Pencil className="h-4 w-4" />
@@ -173,7 +212,7 @@ export default function Show({ order }: Props) {
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="text-[#9C9585] hover:text-red-400"
+                            className="text-muted-foreground hover:text-red-400"
                             onClick={handleDelete}
                         >
                             <Trash2 className="h-4 w-4" />
@@ -186,25 +225,31 @@ export default function Show({ order }: Props) {
                     {/* Left: Details */}
                     <div className="space-y-6 lg:col-span-2">
                         {/* Description + Price */}
-                        <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-5">
+                        <div className="rounded-xl border border-border bg-card p-5">
                             {order.description && (
-                                <p className="mb-4 text-sm leading-relaxed text-[#9C9585]">
+                                <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
                                     {order.description}
                                 </p>
                             )}
-                            <div className="grid gap-4 sm:grid-cols-3">
+                            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                                 <InfoBox
                                     label="Cena zakázky"
-                                    value={formatCurrency(order.price)}
-                                    className="text-white"
+                                    value={formatCurrency(totalRevenue)}
+                                    className="text-foreground"
+                                    subtitle={timeCost > 0 ? `položky ${formatCurrency(itemsPrice)} + čas ${formatCurrency(timeCost)}` : undefined}
+                                    subtitleClassName="text-muted-foreground"
                                 />
                                 <InfoBox
-                                    label="Náklady celkem"
-                                    value={formatCurrency(
-                                        order.total_time_cost +
-                                            order.total_costs,
-                                    )}
-                                    className="text-[#F5F0E8]/70"
+                                    label="Odpracováno"
+                                    value={formatHoursMinutes(stats.total_time_minutes ?? 0)}
+                                    className="text-foreground/70"
+                                    subtitle={timeCost > 0 ? formatCurrency(timeCost) : undefined}
+                                    subtitleClassName="text-primary"
+                                />
+                                <InfoBox
+                                    label="Náklady"
+                                    value={formatCurrency(materialCosts)}
+                                    className="text-foreground/70"
                                 />
                                 <InfoBox
                                     label="Zisk"
@@ -214,6 +259,8 @@ export default function Show({ order }: Props) {
                                             ? 'text-emerald-400'
                                             : 'text-red-400'
                                     }
+                                    subtitle={`marže ${Math.round(margin)} %`}
+                                    subtitleClassName={marginClassName}
                                 />
                             </div>
                         </div>
@@ -222,25 +269,61 @@ export default function Show({ order }: Props) {
                         <TimeTracker
                             orderId={order.id}
                             timeEntries={completedEntries}
-                            runningTimer={order.running_timer}
-                            totalTimeMinutes={order.total_time_minutes}
-                            totalTimeCost={order.total_time_cost}
+                            runningTimer={stats.running_timer ?? null}
+                            totalTimeMinutes={stats.total_time_minutes ?? 0}
+                            totalTimeCost={stats.total_time_cost ?? 0}
+                        />
+
+                        {/* Order Items */}
+                        <OrderItems
+                            orderId={order.id}
+                            items={order.items ?? []}
                         />
                     </div>
 
                     {/* Right sidebar */}
                     <div className="space-y-6">
+                        {/* Order info card */}
+                        <div className="rounded-xl border border-border bg-card p-5">
+                            <h3 className="mb-3 text-sm font-semibold text-foreground/70">
+                                Info
+                            </h3>
+                            <div className="space-y-2 text-sm">
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Vytvořeno</span>
+                                    <span className="text-foreground/70">
+                                        {format(
+                                            new Date(order.created_at),
+                                            'd. M. yyyy',
+                                        )}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Časové záznamy</span>
+                                    <span className="text-foreground/70">
+                                        {order.time_entries.length}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Materiálové náklady</span>
+                                    <span className="text-foreground/70">
+                                        {order.costs.length}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Costs */}
                         <CostsList
                             orderId={order.id}
                             costs={order.costs}
-                            totalCosts={order.total_costs}
+                            totalCosts={stats.total_costs ?? 0}
                         />
 
                         {/* Invoice button */}
                         <Button
                             asChild
-                            className="w-full bg-[#D97706] text-white hover:bg-[#B45309]"
+                            className="w-full bg-primary text-white hover:bg-primary/80"
                         >
                             <Link
                                 href={`/faktury/create?order_id=${order.id}`}
@@ -250,35 +333,11 @@ export default function Show({ order }: Props) {
                             </Link>
                         </Button>
 
-                        {/* Order info card */}
-                        <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-5">
-                            <h3 className="mb-3 text-sm font-semibold text-[#F5F0E8]/70">
-                                Info
-                            </h3>
-                            <div className="space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                    <span className="text-[#6B6560]">Vytvořeno</span>
-                                    <span className="text-[#F5F0E8]/70">
-                                        {format(
-                                            new Date(order.created_at),
-                                            'd. M. yyyy',
-                                        )}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-[#6B6560]">Časové záznamy</span>
-                                    <span className="text-[#F5F0E8]/70">
-                                        {order.time_entries.length}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-[#6B6560]">Materiálové náklady</span>
-                                    <span className="text-[#F5F0E8]/70">
-                                        {order.costs.length}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
+                        {/* Attachments */}
+                        <OrderAttachments
+                            orderId={order.id}
+                            attachments={order.attachments ?? []}
+                        />
                     </div>
                 </div>
             </div>
@@ -290,17 +349,24 @@ function InfoBox({
     label,
     value,
     className,
+    subtitle,
+    subtitleClassName,
 }: {
     label: string;
     value: string;
     className?: string;
+    subtitle?: string;
+    subtitleClassName?: string;
 }) {
     return (
-        <div className="rounded-lg bg-white/[0.03] p-3">
-            <p className="text-xs text-[#6B6560]">{label}</p>
+        <div className="rounded-lg bg-accent p-3">
+            <p className="text-xs text-muted-foreground">{label}</p>
             <p className={cn('mt-1 text-lg font-semibold', className)}>
                 {value}
             </p>
+            {subtitle && (
+                <p className={cn('text-xs', subtitleClassName)}>{subtitle}</p>
+            )}
         </div>
     );
 }

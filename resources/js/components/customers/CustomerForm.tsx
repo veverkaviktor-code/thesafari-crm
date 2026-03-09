@@ -1,13 +1,14 @@
 import { type FormEvent, type KeyboardEvent, useRef, useState } from 'react';
-import { type InertiaFormProps } from '@inertiajs/react';
-import { Upload, X } from 'lucide-react';
+import { router, type InertiaFormProps } from '@inertiajs/react';
+import { Loader2, Plus, Search, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import { cn } from '@/lib/utils';
+import { cn, formatPhone } from '@/lib/utils';
+import { FieldError } from '@/components/ui/FieldError';
 
 export interface CustomerFormData {
     type: 'fyzicka' | 'pravnicka';
@@ -83,15 +84,22 @@ export default function CustomerForm({
     const [tagInput, setTagInput] = useState('');
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [aresLoading, setAresLoading] = useState(false);
+    const [aresError, setAresError] = useState<string | null>(null);
+    const [aresSuccess, setAresSuccess] = useState(false);
+
+    const addPendingTag = () => {
+        const value = tagInput.trim();
+        if (value && !data.tags.includes(value)) {
+            setData('tags', [...data.tags, value]);
+        }
+        setTagInput('');
+    };
 
     const handleTagKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            const value = tagInput.trim();
-            if (value && !data.tags.includes(value)) {
-                setData('tags', [...data.tags, value]);
-            }
-            setTagInput('');
+            addPendingTag();
         }
     };
 
@@ -114,21 +122,60 @@ export default function CustomerForm({
         }
     };
 
+    const handleAresLookup = async () => {
+        const ico = data.ico.trim();
+        if (!ico || ico.length !== 8) {
+            setAresError('IČO musí obsahovat 8 číslic.');
+            return;
+        }
+        setAresLoading(true);
+        setAresError(null);
+        setAresSuccess(false);
+        try {
+            const response = await fetch(`/api/ares/${ico}`);
+            const result = await response.json();
+            if (!response.ok) {
+                setAresError(result.error || 'Chyba při vyhledávání.');
+                return;
+            }
+            if (result.name) setData('name', result.name);
+            if (result.dic) setData('dic', result.dic);
+            if (result.street) setData('billing_street', result.street);
+            if (result.city) setData('billing_city', result.city);
+            if (result.zip) setData('billing_zip', result.zip);
+            if (result.country) setData('billing_country', result.country);
+            setData('type', 'pravnicka');
+            setAresSuccess(true);
+            setTimeout(() => setAresSuccess(false), 3000);
+        } catch {
+            setAresError('Nepodařilo se připojit k ARES.');
+        } finally {
+            setAresLoading(false);
+        }
+    };
+
+    const normalizeUrl = (url: string): string => {
+        const trimmed = url.trim();
+        if (!trimmed) return '';
+        if (/^https?:\/\//i.test(trimmed)) return trimmed;
+        return `https://${trimmed}`;
+    };
+
     const handleCancel = () => {
         if (onCancel) {
             onCancel();
         } else {
-            window.history.back();
+            router.visit('/zakaznici');
         }
     };
 
     return (
         <form onSubmit={onSubmit} className="space-y-8">
             {/* Type toggle + Avatar */}
-            <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-6">
+            <div className="rounded-xl border border-border bg-card p-6">
                 <div className="flex items-start justify-between gap-6">
                     <div className="flex-1 space-y-4">
-                        <Label className="text-[#F5F0E8]/70">Typ zákazníka</Label>
+                        <Label className="text-foreground/70">Typ zákazníka</Label>
                         <div className="flex gap-2">
                             {(
                                 [
@@ -143,8 +190,8 @@ export default function CustomerForm({
                                     className={cn(
                                         'rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
                                         data.type === opt.value
-                                            ? 'border-[#D97706] bg-[#D97706]/10 text-[#D97706]'
-                                            : 'border-[#F5F0E8]/[0.06] text-[#9C9585] hover:border-white/20 hover:text-[#F5F0E8]/70',
+                                            ? 'border-primary bg-primary/10 text-primary'
+                                            : 'border-border text-muted-foreground hover:border-white/20 hover:text-foreground/70',
                                     )}
                                 >
                                     {opt.label}
@@ -159,7 +206,7 @@ export default function CustomerForm({
                         <button
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
-                            className="group flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-[#F5F0E8]/[0.06] transition-colors hover:border-white/20"
+                            className="group flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-border transition-colors hover:border-white/20"
                         >
                             {avatarPreview ? (
                                 <img
@@ -168,7 +215,7 @@ export default function CustomerForm({
                                     className="h-full w-full object-cover"
                                 />
                             ) : (
-                                <Upload className="h-5 w-5 text-[#6B6560] transition-colors group-hover:text-[#9C9585]" />
+                                <Upload className="h-5 w-5 text-muted-foreground transition-colors group-hover:text-muted-foreground" />
                             )}
                         </button>
                         <input
@@ -178,14 +225,14 @@ export default function CustomerForm({
                             className="hidden"
                             onChange={handleAvatarChange}
                         />
-                        <span className="text-xs text-[#6B6560]">Avatar</span>
+                        <span className="text-xs text-muted-foreground">Avatar</span>
                     </div>
                 </div>
             </div>
 
             {/* Basic info */}
-            <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-6">
-                <h3 className="mb-4 text-sm font-semibold text-[#F5F0E8]/70">
+            <div className="rounded-xl border border-border bg-card p-6">
+                <h3 className="mb-4 text-sm font-semibold text-foreground/70">
                     Základní údaje
                 </h3>
                 <div className="grid gap-4 md:grid-cols-2">
@@ -200,23 +247,52 @@ export default function CustomerForm({
                                 : 'Firma s.r.o.'
                         }
                     />
-                    {data.type === 'pravnicka' && (
-                        <Field
-                            label="Společnost"
-                            value={data.company}
-                            onChange={(v) => setData('company', v)}
-                            error={errors.company}
-                            placeholder="Název společnosti"
-                        />
-                    )}
                     <Field
-                        label="IČO"
-                        value={data.ico}
-                        onChange={(v) => setData('ico', v)}
-                        error={errors.ico}
-                        placeholder="12345678"
-                        maxLength={8}
+                        label="Obchodní název"
+                        value={data.company}
+                        onChange={(v) => setData('company', v)}
+                        error={errors.company}
+                        placeholder="Pokud se liší od názvu"
                     />
+                    <div className="space-y-1.5">
+                        <Label className="text-muted-foreground">IČO</Label>
+                        <div className="flex gap-2">
+                            <Input
+                                value={data.ico}
+                                onChange={(e) => {
+                                    setData('ico', e.target.value);
+                                    setAresError(null);
+                                    setAresSuccess(false);
+                                }}
+                                placeholder="12345678"
+                                maxLength={8}
+                                className="border-border bg-accent"
+                                aria-invalid={!!errors.ico || !!aresError}
+                            />
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={aresLoading || data.ico.trim().length !== 8}
+                                onClick={handleAresLookup}
+                                className="shrink-0 border-border text-muted-foreground hover:border-primary hover:text-primary"
+                            >
+                                {aresLoading ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Search className="h-4 w-4" />
+                                )}
+                                <span className="ml-1.5">ARES</span>
+                            </Button>
+                        </div>
+                        <FieldError error={errors.ico} />
+                        {aresError && (
+                            <p className="text-xs text-red-400">{aresError}</p>
+                        )}
+                        {aresSuccess && (
+                            <p className="text-xs text-emerald-400">Data z ARES načtena.</p>
+                        )}
+                    </div>
                     <Field
                         label="DIČ"
                         value={data.dic}
@@ -228,8 +304,8 @@ export default function CustomerForm({
             </div>
 
             {/* Contact info */}
-            <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-6">
-                <h3 className="mb-4 text-sm font-semibold text-[#F5F0E8]/70">
+            <div className="rounded-xl border border-border bg-card p-6">
+                <h3 className="mb-4 text-sm font-semibold text-foreground/70">
                     Kontaktní údaje
                 </h3>
                 <div className="grid gap-4 md:grid-cols-2">
@@ -248,28 +324,37 @@ export default function CustomerForm({
                         placeholder="email@example.com"
                         type="email"
                     />
-                    <Field
-                        label="Telefon"
-                        value={data.phone}
-                        onChange={(v) => setData('phone', v)}
-                        error={errors.phone}
-                        placeholder="+420 123 456 789"
-                        type="tel"
-                    />
-                    <Field
-                        label="Web"
-                        value={data.web}
-                        onChange={(v) => setData('web', v)}
-                        error={errors.web}
-                        placeholder="https://example.com"
-                        type="url"
-                    />
+                    <div className="space-y-1.5">
+                        <Label className="text-muted-foreground">Telefon</Label>
+                        <Input
+                            type="tel"
+                            value={data.phone}
+                            onChange={(e) => setData('phone', e.target.value)}
+                            onBlur={() => setData('phone', formatPhone(data.phone))}
+                            placeholder="+420 123 456 789"
+                            className="border-border bg-accent"
+                            aria-invalid={!!errors.phone}
+                        />
+                        <FieldError error={errors.phone} />
+                    </div>
+                    <div className="space-y-1.5">
+                        <Label className="text-muted-foreground">Web</Label>
+                        <Input
+                            value={data.web}
+                            onChange={(e) => setData('web', e.target.value)}
+                            onBlur={() => setData('web', normalizeUrl(data.web))}
+                            placeholder="example.com"
+                            className="border-border bg-accent"
+                            aria-invalid={!!errors.web}
+                        />
+                        <FieldError error={errors.web} />
+                    </div>
                 </div>
             </div>
 
             {/* Billing address */}
-            <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-6">
-                <h3 className="mb-4 text-sm font-semibold text-[#F5F0E8]/70">
+            <div className="rounded-xl border border-border bg-card p-6">
+                <h3 className="mb-4 text-sm font-semibold text-foreground/70">
                     Fakturační adresa
                 </h3>
                 <AddressFields
@@ -281,12 +366,12 @@ export default function CustomerForm({
             </div>
 
             {/* Delivery address */}
-            <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-6">
+            <div className="rounded-xl border border-border bg-card p-6">
                 <div className="mb-4 flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-[#F5F0E8]/70">
+                    <h3 className="text-sm font-semibold text-foreground/70">
                         Doručovací adresa
                     </h3>
-                    <label className="flex items-center gap-2 text-sm text-[#9C9585]">
+                    <label className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Checkbox
                             checked={data.delivery_same}
                             onCheckedChange={(checked) =>
@@ -307,16 +392,30 @@ export default function CustomerForm({
             </div>
 
             {/* Tags */}
-            <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-6">
-                <h3 className="mb-4 text-sm font-semibold text-[#F5F0E8]/70">Štítky</h3>
+            <div className="rounded-xl border border-border bg-card p-6">
+                <h3 className="mb-4 text-sm font-semibold text-foreground/70">Štítky</h3>
                 <div className="space-y-3">
-                    <Input
-                        value={tagInput}
-                        onChange={(e) => setTagInput(e.target.value)}
-                        onKeyDown={handleTagKeyDown}
-                        placeholder="Napište štítek a stiskněte Enter..."
-                        className="border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]"
-                    />
+                    <div className="flex gap-2">
+                        <Input
+                            value={tagInput}
+                            onChange={(e) => setTagInput(e.target.value)}
+                            onKeyDown={handleTagKeyDown}
+                            onBlur={addPendingTag}
+                            placeholder="Napište štítek a stiskněte Enter..."
+                            className="border-border bg-accent"
+                        />
+                        {tagInput.trim() && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                onClick={addPendingTag}
+                                className="shrink-0 border-border text-muted-foreground hover:text-foreground"
+                            >
+                                <Plus className="h-4 w-4" />
+                            </Button>
+                        )}
+                    </div>
                     {data.tags.length > 0 && (
                         <div className="flex flex-wrap gap-2">
                             {data.tags.map((tag, i) => (
@@ -331,7 +430,7 @@ export default function CustomerForm({
                                     <button
                                         type="button"
                                         onClick={() => removeTag(tag)}
-                                        className="ml-0.5 rounded-full p-0.5 transition-colors hover:bg-white/10"
+                                        className="ml-0.5 rounded-full p-0.5 transition-colors hover:bg-accent"
                                     >
                                         <X className="h-3 w-3" />
                                     </button>
@@ -343,15 +442,15 @@ export default function CustomerForm({
             </div>
 
             {/* Notes */}
-            <div className="rounded-xl border border-[#F5F0E8]/[0.05] bg-[#16140f] p-6">
-                <h3 className="mb-4 text-sm font-semibold text-[#F5F0E8]/70">
+            <div className="rounded-xl border border-border bg-card p-6">
+                <h3 className="mb-4 text-sm font-semibold text-foreground/70">
                     Poznámky
                 </h3>
                 <Textarea
                     value={data.notes}
                     onChange={(e) => setData('notes', e.target.value)}
                     placeholder="Interní poznámky k zákazníkovi..."
-                    className="min-h-24 border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]"
+                    className="min-h-24 border-border bg-accent"
                 />
                 <FieldError error={errors.notes} />
             </div>
@@ -361,16 +460,16 @@ export default function CustomerForm({
                 <Button
                     type="button"
                     variant="ghost"
-                    className="text-[#9C9585] hover:text-[#F5F0E8]"
+                    className="text-muted-foreground hover:text-foreground"
                     onClick={handleCancel}
                 >
                     Zrušit
                 </Button>
-                <Separator orientation="vertical" className="h-6 bg-white/10" />
+                <Separator orientation="vertical" className="h-6 bg-border" />
                 <Button
                     type="submit"
                     disabled={processing}
-                    className="bg-[#D97706] text-white hover:bg-[#B45309]"
+                    className="bg-primary text-white hover:bg-primary/80"
                 >
                     {processing ? 'Ukládám...' : submitLabel}
                 </Button>
@@ -400,14 +499,14 @@ function Field({
 }) {
     return (
         <div className="space-y-1.5">
-            <Label className="text-[#9C9585]">{label}</Label>
+            <Label className="text-muted-foreground">{label}</Label>
             <Input
                 type={type}
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}
                 maxLength={maxLength}
-                className="border-[#F5F0E8]/[0.06] bg-[#F5F0E8]/[0.04]"
+                className="border-border bg-accent"
                 aria-invalid={!!error}
             />
             <FieldError error={error} />
@@ -467,7 +566,3 @@ function AddressFields({
     );
 }
 
-function FieldError({ error }: { error?: string }) {
-    if (!error) return null;
-    return <p className="text-xs text-red-400">{error}</p>;
-}
