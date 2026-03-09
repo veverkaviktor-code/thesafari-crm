@@ -14,8 +14,7 @@
                     <!-- Header with logo -->
                     <tr>
                         <td style="padding: 32px 40px 0 40px; text-align: center;">
-                            <img src="cid:safari-logo" alt="TheSafari.cz" width="180" style="display: block; margin: 0 auto 16px auto;">
-                            <p style="margin: 0; font-size: 13px; color: #888888;">Web &middot; Tisk &middot; Reklama</p>
+                            <img src="cid:safari-logo" alt="TheSafari.cz" width="300" style="display: block; margin: 0 auto;">
                         </td>
                     </tr>
 
