@@ -187,7 +187,7 @@ export default function Show({ estimate, customers }: Props) {
                 preserveState: true,
             });
         }
-    }, [nestingResult.grandTotal]);
+    }, [nestingResult.grandTotal, estimate.id, estimate.total_price]);
 
     // ---------------------------------------------------------------------------
     // Handlers — estimate meta

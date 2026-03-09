@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function ForgotPassword() {
-    const { flash } = usePage<{ flash?: { type: string; message: string } }>().props as any;
+    const { flash } = usePage<{ flash?: { type: string; message: string } }>().props;
 
     const { data, setData, post, processing, errors } = useForm({
         email: '',

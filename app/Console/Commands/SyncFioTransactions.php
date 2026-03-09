@@ -56,7 +56,7 @@ class SyncFioTransactions extends Command
             return self::SUCCESS;
         }
 
-        $admin = User::first();
+        $admin = User::admin();
 
         foreach ($transactions as $txData) {
             $this->processTransaction($txData, $admin);

@@ -17,8 +17,23 @@ class AutoInvoiceSubscriptions extends Command
 
     public function handle(): int
     {
+        $lock = \Illuminate\Support\Facades\Cache::lock('auto-invoice-subscriptions', 300);
+        if (!$lock->get()) {
+            $this->warn('Příkaz již běží.');
+            return 0;
+        }
+
+        try {
+            return $this->doExecute();
+        } finally {
+            $lock->release();
+        }
+    }
+
+    private function doExecute(): int
+    {
         $dryRun = $this->option('dry-run');
-        $admin = User::first();
+        $admin = User::admin();
 
         $subscriptions = Subscription::where('status', 'aktivni')
             ->where('auto_renew', true)

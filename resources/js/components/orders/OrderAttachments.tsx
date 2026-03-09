@@ -3,6 +3,7 @@ import { router } from '@inertiajs/react';
 import { Download, Paperclip, Trash2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { formatDate } from '@/lib/utils';
 
 interface Attachment {
     id: number;
@@ -23,14 +24,6 @@ function formatFileSize(bytes: number): string {
     if (bytes < 1048576) return (bytes / 1024).toFixed(0) + ' KB';
     if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
     return (bytes / 1073741824).toFixed(1) + ' GB';
-}
-
-function formatDate(dateStr: string): string {
-    return new Date(dateStr).toLocaleDateString('cs-CZ', {
-        day: 'numeric',
-        month: 'numeric',
-        year: 'numeric',
-    });
 }
 
 export default function OrderAttachments({ orderId, attachments }: Props) {

@@ -22,7 +22,7 @@ import TimeTracker from '@/components/orders/TimeTracker';
 import CostsList from '@/components/orders/CostsList';
 import OrderItems from '@/components/orders/OrderItems';
 import OrderAttachments from '@/components/orders/OrderAttachments';
-import { cn, formatCurrency } from '@/lib/utils';
+import { cn, formatCurrency, formatHoursMinutes } from '@/lib/utils';
 
 interface Attachment {
     id: number;
@@ -92,13 +92,6 @@ interface Stats {
 interface Props {
     order: Order;
     stats: Stats;
-}
-
-function formatHoursMinutes(minutes: number): string {
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    if (h === 0) return `${m} min`;
-    return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
 function deadlineInfo(deadline: string | null) {

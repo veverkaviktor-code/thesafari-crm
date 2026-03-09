@@ -77,7 +77,7 @@ class TicketController extends Controller
             'content' => $validated['message'],
         ]);
 
-        $admin = \App\Models\User::where('role', 'admin')->first();
+        $admin = \App\Models\User::admin();
         $admin?->notify(new \App\Notifications\NewTicket($ticket));
 
         return redirect()->route('zpravy.show', $ticket)
@@ -130,10 +130,14 @@ class TicketController extends Controller
 
         // Send email to customer if they have source_email
         if ($ticket->source_email) {
-            Mail::raw($validated['content'], function ($message) use ($ticket) {
-                $message->to($ticket->source_email)
-                    ->subject("Re: {$ticket->subject}");
-            });
+            try {
+                Mail::raw($validated['content'], function ($message) use ($ticket) {
+                    $message->to($ticket->source_email)
+                        ->subject("Re: {$ticket->subject}");
+                });
+            } catch (\Exception $e) {
+                \Log::error("Ticket reply email failed #{$ticket->id}", ['error' => $e->getMessage()]);
+            }
         }
 
         // Update status to v_reseni if it was novy

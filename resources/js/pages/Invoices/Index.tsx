@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Link, router } from '@inertiajs/react';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatDate } from '@/lib/utils';
 import { Download, MailCheck, Pencil, Plus, RefreshCw, RotateCcw, Trash2 } from 'lucide-react';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import DataTable, { type Column } from '@/components/ui/DataTable';
@@ -54,8 +54,6 @@ interface Props {
     paidCount: number;
     lastBankSync: string | null;
 }
-
-const formatDate = (d: string) => new Date(d).toLocaleDateString('cs-CZ');
 
 function dueDateClass(dueDate: string, status: string): string {
     if (status === 'zaplacena') return 'text-muted-foreground';
@@ -433,7 +431,7 @@ export default function Index({ invoices, filters, trashedCount, paidCount, last
                         )}
                     </button>
                     <button
-                        onClick={() => applyFilters({ trashed: '1' as any, status: undefined, search: undefined })}
+                        onClick={() => applyFilters({ trashed: '1', status: undefined, search: undefined })}
                         className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-2 ${
                             isTrashed
                                 ? 'border-primary text-foreground'

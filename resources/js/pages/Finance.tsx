@@ -16,9 +16,7 @@ import RevenueBreakdown from '@/components/finance/RevenueBreakdown';
 import InvoiceAging from '@/components/finance/InvoiceAging';
 import CashflowChart from '@/components/finance/CashflowChart';
 import MrrDetail from '@/components/finance/MrrDetail';
-import { cn, formatCurrency } from '@/lib/utils';
-
-const formatDate = (d: string) => new Date(d).toLocaleDateString('cs-CZ');
+import { cn, formatCurrency, formatDate } from '@/lib/utils';
 
 interface Metrics {
     total_revenue: number;

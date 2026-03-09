@@ -1,7 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { router } from '@inertiajs/react';
 import { FileText, Package, Server, ChevronRight } from 'lucide-react';
-import { cn, formatCurrency } from '@/lib/utils';
+import { cn, formatCurrency, formatDate } from '@/lib/utils';
 
 interface Order {
     id: number;
@@ -43,9 +43,6 @@ interface Props {
     subscriptions: Subscription[];
     vpsServers: VpsServer[];
 }
-
-const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString('cs-CZ');
 
 /* ── Status configs ── */
 

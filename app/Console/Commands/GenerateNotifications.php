@@ -18,7 +18,7 @@ class GenerateNotifications extends Command
 
     public function handle(): int
     {
-        $admin = User::first();
+        $admin = User::admin();
         if (!$admin) {
             $this->error('No admin user found.');
             return 1;

@@ -431,6 +431,8 @@ class SubscriptionController extends Controller
      */
     public function markPaymentPaid(Subscription $neniweb, SubscriptionPayment $payment)
     {
+        abort_if($payment->subscription_id !== $neniweb->id, 403);
+
         $payment->update([
             'status' => 'zaplaceno',
             'paid_at' => now(),

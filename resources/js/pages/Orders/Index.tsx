@@ -82,7 +82,7 @@ const baseColumns: Column<Order>[] = [
         ),
     },
     {
-        key: 'customer' as any,
+        key: 'customer',
         label: 'Zákazník',
         render: (o) => (
             <Link

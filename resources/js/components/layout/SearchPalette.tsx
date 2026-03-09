@@ -97,19 +97,6 @@ export default function SearchPalette({ open, onClose }: Props) {
         return () => clearTimeout(timer);
     }, [query, search]);
 
-    // Global ⌘K listener
-    useEffect(() => {
-        function handleKeyDown(e: KeyboardEvent) {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-                e.preventDefault();
-                if (open) onClose();
-                else onClose(); // Will be toggled by parent
-            }
-        }
-        document.addEventListener('keydown', handleKeyDown);
-        return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [open, onClose]);
-
     const navigate = (link: string) => {
         onClose();
         router.visit(link);

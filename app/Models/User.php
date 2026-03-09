@@ -50,6 +50,11 @@ class User extends Authenticatable
         $this->notify(new \App\Notifications\ResetPasswordNotification($token));
     }
 
+    public static function admin(): ?self
+    {
+        return static::where('role', 'admin')->first();
+    }
+
     public function timeEntries(): HasMany
     {
         return $this->hasMany(TimeEntry::class);

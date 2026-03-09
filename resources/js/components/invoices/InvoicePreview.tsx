@@ -1,5 +1,5 @@
 import { Separator } from '@/components/ui/separator';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatDate } from '@/lib/utils';
 
 interface PreviewItem {
     description: string;
@@ -18,9 +18,6 @@ interface Props {
     items: PreviewItem[];
     notes?: string;
 }
-
-const formatDate = (d: string) =>
-    d ? new Date(d).toLocaleDateString('cs-CZ') : '—';
 
 export default function InvoicePreview({
     invoiceNumber,

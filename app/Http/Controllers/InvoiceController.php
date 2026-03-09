@@ -6,6 +6,7 @@ use App\Http\Requests\InvoiceRequest;
 use App\Models\BankTransaction;
 use App\Models\CompanySetting;
 use App\Models\Customer;
+use App\Models\EmailLog;
 use App\Models\Invoice;
 use App\Models\Order;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -296,6 +297,16 @@ class InvoiceController extends Controller
             }
         });
 
+        EmailLog::create([
+            'invoice_id'      => $invoice->id,
+            'customer_id'     => $invoice->customer_id,
+            'recipient_email' => $invoice->customer->email,
+            'subject'         => "Faktura č. {$invoice->invoice_number}",
+            'type'            => 'invoice',
+            'status'          => 'sent',
+            'sent_at'         => now(),
+        ]);
+
         $invoice->update([
             'sent_at' => now(),
             'status' => 'odeslana',
@@ -358,9 +369,30 @@ class InvoiceController extends Controller
                     $symfony->embedFromPath($karelPath, 'karel-sloth', 'image/png');
                 }
             });
+
+            EmailLog::create([
+                'invoice_id'      => $invoice->id,
+                'customer_id'     => $invoice->customer_id,
+                'recipient_email' => $invoice->customer->email,
+                'subject'         => "Platba přijata — faktura č. {$invoice->invoice_number} ✓",
+                'type'            => 'payment_thanks',
+                'status'          => 'sent',
+                'sent_at'         => now(),
+            ]);
         } catch (\Exception $e) {
             Log::error("Payment thanks email failed for invoice #{$invoice->invoice_number}", [
                 'error' => $e->getMessage(),
+            ]);
+
+            EmailLog::create([
+                'invoice_id'      => $invoice->id,
+                'customer_id'     => $invoice->customer_id,
+                'recipient_email' => $invoice->customer->email,
+                'subject'         => "Platba přijata — faktura č. {$invoice->invoice_number} ✓",
+                'type'            => 'payment_thanks',
+                'status'          => 'failed',
+                'error_message'   => $e->getMessage(),
+                'sent_at'         => now(),
             ]);
         }
     }

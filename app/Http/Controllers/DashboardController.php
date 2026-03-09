@@ -290,6 +290,11 @@ class DashboardController extends Controller
 
     public static function getAttentionAlerts(): array
     {
+        return cache()->remember('dashboard_alerts', 60, fn () => static::computeAttentionAlerts());
+    }
+
+    private static function computeAttentionAlerts(): array
+    {
         $alerts = [];
 
         // 1. Zakázky otevřené déle než 5 dní

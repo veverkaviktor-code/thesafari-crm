@@ -1,5 +1,6 @@
 import { type FormEvent, useState, useCallback } from 'react';
 import { router, useForm } from '@inertiajs/react';
+import { formatCurrency } from '@/lib/utils';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import DataTable from '@/components/ui/DataTable';
 import { differenceInDays } from 'date-fns';
@@ -49,13 +50,6 @@ import {
     Pause,
     CircleStop,
 } from 'lucide-react';
-
-const czk = (amount: number) =>
-    new Intl.NumberFormat('cs-CZ', {
-        style: 'currency',
-        currency: 'CZK',
-        maximumFractionDigits: 0,
-    }).format(amount);
 
 interface Subscription {
     id: number;
@@ -724,7 +718,7 @@ export default function NeniwebIndex({
             sortable: true,
             render: (sub: Subscription) => (
                 <span className="text-sm text-muted-foreground">
-                    {czk(sub.sell_yearly || sub.price_yearly)}
+                    {formatCurrency(sub.sell_yearly || sub.price_yearly)}
                 </span>
             ),
         },
@@ -891,7 +885,7 @@ export default function NeniwebIndex({
             sortable: true,
             render: (sub: Subscription) => (
                 <span className="text-sm text-muted-foreground">
-                    {czk(sub.sell_yearly || sub.price_yearly)}
+                    {formatCurrency(sub.sell_yearly || sub.price_yearly)}
                 </span>
             ),
         },
@@ -992,7 +986,7 @@ export default function NeniwebIndex({
             sortable: true,
             render: (sub: Subscription) => (
                 <span className="text-sm text-muted-foreground">
-                    {sub.monthly_price ? czk(sub.monthly_price) + '/měs' : '—'}
+                    {sub.monthly_price ? formatCurrency(sub.monthly_price) + '/měs' : '—'}
                 </span>
             ),
         },
@@ -1075,7 +1069,7 @@ export default function NeniwebIndex({
             label: 'Cena/rok',
             render: (vps: VpsServer) => (
                 <span className="text-sm text-muted-foreground">
-                    {vps.price_yearly ? czk(vps.price_yearly) : '—'}
+                    {vps.price_yearly ? formatCurrency(vps.price_yearly) : '—'}
                 </span>
             ),
         },
@@ -1188,7 +1182,7 @@ export default function NeniwebIndex({
             label: 'Částka',
             render: (p: Payment) => (
                 <span className="text-sm font-medium text-foreground">
-                    {czk(p.amount)}
+                    {formatCurrency(p.amount)}
                 </span>
             ),
         },
@@ -1249,7 +1243,7 @@ export default function NeniwebIndex({
                         </p>
                         <div className="flex items-baseline justify-between">
                             <p className="text-2xl font-semibold text-foreground">{stats.total_domains}</p>
-                            <p className="text-sm font-medium text-emerald-400"><span className="text-[10px] text-muted-foreground mr-0.5">ARR</span>{czk(stats.arr_domains)}<span className="text-xs text-muted-foreground">/rok</span></p>
+                            <p className="text-sm font-medium text-emerald-400"><span className="text-[10px] text-muted-foreground mr-0.5">ARR</span>{formatCurrency(stats.arr_domains)}<span className="text-xs text-muted-foreground">/rok</span></p>
                         </div>
                     </button>
                     <button
@@ -1262,7 +1256,7 @@ export default function NeniwebIndex({
                         </p>
                         <div className="flex items-baseline justify-between">
                             <p className="text-2xl font-semibold text-foreground">{stats.total_hostings}</p>
-                            <p className="text-sm font-medium text-emerald-400"><span className="text-[10px] text-muted-foreground mr-0.5">ARR</span>{czk(stats.arr_hostings)}<span className="text-xs text-muted-foreground">/rok</span></p>
+                            <p className="text-sm font-medium text-emerald-400"><span className="text-[10px] text-muted-foreground mr-0.5">ARR</span>{formatCurrency(stats.arr_hostings)}<span className="text-xs text-muted-foreground">/rok</span></p>
                         </div>
                     </button>
                     <button
@@ -1275,7 +1269,7 @@ export default function NeniwebIndex({
                         </p>
                         <div className="flex items-baseline justify-between">
                             <p className="text-2xl font-semibold text-foreground">{stats.total_services}</p>
-                            <p className="text-sm font-medium text-emerald-400"><span className="text-[10px] text-muted-foreground mr-0.5">MRR</span>{czk(stats.mrr_services)}<span className="text-xs text-muted-foreground">/měs</span></p>
+                            <p className="text-sm font-medium text-emerald-400"><span className="text-[10px] text-muted-foreground mr-0.5">MRR</span>{formatCurrency(stats.mrr_services)}<span className="text-xs text-muted-foreground">/měs</span></p>
                         </div>
                     </button>
                     <button
@@ -1299,7 +1293,7 @@ export default function NeniwebIndex({
                         <div className="flex items-baseline justify-between">
                             <p className="text-2xl font-semibold text-amber-400">{stats.unpaid_count}</p>
                             {stats.unpaid_amount > 0 && (
-                                <p className="text-sm font-medium text-amber-400">{czk(stats.unpaid_amount)}</p>
+                                <p className="text-sm font-medium text-amber-400">{formatCurrency(stats.unpaid_amount)}</p>
                             )}
                         </div>
                     </button>
@@ -1315,7 +1309,7 @@ export default function NeniwebIndex({
                             <div className="flex items-baseline justify-between">
                                 <p className="text-2xl font-semibold text-primary">{stats.to_invoice_count}</p>
                                 {stats.to_invoice_amount > 0 && (
-                                    <p className="text-sm font-medium text-primary">{czk(stats.to_invoice_amount)}</p>
+                                    <p className="text-sm font-medium text-primary">{formatCurrency(stats.to_invoice_amount)}</p>
                                 )}
                             </div>
                         </button>

@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useState } from 'react';
-import { usePage } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import Sidebar from '@/components/layout/Sidebar';
 import TopBar from '@/components/layout/TopBar';
 import RunningTimerBar, { type RunningTimer } from '@/components/layout/RunningTimerBar';
@@ -18,6 +18,7 @@ interface AuthenticatedLayoutProps {
 
 export default function AuthenticatedLayout({
     children,
+    title,
     breadcrumbs = [],
 }: AuthenticatedLayoutProps) {
     const { props } = usePage<{
@@ -41,6 +42,8 @@ export default function AuthenticatedLayout({
     }, [props.flash?.success, props.flash?.error]);
 
     return (
+        <>
+        {title && <Head title={title} />}
         <div className="flex h-screen bg-background">
             {/* Desktop sidebar */}
             <div className="hidden md:block dark">
@@ -85,10 +88,11 @@ export default function AuthenticatedLayout({
                 <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6">
                     {children}
                     <footer className="mt-12 border-t border-border pt-4 pb-2 text-center text-xs text-muted-foreground/50">
-                        The Safari HQ &middot; v1.0.0
+                        The Safari HQ &middot; v1.0.1
                     </footer>
                 </main>
             </div>
         </div>
+        </>
     );
 }

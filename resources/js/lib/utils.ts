@@ -45,3 +45,26 @@ export function formatCurrency(amount: number | string | null | undefined): stri
         maximumFractionDigits: 0,
     }).format(num);
 }
+
+export function formatDate(d: string): string {
+    return new Date(d).toLocaleDateString('cs-CZ');
+}
+
+export function formatRelativeTime(date: string): string {
+    const diff = Date.now() - new Date(date).getTime();
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 1) return 'Právě teď';
+    if (minutes < 60) return `Před ${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `Před ${hours} hod`;
+    const days = Math.floor(hours / 24);
+    if (days === 1) return 'Včera';
+    return `Před ${days} ${days < 5 ? 'dny' : 'dny'}`;
+}
+
+export function formatHoursMinutes(totalMinutes: number): string {
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    if (h === 0) return `${m} min`;
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}

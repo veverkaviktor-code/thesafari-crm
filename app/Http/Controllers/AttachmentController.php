@@ -52,6 +52,8 @@ class AttachmentController extends Controller
 
     public function download(Attachment $attachment)
     {
+        // NOTE: No ownership check here — single-admin CRM, all routes protected by auth middleware.
+        // If multi-user support is added in the future, implement AttachmentPolicy with owner check.
         if (!Storage::disk('local')->exists($attachment->path)) {
             abort(404, 'Soubor nenalezen.');
         }

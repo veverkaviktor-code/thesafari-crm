@@ -5,7 +5,7 @@ import {
     MessageSquare,
     TrendingUp,
 } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import StatCard from '@/components/dashboard/StatCard';
 import RevenueChart from '@/components/dashboard/RevenueChart';
@@ -121,18 +121,6 @@ interface Props {
         days_overdue: number | null;
         link: string;
     }[];
-}
-
-function formatRelativeTime(dateStr: string): string {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const minutes = Math.floor(diff / 60000);
-    if (minutes < 1) return 'Právě teď';
-    if (minutes < 60) return `Před ${minutes} min`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `Před ${hours} hod`;
-    const days = Math.floor(hours / 24);
-    if (days === 1) return 'Včera';
-    return `Před ${days} dny`;
 }
 
 export default function Dashboard({ stats, mrr, revenueByDivision, revenueData, recentTickets, alerts, ignoredAlerts, recentActivity, neniwebStats, taskStats, financialSummary, receivables }: Props) {

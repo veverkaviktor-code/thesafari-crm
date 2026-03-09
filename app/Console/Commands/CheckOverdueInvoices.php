@@ -19,7 +19,7 @@ class CheckOverdueInvoices extends Command
             ->where('due_date', '<', now())
             ->get();
 
-        $admin = User::where('role', 'admin')->first();
+        $admin = User::admin();
 
         foreach ($overdue as $invoice) {
             $invoice->update(['status' => 'po_splatnosti']);

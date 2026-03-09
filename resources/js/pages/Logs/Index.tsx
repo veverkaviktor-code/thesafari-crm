@@ -5,7 +5,7 @@ import { Mail, Activity, AlertTriangle, CheckCircle, XCircle, ScrollText } from 
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { cn } from '@/lib/utils';
+import { cn, formatRelativeTime } from '@/lib/utils';
 
 interface EmailLog {
     id: number;
@@ -54,18 +54,6 @@ function formatDateTime(dateStr: string): string {
     } catch {
         return dateStr;
     }
-}
-
-function formatRelativeTime(dateStr: string): string {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const minutes = Math.floor(diff / 60000);
-    if (minutes < 1) return 'Právě teď';
-    if (minutes < 60) return `Před ${minutes} min`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `Před ${hours} hod`;
-    const days = Math.floor(hours / 24);
-    if (days === 1) return 'Včera';
-    return `Před ${days} dny`;
 }
 
 export default function LogsIndex({ emailLogs, activityLogs, errorLogs }: Props) {

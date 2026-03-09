@@ -3,7 +3,7 @@ import { router } from '@inertiajs/react';
 import { Check, Clock, Pause, Pencil, Play, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { cn, formatCurrency } from '@/lib/utils';
+import { cn, formatCurrency, formatHoursMinutes } from '@/lib/utils';
 
 interface TimeEntry {
     id: number;
@@ -21,13 +21,6 @@ function formatDuration(totalSeconds: number): string {
     const m = Math.floor((totalSeconds % 3600) / 60);
     const s = totalSeconds % 60;
     return [h, m, s].map((v) => String(v).padStart(2, '0')).join(':');
-}
-
-function formatHoursMinutes(minutes: number): string {
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    if (h === 0) return `${m} min`;
-    return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
 interface Props {

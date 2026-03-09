@@ -30,10 +30,10 @@ class CheckExpiringSubscriptions extends Command
                     $q->whereNull('customer_notified_at')
                       ->orWhere('customer_notified_at', '<', now()->subDays($days === 30 ? 20 : ($days === 14 ? 10 : 5)));
                 })
+                ->with('customer')
                 ->get();
 
             foreach ($expiring as $subscription) {
-                $subscription->load('customer');
                 $admin->notify(new SubscriptionExpiring($subscription, $days));
 
                 $subscription->update(['customer_notified_at' => now()]);
