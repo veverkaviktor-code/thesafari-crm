@@ -108,6 +108,45 @@ class EstimateController extends Controller
         return back()->with('success', 'Kalkulace trvale smazána.');
     }
 
+    public function bulkDelete(Request $request)
+    {
+        $request->validate(['ids' => 'required|array', 'ids.*' => 'integer']);
+        Estimate::whereIn('id', $request->ids)->each(fn ($e) => $e->delete());
+        return back()->with('success', count($request->ids) . ' kalkulací přesunuto do koše.');
+    }
+
+    public function bulkRestore(Request $request)
+    {
+        $request->validate(['ids' => 'required|array', 'ids.*' => 'integer']);
+        Estimate::onlyTrashed()->whereIn('id', $request->ids)->each(fn ($e) => $e->restore());
+        return back()->with('success', count($request->ids) . ' kalkulací obnoveno.');
+    }
+
+    public function bulkForceDelete(Request $request)
+    {
+        $request->validate(['ids' => 'required|array', 'ids.*' => 'integer']);
+        $estimates = Estimate::onlyTrashed()->whereIn('id', $request->ids)->get();
+        foreach ($estimates as $estimate) {
+            foreach ($estimate->photos as $photo) {
+                Storage::disk('public')->delete($photo->path);
+            }
+            $estimate->forceDelete();
+        }
+        return back()->with('success', $estimates->count() . ' kalkulací trvale smazáno.');
+    }
+
+    public function emptyTrash()
+    {
+        $estimates = Estimate::onlyTrashed()->get();
+        foreach ($estimates as $estimate) {
+            foreach ($estimate->photos as $photo) {
+                Storage::disk('public')->delete($photo->path);
+            }
+            $estimate->forceDelete();
+        }
+        return back()->with('success', "Koš vysypán ({$estimates->count()} kalkulací trvale smazáno).");
+    }
+
     // --- Items ---
 
     public function storeItem(Request $request, Estimate $kalkulator)

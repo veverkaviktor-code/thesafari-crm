@@ -182,6 +182,65 @@ class CustomerController extends Controller
             ->with('success', 'Zákazník trvale smazán.');
     }
 
+    public function bulkDelete(Request $request)
+    {
+        $request->validate(['ids' => 'required|array', 'ids.*' => 'integer']);
+        Customer::whereIn('id', $request->ids)->each(fn ($c) => $c->delete());
+        return back()->with('success', count($request->ids) . ' zákazníků přesunuto do koše.');
+    }
+
+    public function bulkRestore(Request $request)
+    {
+        $request->validate(['ids' => 'required|array', 'ids.*' => 'integer']);
+        Customer::onlyTrashed()->whereIn('id', $request->ids)->each(fn ($c) => $c->restore());
+        return back()->with('success', count($request->ids) . ' zákazníků obnoveno.');
+    }
+
+    public function bulkForceDelete(Request $request)
+    {
+        $request->validate(['ids' => 'required|array', 'ids.*' => 'integer']);
+        $customers = Customer::onlyTrashed()->whereIn('id', $request->ids)->get();
+        $blocked = [];
+        $deleted = 0;
+        foreach ($customers as $customer) {
+            $hasActive = $customer->orders()->withTrashed()->whereNull('deleted_at')->exists()
+                || $customer->invoices()->withTrashed()->whereNull('deleted_at')->where('status', '!=', 'zaplacena')->exists()
+                || $customer->subscriptions()->where('status', 'aktivni')->exists();
+            if ($hasActive) {
+                $blocked[] = $customer->name;
+            } else {
+                $customer->forceDelete();
+                $deleted++;
+            }
+        }
+        if (count($blocked) > 0) {
+            return back()->with('error', 'Nelze smazat: ' . implode(', ', $blocked) . ' — mají aktivní vazby.')
+                         ->with('success', $deleted > 0 ? "$deleted zákazníků trvale smazáno." : null);
+        }
+        return back()->with('success', "$deleted zákazníků trvale smazáno.");
+    }
+
+    public function emptyTrash()
+    {
+        $customers = Customer::onlyTrashed()->get();
+        $deleted = 0;
+        $blocked = 0;
+        foreach ($customers as $customer) {
+            $hasActive = $customer->orders()->withTrashed()->whereNull('deleted_at')->exists()
+                || $customer->invoices()->withTrashed()->whereNull('deleted_at')->where('status', '!=', 'zaplacena')->exists()
+                || $customer->subscriptions()->where('status', 'aktivni')->exists();
+            if ($hasActive) {
+                $blocked++;
+            } else {
+                $customer->forceDelete();
+                $deleted++;
+            }
+        }
+        $msg = "Koš vysypán ($deleted zákazníků trvale smazáno).";
+        if ($blocked > 0) $msg .= " $blocked zákazníků přeskočeno (aktivní vazby).";
+        return back()->with('success', $msg);
+    }
+
     private function prepareData(array $validated): array
     {
         $data = $validated;

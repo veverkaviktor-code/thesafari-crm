@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { router } from '@inertiajs/react';
 import { format, isPast } from 'date-fns';
 import { cs } from 'date-fns/locale';
@@ -100,12 +100,20 @@ export default function PlannerIndex({ tasks, calendarEvents, filters, customers
     const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
     const [deleting, setDeleting] = useState(false);
     const [restoring, setRestoring] = useState<number | null>(null);
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+    const [bulkProcessing, setBulkProcessing] = useState(false);
+    const [showEmptyTrash, setShowEmptyTrash] = useState(false);
 
     const [statusFilter, setStatusFilter] = useState(filters.status || 'all');
     const [priorityFilter, setPriorityFilter] = useState(filters.priority || 'all');
     const [periodFilter, setPeriodFilter] = useState(filters.period || 'all');
 
     const isTrashed = filters.trashed === '1';
+
+    // Reset selection on tab change
+    useEffect(() => {
+        setSelectedIds(new Set());
+    }, [isTrashed]);
 
     const allCalendarEvents: CalendarEvent[] = [
         ...calendarEvents.tasks,
@@ -158,6 +166,38 @@ export default function PlannerIndex({ tasks, calendarEvents, filters, customers
     const handleCalendarTaskClick = (taskId: number) => {
         const task = tasks.data.find((t) => t.id === taskId);
         if (task) setEditTarget(task);
+    };
+
+    const handleBulkDelete = () => {
+        setBulkProcessing(true);
+        router.post('/planovac/bulk-delete', { ids: Array.from(selectedIds) }, {
+            onSuccess: () => { setSelectedIds(new Set()); setBulkProcessing(false); },
+            onError: () => setBulkProcessing(false),
+        });
+    };
+
+    const handleBulkRestore = () => {
+        setBulkProcessing(true);
+        router.post('/planovac/bulk-restore', { ids: Array.from(selectedIds) }, {
+            onSuccess: () => { setSelectedIds(new Set()); setBulkProcessing(false); },
+            onError: () => setBulkProcessing(false),
+        });
+    };
+
+    const handleBulkForceDelete = () => {
+        setBulkProcessing(true);
+        router.delete('/planovac/bulk-force-delete', { data: { ids: Array.from(selectedIds) } }, {
+            onSuccess: () => { setSelectedIds(new Set()); setBulkProcessing(false); },
+            onError: () => setBulkProcessing(false),
+        });
+    };
+
+    const handleEmptyTrash = () => {
+        setBulkProcessing(true);
+        router.delete('/planovac/empty-trash', {}, {
+            onSuccess: () => { setShowEmptyTrash(false); setSelectedIds(new Set()); setBulkProcessing(false); },
+            onError: () => setBulkProcessing(false),
+        });
     };
 
     const activeColumns = useMemo<Column<Task>[]>(() => [
@@ -413,33 +453,102 @@ export default function PlannerIndex({ tasks, calendarEvents, filters, customers
                             )}
                         </button>
                     </div>
+                    {isTrashed && trashedCount > 0 && (
+                        <div className="pb-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowEmptyTrash(true)}
+                                className="border-red-500/30 text-red-500 hover:bg-red-500/10"
+                            >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                Vysypat koš
+                            </Button>
+                        </div>
+                    )}
                 </div>
 
                 {isTrashed ? (
                     /* Koš — single column layout bez kalendáře a alertů */
-                    <DataTable<Task>
-                        data={tasks.data}
-                        columns={trashedColumns}
-                        pagination={{
-                            current_page: tasks.current_page,
-                            last_page: tasks.last_page,
-                            per_page: tasks.per_page,
-                            total: tasks.total,
-                            from: tasks.from,
-                            to: tasks.to,
-                        }}
-                        searchValue={filters.search}
-                        onSearchChange={(search) => applyFilters({ search })}
-                        searchPlaceholder="Hledat smazané úkoly..."
-                        onPageChange={(page) => applyFilters({ page: String(page) })}
-                        emptyMessage="Žádné smazané úkoly"
-                        onRowClick={undefined}
-                    />
+                    <div className="space-y-4">
+                        {/* Bulk action bar */}
+                        {selectedIds.size > 0 && (
+                            <div className="flex items-center justify-between rounded-lg border border-border bg-muted/50 px-4 py-2">
+                                <span className="text-sm text-muted-foreground">
+                                    Vybráno: <span className="font-medium text-foreground">{selectedIds.size}</span>
+                                </span>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleBulkRestore}
+                                        disabled={bulkProcessing}
+                                        className="border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10"
+                                    >
+                                        <RotateCcw className="h-3.5 w-3.5" />
+                                        Obnovit vybrané
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleBulkForceDelete}
+                                        disabled={bulkProcessing}
+                                        className="border-red-500/30 text-red-500 hover:bg-red-500/10"
+                                    >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                        Smazat trvale
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+                        <DataTable<Task>
+                            data={tasks.data}
+                            columns={trashedColumns}
+                            pagination={{
+                                current_page: tasks.current_page,
+                                last_page: tasks.last_page,
+                                per_page: tasks.per_page,
+                                total: tasks.total,
+                                from: tasks.from,
+                                to: tasks.to,
+                            }}
+                            searchValue={filters.search}
+                            onSearchChange={(search) => applyFilters({ search })}
+                            searchPlaceholder="Hledat smazané úkoly..."
+                            onPageChange={(page) => applyFilters({ page: String(page) })}
+                            emptyMessage="Žádné smazané úkoly"
+                            onRowClick={undefined}
+                            selectable={true}
+                            selectedIds={selectedIds}
+                            onSelectionChange={setSelectedIds}
+                            getItemId={(item) => item.id}
+                        />
+                    </div>
                 ) : (
                     /* Aktivní — 2-column layout: Seznam + Kalendář */
                     <div className="grid gap-6 lg:grid-cols-[7fr_3fr] items-start">
                         {/* Seznam + Alerts */}
                         <div className="space-y-6">
+                            {/* Bulk action bar */}
+                            {selectedIds.size > 0 && (
+                                <div className="flex items-center justify-between rounded-lg border border-border bg-muted/50 px-4 py-2">
+                                    <span className="text-sm text-muted-foreground">
+                                        Vybráno: <span className="font-medium text-foreground">{selectedIds.size}</span>
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handleBulkDelete}
+                                            disabled={bulkProcessing}
+                                            className="border-red-500/30 text-red-500 hover:bg-red-500/10"
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                            Smazat vybrané
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                             <DataTable<Task>
                                 data={tasks.data}
                                 columns={activeColumns}
@@ -457,6 +566,10 @@ export default function PlannerIndex({ tasks, calendarEvents, filters, customers
                                 onPageChange={(page) => applyFilters({ page: String(page) })}
                                 emptyMessage="Žádné úkoly"
                                 onRowClick={(task) => setEditTarget(task)}
+                                selectable={true}
+                                selectedIds={selectedIds}
+                                onSelectionChange={setSelectedIds}
+                                getItemId={(item) => item.id}
                                 toolbar={
                                     <div className="flex items-center gap-3">
                                         <Select
@@ -603,6 +716,33 @@ export default function PlannerIndex({ tasks, calendarEvents, filters, customers
                         >
                             <Trash2 className="h-4 w-4" />
                             {deleting ? 'Mažu...' : isTrashed ? 'Trvale smazat' : 'Do koše'}
+                        </Button>
+                    </div>
+                </div>
+            </GlassModal>
+
+            {/* Empty trash confirmation modal */}
+            <GlassModal
+                open={showEmptyTrash}
+                onClose={() => setShowEmptyTrash(false)}
+                title="Vysypat koš"
+                maxWidth="max-w-md"
+            >
+                <div className="space-y-6">
+                    <p className="text-sm text-muted-foreground">
+                        Opravdu chcete <span className="font-semibold text-red-400">trvale smazat všech {trashedCount} položek</span> v koši?
+                        Tuto akci nelze vrátit.
+                    </p>
+                    <div className="flex justify-end gap-3">
+                        <Button variant="ghost" onClick={() => setShowEmptyTrash(false)}>Zrušit</Button>
+                        <Button
+                            variant="destructive"
+                            disabled={bulkProcessing}
+                            onClick={handleEmptyTrash}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                            {bulkProcessing ? 'Mažu...' : 'Vysypat koš'}
                         </Button>
                     </div>
                 </div>

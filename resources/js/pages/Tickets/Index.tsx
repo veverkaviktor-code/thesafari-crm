@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { router } from '@inertiajs/react';
 import { formatDate } from '@/lib/utils';
 import { MessageSquare, RotateCcw, Trash2 } from 'lucide-react';
@@ -58,9 +58,17 @@ export default function TicketsIndex({ tickets, filters, trashedCount }: Props) 
     const [deleteTarget, setDeleteTarget] = useState<Ticket | null>(null);
     const [deleting, setDeleting] = useState(false);
     const [restoring, setRestoring] = useState<number | null>(null);
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+    const [bulkProcessing, setBulkProcessing] = useState(false);
+    const [showEmptyTrash, setShowEmptyTrash] = useState(false);
     const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const isTrashed = filters.trashed === '1';
+
+    // Reset selection on tab change
+    useEffect(() => {
+        setSelectedIds(new Set());
+    }, [isTrashed]);
 
     const handleDelete = () => {
         if (!deleteTarget) return;
@@ -110,6 +118,38 @@ export default function TicketsIndex({ tickets, filters, trashedCount }: Props) 
         },
         [filters, statusFilter, priorityFilter, sourceFilter],
     );
+
+    const handleBulkDelete = () => {
+        setBulkProcessing(true);
+        router.post('/zpravy/bulk-delete', { ids: Array.from(selectedIds) }, {
+            onSuccess: () => { setSelectedIds(new Set()); setBulkProcessing(false); },
+            onError: () => setBulkProcessing(false),
+        });
+    };
+
+    const handleBulkRestore = () => {
+        setBulkProcessing(true);
+        router.post('/zpravy/bulk-restore', { ids: Array.from(selectedIds) }, {
+            onSuccess: () => { setSelectedIds(new Set()); setBulkProcessing(false); },
+            onError: () => setBulkProcessing(false),
+        });
+    };
+
+    const handleBulkForceDelete = () => {
+        setBulkProcessing(true);
+        router.delete('/zpravy/bulk-force-delete', { data: { ids: Array.from(selectedIds) } }, {
+            onSuccess: () => { setSelectedIds(new Set()); setBulkProcessing(false); },
+            onError: () => setBulkProcessing(false),
+        });
+    };
+
+    const handleEmptyTrash = () => {
+        setBulkProcessing(true);
+        router.delete('/zpravy/empty-trash', {}, {
+            onSuccess: () => { setShowEmptyTrash(false); setSelectedIds(new Set()); setBulkProcessing(false); },
+            onError: () => setBulkProcessing(false),
+        });
+    };
 
     const activeColumns = useMemo<Column<Ticket>[]>(() => [
         {
@@ -297,7 +337,66 @@ export default function TicketsIndex({ tickets, filters, trashedCount }: Props) 
                             )}
                         </button>
                     </div>
+                    {isTrashed && trashedCount > 0 && (
+                        <div className="pb-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowEmptyTrash(true)}
+                                className="border-red-500/30 text-red-500 hover:bg-red-500/10"
+                            >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                Vysypat koš
+                            </Button>
+                        </div>
+                    )}
                 </div>
+
+                {/* Bulk action bar */}
+                {selectedIds.size > 0 && (
+                    <div className="flex items-center justify-between rounded-lg border border-border bg-muted/50 px-4 py-2">
+                        <span className="text-sm text-muted-foreground">
+                            Vybráno: <span className="font-medium text-foreground">{selectedIds.size}</span>
+                        </span>
+                        <div className="flex items-center gap-2">
+                            {isTrashed ? (
+                                <>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleBulkRestore}
+                                        disabled={bulkProcessing}
+                                        className="border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10"
+                                    >
+                                        <RotateCcw className="h-3.5 w-3.5" />
+                                        Obnovit vybrané
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleBulkForceDelete}
+                                        disabled={bulkProcessing}
+                                        className="border-red-500/30 text-red-500 hover:bg-red-500/10"
+                                    >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                        Smazat trvale
+                                    </Button>
+                                </>
+                            ) : (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleBulkDelete}
+                                    disabled={bulkProcessing}
+                                    className="border-red-500/30 text-red-500 hover:bg-red-500/10"
+                                >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                    Smazat vybrané
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 <DataTable<Ticket>
                     data={tickets.data}
@@ -320,6 +419,10 @@ export default function TicketsIndex({ tickets, filters, trashedCount }: Props) 
                     }}
                     onPageChange={(page) => applyFilters({ page: String(page) })}
                     onRowClick={isTrashed ? undefined : (ticket) => router.visit(`/zpravy/${ticket.id}`)}
+                    selectable={true}
+                    selectedIds={selectedIds}
+                    onSelectionChange={setSelectedIds}
+                    getItemId={(item) => item.id}
                     toolbar={
                         !isTrashed ? (
                             <div className="flex items-center gap-3">
@@ -412,6 +515,33 @@ export default function TicketsIndex({ tickets, filters, trashedCount }: Props) 
                         >
                             <Trash2 className="h-4 w-4" />
                             {deleting ? 'Mažu...' : isTrashed ? 'Trvale smazat' : 'Do koše'}
+                        </Button>
+                    </div>
+                </div>
+            </GlassModal>
+
+            {/* Empty trash confirmation modal */}
+            <GlassModal
+                open={showEmptyTrash}
+                onClose={() => setShowEmptyTrash(false)}
+                title="Vysypat koš"
+                maxWidth="max-w-md"
+            >
+                <div className="space-y-6">
+                    <p className="text-sm text-muted-foreground">
+                        Opravdu chcete <span className="font-semibold text-red-400">trvale smazat všech {trashedCount} položek</span> v koši?
+                        Tuto akci nelze vrátit.
+                    </p>
+                    <div className="flex justify-end gap-3">
+                        <Button variant="ghost" onClick={() => setShowEmptyTrash(false)}>Zrušit</Button>
+                        <Button
+                            variant="destructive"
+                            disabled={bulkProcessing}
+                            onClick={handleEmptyTrash}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                            {bulkProcessing ? 'Mažu...' : 'Vysypat koš'}
                         </Button>
                     </div>
                 </div>

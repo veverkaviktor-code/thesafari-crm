@@ -229,6 +229,41 @@ class InvoiceController extends Controller
             ->with('success', 'Faktura trvale smazána.');
     }
 
+    public function bulkDelete(Request $request)
+    {
+        $request->validate(['ids' => 'required|array', 'ids.*' => 'integer']);
+        Invoice::whereIn('id', $request->ids)->each(fn ($i) => $i->delete());
+        return back()->with('success', count($request->ids) . ' faktur přesunuto do koše.');
+    }
+
+    public function bulkRestore(Request $request)
+    {
+        $request->validate(['ids' => 'required|array', 'ids.*' => 'integer']);
+        Invoice::onlyTrashed()->whereIn('id', $request->ids)->each(fn ($i) => $i->restore());
+        return back()->with('success', count($request->ids) . ' faktur obnoveno.');
+    }
+
+    public function bulkForceDelete(Request $request)
+    {
+        $request->validate(['ids' => 'required|array', 'ids.*' => 'integer']);
+        $invoices = Invoice::onlyTrashed()->whereIn('id', $request->ids)->get();
+        foreach ($invoices as $invoice) {
+            $invoice->items()->forceDelete();
+            $invoice->forceDelete();
+        }
+        return back()->with('success', $invoices->count() . ' faktur trvale smazáno.');
+    }
+
+    public function emptyTrash()
+    {
+        $count = Invoice::onlyTrashed()->count();
+        Invoice::onlyTrashed()->each(function ($invoice) {
+            $invoice->items()->forceDelete();
+            $invoice->forceDelete();
+        });
+        return back()->with('success', "Koš vysypán ($count faktur trvale smazáno).");
+    }
+
     public function downloadPdf(Invoice $invoice)
     {
         $invoice->load(['items', 'customer']);

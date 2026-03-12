@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { router, useForm } from '@inertiajs/react';
 import { Archive, Calculator, ChevronLeft, ChevronRight, FileText, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import GlassModal from '@/components/ui/GlassModal';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { formatCurrency } from '@/lib/utils';
 
 interface Estimate {
@@ -44,8 +45,28 @@ export default function Index({ estimates, filters, trashedCount }: Props) {
     const [showCreate, setShowCreate] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<Estimate | null>(null);
     const [deleting, setDeleting] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+    const [bulkProcessing, setBulkProcessing] = useState(false);
+    const [showEmptyTrash, setShowEmptyTrash] = useState(false);
+
+    // Reset selection on tab change
+    useEffect(() => {
+        setSelectedIds(new Set());
+    }, [isTrash]);
 
     const form = useForm<{ name: string }>({ name: '' });
+
+    const toggleSelection = (id: number) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    };
 
     const handleCreate = (e: React.FormEvent) => {
         e.preventDefault();
@@ -80,6 +101,38 @@ export default function Index({ estimates, filters, trashedCount }: Props) {
 
     const goToPage = (page: number) => {
         router.get('/kalkulator', { page, ...(isTrash ? { trash: '1' } : {}) }, { preserveState: true, replace: true });
+    };
+
+    const handleBulkDelete = () => {
+        setBulkProcessing(true);
+        router.post('/kalkulator/bulk-delete', { ids: Array.from(selectedIds) }, {
+            onSuccess: () => { setSelectedIds(new Set()); setBulkProcessing(false); },
+            onError: () => setBulkProcessing(false),
+        });
+    };
+
+    const handleBulkRestore = () => {
+        setBulkProcessing(true);
+        router.post('/kalkulator/bulk-restore', { ids: Array.from(selectedIds) }, {
+            onSuccess: () => { setSelectedIds(new Set()); setBulkProcessing(false); },
+            onError: () => setBulkProcessing(false),
+        });
+    };
+
+    const handleBulkForceDelete = () => {
+        setBulkProcessing(true);
+        router.delete('/kalkulator/bulk-force-delete', { data: { ids: Array.from(selectedIds) } }, {
+            onSuccess: () => { setSelectedIds(new Set()); setBulkProcessing(false); },
+            onError: () => setBulkProcessing(false),
+        });
+    };
+
+    const handleEmptyTrash = () => {
+        setBulkProcessing(true);
+        router.delete('/kalkulator/empty-trash', {}, {
+            onSuccess: () => { setShowEmptyTrash(false); setSelectedIds(new Set()); setBulkProcessing(false); },
+            onError: () => setBulkProcessing(false),
+        });
     };
 
     return (
@@ -131,7 +184,66 @@ export default function Index({ estimates, filters, trashedCount }: Props) {
                             )}
                         </button>
                     </div>
+                    {isTrash && trashedCount > 0 && (
+                        <div className="pb-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowEmptyTrash(true)}
+                                className="border-red-500/30 text-red-500 hover:bg-red-500/10"
+                            >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                Vysypat koš
+                            </Button>
+                        </div>
+                    )}
                 </div>
+
+                {/* Bulk action bar */}
+                {selectedIds.size > 0 && (
+                    <div className="flex items-center justify-between rounded-lg border border-border bg-muted/50 px-4 py-2">
+                        <span className="text-sm text-muted-foreground">
+                            Vybráno: <span className="font-medium text-foreground">{selectedIds.size}</span>
+                        </span>
+                        <div className="flex items-center gap-2">
+                            {isTrash ? (
+                                <>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleBulkRestore}
+                                        disabled={bulkProcessing}
+                                        className="border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10"
+                                    >
+                                        <RotateCcw className="h-3.5 w-3.5" />
+                                        Obnovit vybrané
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleBulkForceDelete}
+                                        disabled={bulkProcessing}
+                                        className="border-red-500/30 text-red-500 hover:bg-red-500/10"
+                                    >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                        Smazat trvale
+                                    </Button>
+                                </>
+                            ) : (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleBulkDelete}
+                                    disabled={bulkProcessing}
+                                    className="border-red-500/30 text-red-500 hover:bg-red-500/10"
+                                >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                    Smazat vybrané
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {/* Empty state */}
                 {estimates.data.length === 0 && (
@@ -160,19 +272,39 @@ export default function Index({ estimates, filters, trashedCount }: Props) {
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         {estimates.data.map((estimate) => {
                             const st = statusMap[estimate.status] ?? statusMap.draft;
+                            const isSelected = selectedIds.has(estimate.id);
                             return (
                                 <div
                                     key={estimate.id}
                                     onClick={() => !isTrash && router.visit(`/kalkulator/${estimate.id}`)}
-                                    className={`group relative rounded-xl border border-border bg-card p-4 transition-colors ${
+                                    className={`group relative rounded-xl border transition-colors ${
+                                        isSelected
+                                            ? 'border-primary/40 bg-primary/5'
+                                            : 'border-border bg-card'
+                                    } p-4 ${
                                         isTrash
                                             ? 'opacity-70'
                                             : 'cursor-pointer hover:border-amber-600/40 hover:bg-card/80'
                                     }`}
                                 >
-                                    {/* Top row: name + actions */}
+                                    {/* Top row: checkbox + name + actions */}
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="flex min-w-0 items-center gap-2">
+                                            {/* Checkbox — always visible in trash, on-hover otherwise */}
+                                            <div
+                                                className={`shrink-0 transition-opacity ${
+                                                    isTrash || isSelected
+                                                        ? 'opacity-100'
+                                                        : 'opacity-0 group-hover:opacity-100'
+                                                }`}
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <Checkbox
+                                                    checked={isSelected}
+                                                    onCheckedChange={() => toggleSelection(estimate.id)}
+                                                    className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                                                />
+                                            </div>
                                             <FileText className="h-4 w-4 shrink-0 text-muted-foreground/50" />
                                             <span className="truncate font-medium text-foreground">
                                                 {estimate.name}
@@ -201,7 +333,7 @@ export default function Index({ estimates, filters, trashedCount }: Props) {
                                     </div>
 
                                     {/* Customer */}
-                                    <p className="mt-1.5 truncate pl-6 text-sm text-muted-foreground">
+                                    <p className="mt-1.5 truncate pl-12 text-sm text-muted-foreground">
                                         {estimate.customer
                                             ? (estimate.customer.company ?? estimate.customer.name)
                                             : <span className="italic opacity-50">Bez zákazníka</span>
@@ -209,7 +341,7 @@ export default function Index({ estimates, filters, trashedCount }: Props) {
                                     </p>
 
                                     {/* Bottom row: meta */}
-                                    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 pl-6">
+                                    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 pl-12">
                                         <StatusBadge status={st.variant} label={st.label} />
 
                                         <span className="text-xs text-muted-foreground/70">
@@ -345,6 +477,33 @@ export default function Index({ estimates, filters, trashedCount }: Props) {
                         >
                             <Trash2 className="h-4 w-4" />
                             {deleting ? 'Mažu...' : isTrash ? 'Trvale smazat' : 'Do koše'}
+                        </Button>
+                    </div>
+                </div>
+            </GlassModal>
+
+            {/* Empty trash confirmation modal */}
+            <GlassModal
+                open={showEmptyTrash}
+                onClose={() => setShowEmptyTrash(false)}
+                title="Vysypat koš"
+                maxWidth="max-w-md"
+            >
+                <div className="space-y-6">
+                    <p className="text-sm text-muted-foreground">
+                        Opravdu chcete <span className="font-semibold text-red-400">trvale smazat všech {trashedCount} položek</span> v koši?
+                        Tuto akci nelze vrátit.
+                    </p>
+                    <div className="flex justify-end gap-3">
+                        <Button variant="ghost" onClick={() => setShowEmptyTrash(false)}>Zrušit</Button>
+                        <Button
+                            variant="destructive"
+                            disabled={bulkProcessing}
+                            onClick={handleEmptyTrash}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                            {bulkProcessing ? 'Mažu...' : 'Vysypat koš'}
                         </Button>
                     </div>
                 </div>

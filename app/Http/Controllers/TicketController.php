@@ -180,4 +180,39 @@ class TicketController extends Controller
         return redirect()->route('zpravy.index', ['trashed' => 1])
             ->with('success', 'Zpráva trvale smazána.');
     }
+
+    public function bulkDelete(Request $request)
+    {
+        $request->validate(['ids' => 'required|array', 'ids.*' => 'integer']);
+        Ticket::whereIn('id', $request->ids)->each(fn ($t) => $t->delete());
+        return back()->with('success', count($request->ids) . ' zpráv přesunuto do koše.');
+    }
+
+    public function bulkRestore(Request $request)
+    {
+        $request->validate(['ids' => 'required|array', 'ids.*' => 'integer']);
+        Ticket::onlyTrashed()->whereIn('id', $request->ids)->each(fn ($t) => $t->restore());
+        return back()->with('success', count($request->ids) . ' zpráv obnoveno.');
+    }
+
+    public function bulkForceDelete(Request $request)
+    {
+        $request->validate(['ids' => 'required|array', 'ids.*' => 'integer']);
+        $tickets = Ticket::onlyTrashed()->whereIn('id', $request->ids)->get();
+        foreach ($tickets as $ticket) {
+            $ticket->messages()->delete();
+            $ticket->forceDelete();
+        }
+        return back()->with('success', $tickets->count() . ' zpráv trvale smazáno.');
+    }
+
+    public function emptyTrash()
+    {
+        $count = Ticket::onlyTrashed()->count();
+        Ticket::onlyTrashed()->each(function ($ticket) {
+            $ticket->messages()->delete();
+            $ticket->forceDelete();
+        });
+        return back()->with('success', "Koš vysypán ($count zpráv trvale smazáno).");
+    }
 }

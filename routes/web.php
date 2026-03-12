@@ -44,6 +44,11 @@ Route::redirect('/dashboard', '/');
 Route::middleware('auth')->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard');
 
+    // Zákazníci bulk — MUSÍ být PŘED resource
+    Route::post('zakaznici/bulk-delete', [CustomerController::class, 'bulkDelete'])->name('zakaznici.bulkDelete');
+    Route::post('zakaznici/bulk-restore', [CustomerController::class, 'bulkRestore'])->name('zakaznici.bulkRestore');
+    Route::delete('zakaznici/bulk-force-delete', [CustomerController::class, 'bulkForceDelete'])->name('zakaznici.bulkForceDelete');
+    Route::delete('zakaznici/empty-trash', [CustomerController::class, 'emptyTrash'])->name('zakaznici.emptyTrash');
     Route::resource('zakaznici', CustomerController::class);
     Route::get('zakaznici/{zakaznici}/upravit', [CustomerController::class, 'edit']);
     Route::post('zakaznici/{id}/restore', [CustomerController::class, 'restore'])->name('zakaznici.restore');
@@ -67,6 +72,11 @@ Route::middleware('auth')->group(function () {
 
     Route::get('faktury/export', [InvoiceController::class, 'exportCsv'])->name('faktury.export');
     Route::post('faktury/sync-bank', [InvoiceController::class, 'syncFromBank'])->name('invoices.syncBank');
+    // Faktury bulk — MUSÍ být PŘED resource
+    Route::post('faktury/bulk-delete', [InvoiceController::class, 'bulkDelete'])->name('faktury.bulkDelete');
+    Route::post('faktury/bulk-restore', [InvoiceController::class, 'bulkRestore'])->name('faktury.bulkRestore');
+    Route::delete('faktury/bulk-force-delete', [InvoiceController::class, 'bulkForceDelete'])->name('faktury.bulkForceDelete');
+    Route::delete('faktury/empty-trash', [InvoiceController::class, 'emptyTrash'])->name('faktury.emptyTrash');
     Route::resource('faktury', InvoiceController::class);
     Route::get('faktury/{faktury}/upravit', [InvoiceController::class, 'edit']);
     Route::get('faktury/{invoice}/pdf', [InvoiceController::class, 'downloadPdf'])->name('faktury.pdf');
@@ -97,7 +107,11 @@ Route::middleware('auth')->group(function () {
     Route::put('neniweb/vps/{vp}', [VpsServerController::class, 'update'])->name('vps.update');
     Route::delete('neniweb/vps/{vp}', [VpsServerController::class, 'destroy'])->name('vps.destroy');
 
-    // Planner (úkoly)
+    // Planner (úkoly) — bulk PŘED resource
+    Route::post('planovac/bulk-delete', [TaskController::class, 'bulkDelete'])->name('planovac.bulkDelete');
+    Route::post('planovac/bulk-restore', [TaskController::class, 'bulkRestore'])->name('planovac.bulkRestore');
+    Route::delete('planovac/bulk-force-delete', [TaskController::class, 'bulkForceDelete'])->name('planovac.bulkForceDelete');
+    Route::delete('planovac/empty-trash', [TaskController::class, 'emptyTrash'])->name('planovac.emptyTrash');
     Route::resource('planovac', TaskController::class)->except(['show', 'create', 'edit']);
     Route::post('planovac/{task}/toggle', [TaskController::class, 'toggleComplete'])->name('planovac.toggle');
     Route::post('planovac/{id}/restore', [TaskController::class, 'restore'])->name('planovac.restore');
@@ -123,7 +137,11 @@ Route::middleware('auth')->group(function () {
         Route::put('firma', [CompanySettingsController::class, 'update'])->name('settings.company.update');
     });
 
-    // Kalkulator (Estimates)
+    // Kalkulator (Estimates) — bulk PŘED resource
+    Route::post('kalkulator/bulk-delete', [EstimateController::class, 'bulkDelete'])->name('kalkulator.bulkDelete');
+    Route::post('kalkulator/bulk-restore', [EstimateController::class, 'bulkRestore'])->name('kalkulator.bulkRestore');
+    Route::delete('kalkulator/bulk-force-delete', [EstimateController::class, 'bulkForceDelete'])->name('kalkulator.bulkForceDelete');
+    Route::delete('kalkulator/empty-trash', [EstimateController::class, 'emptyTrash'])->name('kalkulator.emptyTrash');
     Route::resource('kalkulator', EstimateController::class);
     Route::post('kalkulator/{id}/restore', [EstimateController::class, 'restore'])->name('kalkulator.restore');
     Route::delete('kalkulator/{id}/force-delete', [EstimateController::class, 'forceDelete'])->name('kalkulator.forceDelete');
@@ -136,8 +154,12 @@ Route::middleware('auth')->group(function () {
     // Logy
     Route::get('logy', [LogsController::class, 'index'])->name('logy.index');
 
-    // Zprávy (redirect from old URL)
+    // Zprávy (redirect from old URL) — bulk PŘED resource
     Route::redirect('/pozadavky', '/zpravy', 301);
+    Route::post('zpravy/bulk-delete', [TicketController::class, 'bulkDelete'])->name('zpravy.bulkDelete');
+    Route::post('zpravy/bulk-restore', [TicketController::class, 'bulkRestore'])->name('zpravy.bulkRestore');
+    Route::delete('zpravy/bulk-force-delete', [TicketController::class, 'bulkForceDelete'])->name('zpravy.bulkForceDelete');
+    Route::delete('zpravy/empty-trash', [TicketController::class, 'emptyTrash'])->name('zpravy.emptyTrash');
     Route::resource('zpravy', TicketController::class);
     Route::post('zpravy/{ticket}/reply', [TicketController::class, 'reply'])->name('zpravy.reply');
     Route::post('zpravy/{id}/restore', [TicketController::class, 'restore'])->name('zpravy.restore');

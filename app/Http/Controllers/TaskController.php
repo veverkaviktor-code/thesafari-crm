@@ -209,4 +209,32 @@ class TaskController extends Controller
         return redirect()->route('planovac.index', ['trashed' => 1])
             ->with('success', 'Úkol trvale smazán.');
     }
+
+    public function bulkDelete(Request $request)
+    {
+        $request->validate(['ids' => 'required|array', 'ids.*' => 'integer']);
+        Task::whereIn('id', $request->ids)->each(fn ($t) => $t->delete());
+        return back()->with('success', count($request->ids) . ' úkolů přesunuto do koše.');
+    }
+
+    public function bulkRestore(Request $request)
+    {
+        $request->validate(['ids' => 'required|array', 'ids.*' => 'integer']);
+        Task::onlyTrashed()->whereIn('id', $request->ids)->each(fn ($t) => $t->restore());
+        return back()->with('success', count($request->ids) . ' úkolů obnoveno.');
+    }
+
+    public function bulkForceDelete(Request $request)
+    {
+        $request->validate(['ids' => 'required|array', 'ids.*' => 'integer']);
+        Task::onlyTrashed()->whereIn('id', $request->ids)->forceDelete();
+        return back()->with('success', count($request->ids) . ' úkolů trvale smazáno.');
+    }
+
+    public function emptyTrash()
+    {
+        $count = Task::onlyTrashed()->count();
+        Task::onlyTrashed()->forceDelete();
+        return back()->with('success', "Koš vysypán ($count úkolů trvale smazáno).");
+    }
 }
