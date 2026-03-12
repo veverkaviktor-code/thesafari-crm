@@ -28,6 +28,8 @@ class TimeEntry extends Model
         'user_id',
         'started_at',
         'stopped_at',
+        'paused_at',
+        'total_paused_seconds',
         'duration_minutes',
         'hourly_rate',
         'description',
@@ -38,6 +40,7 @@ class TimeEntry extends Model
         return [
             'started_at' => 'datetime',
             'stopped_at' => 'datetime',
+            'paused_at' => 'datetime',
             'hourly_rate' => 'decimal:2',
             'created_at' => 'datetime',
         ];
@@ -56,6 +59,28 @@ class TimeEntry extends Model
     public function isRunning(): bool
     {
         return $this->stopped_at === null;
+    }
+
+    public function isPaused(): bool
+    {
+        return $this->paused_at !== null && $this->stopped_at === null;
+    }
+
+    /**
+     * Effective elapsed seconds excluding paused time.
+     */
+    public function getEffectiveElapsedSeconds(): int
+    {
+        $end = $this->stopped_at ?? now();
+        $totalSeconds = (int) abs($end->diffInSeconds($this->started_at));
+        $pausedSeconds = $this->total_paused_seconds ?? 0;
+
+        // If currently paused, add ongoing pause duration
+        if ($this->paused_at && !$this->stopped_at) {
+            $pausedSeconds += (int) abs(now()->diffInSeconds($this->paused_at));
+        }
+
+        return max(0, $totalSeconds - $pausedSeconds);
     }
 
     /**

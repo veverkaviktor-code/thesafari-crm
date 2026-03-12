@@ -59,6 +59,8 @@ Route::middleware('auth')->group(function () {
 
     Route::post('zakazky/{order}/time-entries', [TimeEntryController::class, 'store'])->name('time-entries.store');
     Route::put('zakazky/{order}/time-entries/{timeEntry}', [TimeEntryController::class, 'update'])->name('time-entries.update');
+    Route::put('zakazky/{order}/time-entries/{timeEntry}/pause', [TimeEntryController::class, 'pause'])->name('time-entries.pause');
+    Route::put('zakazky/{order}/time-entries/{timeEntry}/resume', [TimeEntryController::class, 'resume'])->name('time-entries.resume');
     Route::put('zakazky/{order}/time-entries/{timeEntry}/stop', [TimeEntryController::class, 'stop'])->name('time-entries.stop');
     Route::delete('zakazky/{order}/time-entries/{timeEntry}', [TimeEntryController::class, 'destroy'])->name('time-entries.destroy');
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { router } from '@inertiajs/react';
-import { Check, Clock, Pause, Pencil, Play, Trash2, X } from 'lucide-react';
+import { Check, Clock, Pause, Pencil, Play, Square, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn, formatCurrency, formatHoursMinutes } from '@/lib/utils';
@@ -9,6 +9,8 @@ interface TimeEntry {
     id: number;
     started_at: string;
     stopped_at: string | null;
+    paused_at: string | null;
+    total_paused_seconds: number;
     description: string | null;
     duration_minutes: number;
     hourly_rate: number | null;
@@ -21,6 +23,15 @@ function formatDuration(totalSeconds: number): string {
     const m = Math.floor((totalSeconds % 3600) / 60);
     const s = totalSeconds % 60;
     return [h, m, s].map((v) => String(v).padStart(2, '0')).join(':');
+}
+
+function getEffectiveElapsed(entry: TimeEntry): number {
+    const totalSeconds = Math.floor((Date.now() - new Date(entry.started_at).getTime()) / 1000);
+    let paused = entry.total_paused_seconds ?? 0;
+    if (entry.paused_at) {
+        paused += Math.floor((Date.now() - new Date(entry.paused_at).getTime()) / 1000);
+    }
+    return Math.max(0, totalSeconds - paused);
 }
 
 interface Props {
@@ -51,23 +62,25 @@ export default function TimeTracker({
     });
 
     const isRunning = !!runningTimer;
+    const isPaused = !!runningTimer?.paused_at;
 
     useEffect(() => {
         if (runningTimer) {
-            const startTime = new Date(runningTimer.started_at).getTime();
             const updateElapsed = () => {
-                const now = Date.now();
-                setElapsed(Math.floor((now - startTime) / 1000));
+                setElapsed(getEffectiveElapsed(runningTimer));
             };
             updateElapsed();
-            intervalRef.current = setInterval(updateElapsed, 1000);
-            return () => {
-                if (intervalRef.current) clearInterval(intervalRef.current);
-            };
+
+            if (!isPaused) {
+                intervalRef.current = setInterval(updateElapsed, 1000);
+                return () => {
+                    if (intervalRef.current) clearInterval(intervalRef.current);
+                };
+            }
         } else {
             setElapsed(0);
         }
-    }, [runningTimer]);
+    }, [runningTimer, isPaused]);
 
     const handleStart = () => {
         router.post(
@@ -76,6 +89,24 @@ export default function TimeTracker({
                 description: description || null,
                 hourly_rate: Number(hourlyRate) || null,
             },
+            { preserveScroll: true },
+        );
+    };
+
+    const handlePause = () => {
+        if (!runningTimer) return;
+        router.put(
+            `/zakazky/${orderId}/time-entries/${runningTimer.id}/pause`,
+            {},
+            { preserveScroll: true },
+        );
+    };
+
+    const handleResume = () => {
+        if (!runningTimer) return;
+        router.put(
+            `/zakazky/${orderId}/time-entries/${runningTimer.id}/resume`,
+            {},
             { preserveScroll: true },
         );
     };
@@ -134,28 +165,41 @@ export default function TimeTracker({
 
             {/* Timer display + controls */}
             <div className="mb-4 flex items-center gap-4">
-                {/* Timer button */}
-                <button
-                    onClick={isRunning ? handleStop : handleStart}
-                    className={cn(
-                        'group flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 transition-all',
-                        isRunning
-                            ? 'animate-pulse border-primary bg-primary/10 hover:bg-primary/20'
-                            : 'border-border bg-accent hover:border-primary hover:bg-primary/10',
-                    )}
-                >
-                    {isRunning ? (
-                        <Pause className="h-5 w-5 text-primary" />
-                    ) : (
+                {/* Start button (when not running) */}
+                {!isRunning && (
+                    <button
+                        onClick={handleStart}
+                        className="group flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 transition-all border-border bg-accent hover:border-primary hover:bg-primary/10"
+                    >
                         <Play className="h-5 w-5 text-muted-foreground transition-colors group-hover:text-primary" />
-                    )}
-                </button>
+                    </button>
+                )}
+
+                {/* Pause/Resume button (when running) */}
+                {isRunning && (
+                    <button
+                        onClick={isPaused ? handleResume : handlePause}
+                        className={cn(
+                            'group flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 transition-all',
+                            isPaused
+                                ? 'border-emerald-500/50 bg-emerald-500/10 hover:bg-emerald-500/20'
+                                : 'animate-pulse border-primary bg-primary/10 hover:bg-primary/20',
+                        )}
+                        title={isPaused ? 'Pokračovat' : 'Pauza'}
+                    >
+                        {isPaused ? (
+                            <Play className="h-5 w-5 text-emerald-500" />
+                        ) : (
+                            <Pause className="h-5 w-5 text-primary" />
+                        )}
+                    </button>
+                )}
 
                 {/* Time display */}
                 <p
                     className={cn(
                         'shrink-0 font-mono text-xl font-bold',
-                        isRunning ? 'text-primary' : 'text-muted-foreground',
+                        isPaused ? 'text-muted-foreground' : isRunning ? 'text-primary' : 'text-muted-foreground',
                     )}
                 >
                     {formatDuration(elapsed)}
@@ -185,8 +229,24 @@ export default function TimeTracker({
                     </div>
                 )}
 
+                {/* Status + Stop button when running */}
                 {isRunning && (
-                    <span className="text-xs text-muted-foreground">Měření...</span>
+                    <div className="flex items-center gap-3">
+                        <span className={cn(
+                            'text-xs font-medium',
+                            isPaused ? 'text-amber-400' : 'text-muted-foreground',
+                        )}>
+                            {isPaused ? 'Pozastaveno' : 'Měření...'}
+                        </span>
+                        <Button
+                            onClick={handleStop}
+                            size="sm"
+                            className="gap-1.5 bg-red-600 text-white hover:bg-red-700"
+                        >
+                            <Square className="h-3.5 w-3.5 fill-current" />
+                            Hotovo
+                        </Button>
+                    </div>
                 )}
             </div>
 

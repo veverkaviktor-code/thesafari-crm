@@ -53,18 +53,62 @@ class TimeEntryController extends Controller
         return back()->with('success', 'Záznam upraven.');
     }
 
+    public function pause(Request $request, Order $order, TimeEntry $timeEntry)
+    {
+        abort_if($timeEntry->order_id !== $order->id, 403);
+        abort_if($timeEntry->user_id !== $request->user()->id, 403);
+
+        if (! $timeEntry->isRunning() || $timeEntry->isPaused()) {
+            return back()->with('error', 'Timer nelze pozastavit.');
+        }
+
+        $timeEntry->update(['paused_at' => now()]);
+
+        return back()->with('success', 'Timer pozastaven.');
+    }
+
+    public function resume(Request $request, Order $order, TimeEntry $timeEntry)
+    {
+        abort_if($timeEntry->order_id !== $order->id, 403);
+        abort_if($timeEntry->user_id !== $request->user()->id, 403);
+
+        if (! $timeEntry->isPaused()) {
+            return back()->with('error', 'Timer není pozastaven.');
+        }
+
+        $pausedSeconds = (int) abs(now()->diffInSeconds($timeEntry->paused_at));
+
+        $timeEntry->update([
+            'paused_at' => null,
+            'total_paused_seconds' => ($timeEntry->total_paused_seconds ?? 0) + $pausedSeconds,
+        ]);
+
+        return back()->with('success', 'Timer obnoven.');
+    }
+
     public function stop(Request $request, Order $order, TimeEntry $timeEntry)
     {
         abort_if($timeEntry->order_id !== $order->id, 403);
         abort_if($timeEntry->user_id !== $request->user()->id, 403);
 
         if (! $timeEntry->isRunning()) {
-            return back()->with('error', 'Timer už běží.');
+            return back()->with('error', 'Timer již zastaven.');
         }
 
+        // If paused, accumulate remaining pause time
+        $totalPaused = $timeEntry->total_paused_seconds ?? 0;
+        if ($timeEntry->paused_at) {
+            $totalPaused += (int) abs(now()->diffInSeconds($timeEntry->paused_at));
+        }
+
+        $totalSeconds = (int) abs(now()->diffInSeconds($timeEntry->started_at));
+        $effectiveSeconds = max(0, $totalSeconds - $totalPaused);
+
         $timeEntry->update([
-            'stopped_at'       => now(),
-            'duration_minutes' => (int) ceil(abs(now()->diffInSeconds($timeEntry->started_at)) / 60),
+            'stopped_at'           => now(),
+            'paused_at'            => null,
+            'total_paused_seconds' => $totalPaused,
+            'duration_minutes'     => (int) ceil($effectiveSeconds / 60),
         ]);
 
         return back()->with('success', 'Timer zastaven.');

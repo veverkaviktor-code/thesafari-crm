@@ -47,7 +47,7 @@ class HandleInertiaRequests extends Middleware
                 ? \App\Models\TimeEntry::where('user_id', $request->user()->id)
                     ->whereNull('stopped_at')
                     ->with(['order:id,title,customer_id', 'order.customer:id,name'])
-                    ->first(['id', 'order_id', 'started_at', 'description', 'hourly_rate'])
+                    ->first(['id', 'order_id', 'started_at', 'description', 'hourly_rate', 'paused_at', 'total_paused_seconds'])
                 : null,
         ];
     }
