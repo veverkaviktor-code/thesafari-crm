@@ -13,6 +13,7 @@ import {
     isToday,
 } from 'date-fns';
 import { cs } from 'date-fns/locale';
+import { router } from '@inertiajs/react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -183,14 +184,13 @@ export default function CalendarGrid({ events, onTaskClick }: CalendarGridProps)
                                             onClick={() => {
                                                 if (ev.type === 'task' && onTaskClick) {
                                                     onTaskClick(ev.id);
+                                                } else if (ev.type === 'invoice') {
+                                                    router.visit(`/faktury/${ev.id}`);
+                                                } else if (ev.type === 'subscription') {
+                                                    router.visit(`/neniweb/${ev.id}`);
                                                 }
                                             }}
-                                            className={cn(
-                                                'flex w-full items-start gap-2 rounded-md p-1.5 text-left text-sm transition-colors',
-                                                ev.type === 'task' && onTaskClick
-                                                    ? 'hover:bg-accent cursor-pointer'
-                                                    : 'cursor-default',
-                                            )}
+                                            className="flex w-full items-start gap-2 rounded-md p-1.5 text-left text-sm transition-colors hover:bg-accent cursor-pointer"
                                         >
                                             <span
                                                 className={cn(
