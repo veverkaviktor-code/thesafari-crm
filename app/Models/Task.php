@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -11,7 +12,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Task extends Model
 {
-    use HasFactory, SoftDeletes, LogsActivity;
+    use HasFactory, SoftDeletes, MassPrunable, LogsActivity;
 
     protected $fillable = [
         'title',
@@ -33,6 +34,11 @@ class Task extends Model
             'completed_at' => 'datetime',
             'meta' => 'array',
         ];
+    }
+
+    public function prunable()
+    {
+        return static::onlyTrashed()->where('deleted_at', '<=', now()->subDays(30));
     }
 
     public function getActivitylogOptions(): LogOptions

@@ -29,16 +29,17 @@ interface Props {
         total: number;
     };
     filters: { search?: string; status?: string; trash?: string };
+    trashedCount: number;
 }
 
 const statusMap = {
-    draft:    { label: 'Koncept',  variant: 'pending'   as const },
-    sent:     { label: 'Odesláno', variant: 'active'    as const },
+    draft:    { label: 'Koncept',   variant: 'pending'   as const },
+    sent:     { label: 'Odesláno',  variant: 'active'    as const },
     accepted: { label: 'Schváleno', variant: 'completed' as const },
     rejected: { label: 'Zamítnuto', variant: 'cancelled' as const },
 };
 
-export default function Index({ estimates, filters }: Props) {
+export default function Index({ estimates, filters, trashedCount }: Props) {
     const isTrash = filters.trash === '1';
     const [showCreate, setShowCreate] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<Estimate | null>(null);
@@ -60,13 +61,11 @@ export default function Index({ estimates, filters }: Props) {
         if (!deleteTarget) return;
         setDeleting(true);
         if (isTrash) {
-            // Force delete from trash
             router.delete(`/kalkulator/${deleteTarget.id}/force-delete`, {
                 onSuccess: () => { setDeleteTarget(null); setDeleting(false); },
                 onError: () => setDeleting(false),
             });
         } else {
-            // Soft delete to trash
             router.delete(`/kalkulator/${deleteTarget.id}`, {
                 onSuccess: () => { setDeleteTarget(null); setDeleting(false); },
                 onError: () => setDeleting(false),
@@ -90,39 +89,47 @@ export default function Index({ estimates, filters }: Props) {
                 {/* Header */}
                 <div className="flex items-center justify-between gap-3">
                     <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-                        {isTrash ? 'Koš' : 'Kalkulátor'}
+                        Kalkulátor
                     </h1>
-                    <div className="flex items-center gap-2">
-                        {!isTrash ? (
-                            <>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-muted-foreground hover:text-foreground"
-                                    onClick={() => router.get('/kalkulator', { trash: '1' })}
-                                >
-                                    <Archive className="h-4 w-4" />
-                                    <span className="hidden sm:inline">Koš</span>
-                                </Button>
-                                <Button
-                                    className="bg-amber-600 text-white hover:bg-amber-500"
-                                    onClick={() => setShowCreate(true)}
-                                >
-                                    <Plus className="h-4 w-4" />
-                                    <span className="hidden sm:inline">Nová kalkulace</span>
-                                </Button>
-                            </>
-                        ) : (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-muted-foreground hover:text-foreground"
-                                onClick={() => router.get('/kalkulator')}
-                            >
-                                <ChevronLeft className="h-4 w-4" />
-                                Zpět
-                            </Button>
-                        )}
+                    {!isTrash && (
+                        <Button
+                            className="bg-amber-600 text-white hover:bg-amber-500"
+                            onClick={() => setShowCreate(true)}
+                        >
+                            <Plus className="h-4 w-4" />
+                            <span className="hidden sm:inline">Nová kalkulace</span>
+                        </Button>
+                    )}
+                </div>
+
+                {/* Tabs */}
+                <div className="flex items-center justify-between border-b border-border">
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => router.get('/kalkulator', {}, { preserveState: true, replace: true })}
+                            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+                                !isTrash
+                                    ? 'border-primary text-foreground'
+                                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                            }`}
+                        >
+                            Všechny
+                        </button>
+                        <button
+                            onClick={() => router.get('/kalkulator', { trash: '1' }, { preserveState: true, replace: true })}
+                            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-2 ${
+                                isTrash
+                                    ? 'border-primary text-foreground'
+                                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                            }`}
+                        >
+                            Smazané
+                            {trashedCount > 0 && (
+                                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500/10 px-1.5 text-xs font-medium text-red-400">
+                                    {trashedCount}
+                                </span>
+                            )}
+                        </button>
                     </div>
                 </div>
 
@@ -303,16 +310,16 @@ export default function Index({ estimates, filters }: Props) {
             <GlassModal
                 open={!!deleteTarget}
                 onClose={() => setDeleteTarget(null)}
-                title={isTrash ? 'Trvale smazat' : 'Přesunout do koše'}
+                title={isTrash ? 'Trvale smazat kalkulaci' : 'Přesunout do koše'}
                 maxWidth="max-w-md"
             >
                 <div className="space-y-6">
                     <p className="text-sm text-muted-foreground">
                         {isTrash ? (
                             <>
-                                Trvale smazat kalkulaci{' '}
+                                Opravdu chcete <span className="font-semibold text-red-400">trvale smazat</span> kalkulaci{' '}
                                 <span className="font-semibold text-foreground">{deleteTarget?.name}</span>?
-                                Tato akce se nedá vrátit.
+                                Tuto akci nelze vrátit.
                             </>
                         ) : (
                             <>
@@ -337,7 +344,7 @@ export default function Index({ estimates, filters }: Props) {
                             className="bg-red-600 hover:bg-red-700"
                         >
                             <Trash2 className="h-4 w-4" />
-                            {deleting ? 'Mažu...' : isTrash ? 'Smazat trvale' : 'Do koše'}
+                            {deleting ? 'Mažu...' : isTrash ? 'Trvale smazat' : 'Do koše'}
                         </Button>
                     </div>
                 </div>

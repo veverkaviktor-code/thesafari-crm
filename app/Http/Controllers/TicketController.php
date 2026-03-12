@@ -12,24 +12,30 @@ class TicketController extends Controller
 {
     public function index(Request $request)
     {
-        $tickets = Ticket::query()
-            ->with('customer:id,name,company')
-            ->withCount('messages')
+        $trashed = $request->boolean('trashed');
+
+        $query = $trashed
+            ? Ticket::onlyTrashed()->with('customer:id,name,company')
+            : Ticket::query()->with('customer:id,name,company');
+
+        $query->withCount('messages')
             ->when($request->input('search'), function ($q, $term) {
                 $q->where('subject', 'ilike', "%{$term}%")
                   ->orWhereHas('customer', fn ($cq) => $cq->where('name', 'ilike', "%{$term}%"));
             })
-            ->when($request->input('status'), fn ($q, $s) => $q->where('status', $s))
-            ->when($request->input('priority'), fn ($q, $p) => $q->where('priority', $p))
-            ->when($request->input('source'), fn ($q, $s) => $q->where('source', $s))
+            ->when(!$trashed && $request->input('status'), fn ($q, $s) => $q->where('status', $s))
+            ->when(!$trashed && $request->input('priority'), fn ($q, $p) => $q->where('priority', $p))
+            ->when(!$trashed && $request->input('source'), fn ($q, $s) => $q->where('source', $s))
             ->when($request->input('customer_id'), fn ($q, $id) => $q->where('customer_id', $id))
-            ->latest()
-            ->paginate(25)
-            ->withQueryString();
+            ->latest();
+
+        $tickets = $query->paginate(25)->withQueryString();
+        $trashedCount = Ticket::onlyTrashed()->count();
 
         return Inertia::render('Tickets/Index', [
             'tickets' => $tickets,
-            'filters' => $request->only(['search', 'status', 'priority', 'source', 'customer_id']),
+            'filters' => $request->only(['search', 'status', 'priority', 'source', 'customer_id', 'trashed']),
+            'trashedCount' => $trashedCount,
         ]);
     }
 
@@ -153,6 +159,25 @@ class TicketController extends Controller
         $zpravy->delete();
 
         return redirect()->route('zpravy.index')
-            ->with('success', 'Zpráva smazána.');
+            ->with('success', 'Zpráva přesunuta do koše.');
+    }
+
+    public function restore(int $id)
+    {
+        $ticket = Ticket::onlyTrashed()->findOrFail($id);
+        $ticket->restore();
+
+        return redirect()->route('zpravy.index')
+            ->with('success', "Zpráva \"{$ticket->subject}\" obnovena.");
+    }
+
+    public function forceDelete(int $id)
+    {
+        $ticket = Ticket::onlyTrashed()->findOrFail($id);
+        $ticket->messages()->delete();
+        $ticket->forceDelete();
+
+        return redirect()->route('zpravy.index', ['trashed' => 1])
+            ->with('success', 'Zpráva trvale smazána.');
     }
 }

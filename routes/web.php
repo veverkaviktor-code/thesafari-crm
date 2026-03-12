@@ -46,6 +46,8 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('zakaznici', CustomerController::class);
     Route::get('zakaznici/{zakaznici}/upravit', [CustomerController::class, 'edit']);
+    Route::post('zakaznici/{id}/restore', [CustomerController::class, 'restore'])->name('zakaznici.restore');
+    Route::delete('zakaznici/{id}/force-delete', [CustomerController::class, 'forceDelete'])->name('zakaznici.forceDelete');
 
     Route::resource('zakazky', OrderController::class);
     Route::get('zakazky/{zakazky}/upravit', [OrderController::class, 'edit']);
@@ -98,6 +100,8 @@ Route::middleware('auth')->group(function () {
     // Planner (úkoly)
     Route::resource('planovac', TaskController::class)->except(['show', 'create', 'edit']);
     Route::post('planovac/{task}/toggle', [TaskController::class, 'toggleComplete'])->name('planovac.toggle');
+    Route::post('planovac/{id}/restore', [TaskController::class, 'restore'])->name('planovac.restore');
+    Route::delete('planovac/{id}/force-delete', [TaskController::class, 'forceDelete'])->name('planovac.forceDelete');
 
     // Notifications
     Route::get('notifikace', [NotificationController::class, 'index'])->name('notifikace.index');
@@ -136,6 +140,8 @@ Route::middleware('auth')->group(function () {
     Route::redirect('/pozadavky', '/zpravy', 301);
     Route::resource('zpravy', TicketController::class);
     Route::post('zpravy/{ticket}/reply', [TicketController::class, 'reply'])->name('zpravy.reply');
+    Route::post('zpravy/{id}/restore', [TicketController::class, 'restore'])->name('zpravy.restore');
+    Route::delete('zpravy/{id}/force-delete', [TicketController::class, 'forceDelete'])->name('zpravy.forceDelete');
 
     // Souhrnná fakturace
     Route::post('neniweb/faktura-zakaznik/{customer}', [SubscriptionController::class, 'createCustomerInvoice'])->name('neniweb.invoice.createCustomer');

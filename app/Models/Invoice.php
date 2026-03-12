@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -14,7 +15,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Invoice extends Model
 {
-    use HasFactory, SoftDeletes, LogsActivity;
+    use HasFactory, SoftDeletes, MassPrunable, LogsActivity;
 
     protected $fillable = [
         'customer_id',
@@ -45,6 +46,11 @@ class Invoice extends Model
             'last_reminder_at' => 'datetime',
             'total' => 'decimal:2',
         ];
+    }
+
+    public function prunable()
+    {
+        return static::onlyTrashed()->where('deleted_at', '<=', now()->subDays(30));
     }
 
     public function getActivitylogOptions(): LogOptions

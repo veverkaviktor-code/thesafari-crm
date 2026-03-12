@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { router } from '@inertiajs/react';
 import { format, isPast } from 'date-fns';
 import { cs } from 'date-fns/locale';
-import { Check, ExternalLink, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Check, ExternalLink, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { formatDate } from '@/lib/utils';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
-import DataTable from '@/components/ui/DataTable';
+import DataTable, { type Column } from '@/components/ui/DataTable';
 import GlassModal from '@/components/ui/GlassModal';
 import PriorityBadge from '@/components/tickets/PriorityBadge';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -30,6 +31,7 @@ interface Task {
     order: { id: number; title: string } | null;
     invoice: { id: number; invoice_number: string } | null;
     created_at: string;
+    deleted_at?: string | null;
 }
 
 interface CalendarEvent {
@@ -62,6 +64,7 @@ interface Props {
         status?: string;
         priority?: string;
         period?: string;
+        trashed?: string;
     };
     customers: { id: number; name: string; company: string | null }[];
     orders: { id: number; title: string }[];
@@ -81,6 +84,7 @@ interface Props {
         ignored_at: string;
         link: string;
     }[];
+    trashedCount: number;
 }
 
 const statusMap: Record<string, { label: string; variant: 'pending' | 'active' | 'completed' | 'cancelled' }> = {
@@ -90,15 +94,18 @@ const statusMap: Record<string, { label: string; variant: 'pending' | 'active' |
     zruseny: { label: 'Zrušený', variant: 'cancelled' },
 };
 
-export default function PlannerIndex({ tasks, calendarEvents, filters, customers, orders, invoices, alerts, ignoredAlerts }: Props) {
+export default function PlannerIndex({ tasks, calendarEvents, filters, customers, orders, invoices, alerts, ignoredAlerts, trashedCount }: Props) {
     const [createOpen, setCreateOpen] = useState(false);
     const [editTarget, setEditTarget] = useState<Task | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
     const [deleting, setDeleting] = useState(false);
+    const [restoring, setRestoring] = useState<number | null>(null);
 
     const [statusFilter, setStatusFilter] = useState(filters.status || 'all');
     const [priorityFilter, setPriorityFilter] = useState(filters.priority || 'all');
     const [periodFilter, setPeriodFilter] = useState(filters.period || 'all');
+
+    const isTrashed = filters.trashed === '1';
 
     const allCalendarEvents: CalendarEvent[] = [
         ...calendarEvents.tasks,
@@ -106,7 +113,7 @@ export default function PlannerIndex({ tasks, calendarEvents, filters, customers
         ...calendarEvents.invoices,
     ];
 
-    function applyFilters(overrides: Record<string, string>) {
+    function applyFilters(overrides: Record<string, string | undefined>) {
         const params: Record<string, string> = {
             ...(filters.search ? { search: filters.search } : {}),
             ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
@@ -115,7 +122,7 @@ export default function PlannerIndex({ tasks, calendarEvents, filters, customers
             ...overrides,
         };
         Object.keys(params).forEach((k) => {
-            if (params[k] === 'all' || params[k] === '') delete params[k];
+            if (params[k] === 'all' || params[k] === '' || params[k] === undefined) delete params[k];
         });
         router.get('/planovac', params, { preserveState: true });
     }
@@ -127,12 +134,24 @@ export default function PlannerIndex({ tasks, calendarEvents, filters, customers
     const handleDelete = () => {
         if (!deleteTarget) return;
         setDeleting(true);
-        router.delete(`/planovac/${deleteTarget.id}`, {
-            onSuccess: () => {
-                setDeleteTarget(null);
-                setDeleting(false);
-            },
-            onError: () => setDeleting(false),
+        if (isTrashed) {
+            router.delete(`/planovac/${deleteTarget.id}/force-delete`, {
+                onSuccess: () => { setDeleteTarget(null); setDeleting(false); },
+                onError: () => setDeleting(false),
+            });
+        } else {
+            router.delete(`/planovac/${deleteTarget.id}`, {
+                onSuccess: () => { setDeleteTarget(null); setDeleting(false); },
+                onError: () => setDeleting(false),
+            });
+        }
+    };
+
+    const handleRestore = (id: number) => {
+        setRestoring(id);
+        router.post(`/planovac/${id}/restore`, {}, {
+            onSuccess: () => setRestoring(null),
+            onError: () => setRestoring(null),
         });
     };
 
@@ -141,12 +160,12 @@ export default function PlannerIndex({ tasks, calendarEvents, filters, customers
         if (task) setEditTarget(task);
     };
 
-    const columns = [
+    const activeColumns = useMemo<Column<Task>[]>(() => [
         {
-            key: 'toggle' as const,
+            key: 'toggle',
             label: '',
             className: 'w-[48px]',
-            render: (task: Task) => (
+            render: (task) => (
                 <button
                     type="button"
                     onClick={(e) => {
@@ -165,10 +184,10 @@ export default function PlannerIndex({ tasks, calendarEvents, filters, customers
             ),
         },
         {
-            key: 'title' as const,
+            key: 'title',
             label: 'Úkol',
             sortable: true,
-            render: (task: Task) => (
+            render: (task) => (
                 <div>
                     <p
                         className={`font-medium text-foreground leading-tight ${
@@ -186,16 +205,16 @@ export default function PlannerIndex({ tasks, calendarEvents, filters, customers
             ),
         },
         {
-            key: 'priority' as const,
+            key: 'priority',
             label: 'Priorita',
             sortable: true,
-            render: (task: Task) => <PriorityBadge priority={task.priority} />,
+            render: (task) => <PriorityBadge priority={task.priority} />,
         },
         {
-            key: 'status' as const,
+            key: 'status',
             label: 'Stav',
             sortable: true,
-            render: (task: Task) => {
+            render: (task) => {
                 const s = statusMap[task.status];
                 return s ? (
                     <StatusBadge status={s.variant} label={s.label} />
@@ -205,10 +224,10 @@ export default function PlannerIndex({ tasks, calendarEvents, filters, customers
             },
         },
         {
-            key: 'due_date' as const,
+            key: 'due_date',
             label: 'Termín',
             sortable: true,
-            render: (task: Task) => {
+            render: (task) => {
                 if (!task.due_date) return <span className="text-muted-foreground">—</span>;
                 const date = new Date(task.due_date);
                 const overdue = task.status !== 'hotovy' && task.status !== 'zruseny' && isPast(date);
@@ -222,9 +241,9 @@ export default function PlannerIndex({ tasks, calendarEvents, filters, customers
             },
         },
         {
-            key: 'linked' as const,
+            key: 'linked',
             label: 'Vazba',
-            render: (task: Task) => {
+            render: (task) => {
                 if (task.customer) {
                     return (
                         <a
@@ -265,10 +284,10 @@ export default function PlannerIndex({ tasks, calendarEvents, filters, customers
             },
         },
         {
-            key: 'actions' as const,
+            key: 'actions',
             label: '',
             className: 'w-[80px] text-right',
-            render: (task: Task) => (
+            render: (task) => (
                 <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                     <button
                         type="button"
@@ -289,7 +308,64 @@ export default function PlannerIndex({ tasks, calendarEvents, filters, customers
                 </div>
             ),
         },
-    ];
+    ], []);
+
+    const trashedColumns = useMemo<Column<Task>[]>(() => [
+        {
+            key: 'title',
+            label: 'Úkol',
+            render: (task) => (
+                <span className="font-medium text-muted-foreground">{task.title}</span>
+            ),
+        },
+        {
+            key: 'priority',
+            label: 'Priorita',
+            render: (task) => <PriorityBadge priority={task.priority} />,
+        },
+        {
+            key: 'due_date',
+            label: 'Termín',
+            render: (task) => (
+                <span className="text-sm text-muted-foreground">
+                    {task.due_date ? format(new Date(task.due_date), 'd. M. yyyy', { locale: cs }) : '—'}
+                </span>
+            ),
+        },
+        {
+            key: 'deleted_at',
+            label: 'Smazáno',
+            render: (task) => (
+                <span className="text-muted-foreground">
+                    {task.deleted_at ? formatDate(task.deleted_at) : ''}
+                </span>
+            ),
+        },
+        {
+            key: 'actions',
+            label: '',
+            className: 'w-[120px] text-right',
+            render: (task) => (
+                <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                    <button
+                        onClick={() => handleRestore(task.id)}
+                        disabled={restoring === task.id}
+                        className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-emerald-500/10 hover:text-emerald-500"
+                        title="Obnovit"
+                    >
+                        <RotateCcw className={`h-3.5 w-3.5 ${restoring === task.id ? 'animate-spin' : ''}`} />
+                    </button>
+                    <button
+                        onClick={() => setDeleteTarget(task)}
+                        className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-500"
+                        title="Trvale smazat"
+                    >
+                        <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                </div>
+            ),
+        },
+    ], [restoring]);
 
     return (
         <AuthenticatedLayout title="To Do" breadcrumbs={[{ label: 'To Do' }]}>
@@ -297,22 +373,53 @@ export default function PlannerIndex({ tasks, calendarEvents, filters, customers
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <h1 className="text-2xl font-semibold text-foreground">To Do</h1>
-                    <Button
-                        onClick={() => setCreateOpen(true)}
-                        className="bg-primary text-primary-foreground hover:bg-primary/90"
-                    >
-                        <Plus className="h-4 w-4" />
-                        Nový úkol
-                    </Button>
+                    {!isTrashed && (
+                        <Button
+                            onClick={() => setCreateOpen(true)}
+                            className="bg-primary text-primary-foreground hover:bg-primary/90"
+                        >
+                            <Plus className="h-4 w-4" />
+                            Nový úkol
+                        </Button>
+                    )}
                 </div>
 
-                {/* 2-column layout: Seznam + Kalendář */}
-                <div className="grid gap-6 lg:grid-cols-[7fr_3fr] items-start">
-                    {/* Seznam + Alerts */}
-                    <div className="space-y-6">
-                    <DataTable
+                {/* Tabs */}
+                <div className="flex items-center justify-between border-b border-border">
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => applyFilters({ trashed: undefined })}
+                            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+                                !isTrashed
+                                    ? 'border-primary text-foreground'
+                                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                            }`}
+                        >
+                            Všechny
+                        </button>
+                        <button
+                            onClick={() => applyFilters({ trashed: '1', status: undefined, priority: undefined, period: undefined })}
+                            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-2 ${
+                                isTrashed
+                                    ? 'border-primary text-foreground'
+                                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                            }`}
+                        >
+                            Smazané
+                            {trashedCount > 0 && (
+                                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500/10 px-1.5 text-xs font-medium text-red-400">
+                                    {trashedCount}
+                                </span>
+                            )}
+                        </button>
+                    </div>
+                </div>
+
+                {isTrashed ? (
+                    /* Koš — single column layout bez kalendáře a alertů */
+                    <DataTable<Task>
                         data={tasks.data}
-                        columns={columns}
+                        columns={trashedColumns}
                         pagination={{
                             current_page: tasks.current_page,
                             last_page: tasks.last_page,
@@ -323,81 +430,105 @@ export default function PlannerIndex({ tasks, calendarEvents, filters, customers
                         }}
                         searchValue={filters.search}
                         onSearchChange={(search) => applyFilters({ search })}
-                        searchPlaceholder="Hledat úkoly..."
+                        searchPlaceholder="Hledat smazané úkoly..."
                         onPageChange={(page) => applyFilters({ page: String(page) })}
-                        emptyMessage="Žádné úkoly"
-                        onRowClick={(task) => setEditTarget(task)}
-                        toolbar={
-                            <div className="flex items-center gap-3">
-                                <Select
-                                    value={periodFilter}
-                                    onValueChange={(v) => {
-                                        setPeriodFilter(v);
-                                        applyFilters({ period: v });
-                                    }}
-                                >
-                                    <SelectTrigger className="w-[160px] bg-muted border-border text-foreground/80">
-                                        <SelectValue placeholder="Období" />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-card border-border">
-                                        <SelectItem value="all">Vše</SelectItem>
-                                        <SelectItem value="today">Dnes</SelectItem>
-                                        <SelectItem value="this_week">Tento týden</SelectItem>
-                                        <SelectItem value="overdue">Po termínu</SelectItem>
-                                    </SelectContent>
-                                </Select>
-
-                                <Select
-                                    value={statusFilter}
-                                    onValueChange={(v) => {
-                                        setStatusFilter(v);
-                                        applyFilters({ status: v });
-                                    }}
-                                >
-                                    <SelectTrigger className="w-[150px] bg-muted border-border text-foreground/80">
-                                        <SelectValue placeholder="Stav" />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-card border-border">
-                                        <SelectItem value="all">Všechny stavy</SelectItem>
-                                        <SelectItem value="novy">Nový</SelectItem>
-                                        <SelectItem value="rozpracovany">Rozpracovaný</SelectItem>
-                                        <SelectItem value="hotovy">Hotový</SelectItem>
-                                        <SelectItem value="zruseny">Zrušený</SelectItem>
-                                    </SelectContent>
-                                </Select>
-
-                                <Select
-                                    value={priorityFilter}
-                                    onValueChange={(v) => {
-                                        setPriorityFilter(v);
-                                        applyFilters({ priority: v });
-                                    }}
-                                >
-                                    <SelectTrigger className="w-[140px] bg-muted border-border text-foreground/80">
-                                        <SelectValue placeholder="Priorita" />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-card border-border">
-                                        <SelectItem value="all">Všechny</SelectItem>
-                                        <SelectItem value="low">Nízká</SelectItem>
-                                        <SelectItem value="medium">Střední</SelectItem>
-                                        <SelectItem value="high">Vysoká</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        }
+                        emptyMessage="Žádné smazané úkoly"
+                        onRowClick={undefined}
                     />
+                ) : (
+                    /* Aktivní — 2-column layout: Seznam + Kalendář */
+                    <div className="grid gap-6 lg:grid-cols-[7fr_3fr] items-start">
+                        {/* Seznam + Alerts */}
+                        <div className="space-y-6">
+                            <DataTable<Task>
+                                data={tasks.data}
+                                columns={activeColumns}
+                                pagination={{
+                                    current_page: tasks.current_page,
+                                    last_page: tasks.last_page,
+                                    per_page: tasks.per_page,
+                                    total: tasks.total,
+                                    from: tasks.from,
+                                    to: tasks.to,
+                                }}
+                                searchValue={filters.search}
+                                onSearchChange={(search) => applyFilters({ search })}
+                                searchPlaceholder="Hledat úkoly..."
+                                onPageChange={(page) => applyFilters({ page: String(page) })}
+                                emptyMessage="Žádné úkoly"
+                                onRowClick={(task) => setEditTarget(task)}
+                                toolbar={
+                                    <div className="flex items-center gap-3">
+                                        <Select
+                                            value={periodFilter}
+                                            onValueChange={(v) => {
+                                                setPeriodFilter(v);
+                                                applyFilters({ period: v });
+                                            }}
+                                        >
+                                            <SelectTrigger className="w-[160px] bg-muted border-border text-foreground/80">
+                                                <SelectValue placeholder="Období" />
+                                            </SelectTrigger>
+                                            <SelectContent className="bg-card border-border">
+                                                <SelectItem value="all">Vše</SelectItem>
+                                                <SelectItem value="today">Dnes</SelectItem>
+                                                <SelectItem value="this_week">Tento týden</SelectItem>
+                                                <SelectItem value="overdue">Po termínu</SelectItem>
+                                            </SelectContent>
+                                        </Select>
 
-                    <AttentionAlerts alerts={alerts} ignoredAlerts={ignoredAlerts} defaultVisible={5} />
-                    </div>
+                                        <Select
+                                            value={statusFilter}
+                                            onValueChange={(v) => {
+                                                setStatusFilter(v);
+                                                applyFilters({ status: v });
+                                            }}
+                                        >
+                                            <SelectTrigger className="w-[150px] bg-muted border-border text-foreground/80">
+                                                <SelectValue placeholder="Stav" />
+                                            </SelectTrigger>
+                                            <SelectContent className="bg-card border-border">
+                                                <SelectItem value="all">Všechny stavy</SelectItem>
+                                                <SelectItem value="novy">Nový</SelectItem>
+                                                <SelectItem value="rozpracovany">Rozpracovaný</SelectItem>
+                                                <SelectItem value="hotovy">Hotový</SelectItem>
+                                                <SelectItem value="zruseny">Zrušený</SelectItem>
+                                            </SelectContent>
+                                        </Select>
 
-                    {/* Kalendář */}
-                    <div className="sticky top-24">
-                        <CalendarGrid
-                            events={allCalendarEvents}
-                            onTaskClick={handleCalendarTaskClick}
-                        />
+                                        <Select
+                                            value={priorityFilter}
+                                            onValueChange={(v) => {
+                                                setPriorityFilter(v);
+                                                applyFilters({ priority: v });
+                                            }}
+                                        >
+                                            <SelectTrigger className="w-[140px] bg-muted border-border text-foreground/80">
+                                                <SelectValue placeholder="Priorita" />
+                                            </SelectTrigger>
+                                            <SelectContent className="bg-card border-border">
+                                                <SelectItem value="all">Všechny</SelectItem>
+                                                <SelectItem value="low">Nízká</SelectItem>
+                                                <SelectItem value="medium">Střední</SelectItem>
+                                                <SelectItem value="high">Vysoká</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                }
+                            />
+
+                            <AttentionAlerts alerts={alerts} ignoredAlerts={ignoredAlerts} defaultVisible={5} />
+                        </div>
+
+                        {/* Kalendář */}
+                        <div className="sticky top-24">
+                            <CalendarGrid
+                                events={allCalendarEvents}
+                                onTaskClick={handleCalendarTaskClick}
+                            />
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
 
             {/* Create modal */}
@@ -437,14 +568,24 @@ export default function PlannerIndex({ tasks, calendarEvents, filters, customers
             <GlassModal
                 open={!!deleteTarget}
                 onClose={() => setDeleteTarget(null)}
-                title="Smazat úkol"
+                title={isTrashed ? 'Trvale smazat úkol' : 'Smazat úkol'}
                 maxWidth="max-w-md"
             >
                 <div className="space-y-6">
                     <p className="text-sm text-muted-foreground">
-                        Opravdu chcete smazat úkol{' '}
-                        <span className="font-semibold text-foreground">{deleteTarget?.title}</span>?
-                        Tato akce je nevratná.
+                        {isTrashed ? (
+                            <>
+                                Opravdu chcete <span className="font-semibold text-red-400">trvale smazat</span> úkol{' '}
+                                <span className="font-semibold text-foreground">{deleteTarget?.title}</span>?
+                                Tuto akci nelze vrátit.
+                            </>
+                        ) : (
+                            <>
+                                Opravdu chcete smazat úkol{' '}
+                                <span className="font-semibold text-foreground">{deleteTarget?.title}</span>?
+                                Úkol bude možné obnovit z koše.
+                            </>
+                        )}
                     </p>
                     <div className="flex justify-end gap-3">
                         <Button
@@ -461,7 +602,7 @@ export default function PlannerIndex({ tasks, calendarEvents, filters, customers
                             className="bg-red-600 hover:bg-red-700"
                         >
                             <Trash2 className="h-4 w-4" />
-                            {deleting ? 'Mažu...' : 'Smazat'}
+                            {deleting ? 'Mažu...' : isTrashed ? 'Trvale smazat' : 'Do koše'}
                         </Button>
                     </div>
                 </div>

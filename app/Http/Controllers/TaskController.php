@@ -15,16 +15,24 @@ class TaskController extends Controller
 {
     public function index(Request $request)
     {
-        $tasks = Task::query()
-            ->with([
+        $trashed = $request->boolean('trashed');
+
+        $query = $trashed
+            ? Task::onlyTrashed()->with([
                 'customer:id,name,company',
                 'order:id,title',
                 'invoice:id,invoice_number',
-            ])
-            ->when($request->input('search'), fn ($q, $term) => $q->search($term))
-            ->when($request->input('status'), fn ($q, $s) => $q->byStatus($s))
-            ->when($request->input('priority'), fn ($q, $p) => $q->byPriority($p))
-            ->when($request->input('period'), function ($q, $period) {
+              ])
+            : Task::query()->with([
+                'customer:id,name,company',
+                'order:id,title',
+                'invoice:id,invoice_number',
+              ]);
+
+        $query->when($request->input('search'), fn ($q, $term) => $q->search($term))
+            ->when(!$trashed && $request->input('status'), fn ($q, $s) => $q->byStatus($s))
+            ->when(!$trashed && $request->input('priority'), fn ($q, $p) => $q->byPriority($p))
+            ->when(!$trashed && $request->input('period'), function ($q, $period) {
                 return match ($period) {
                     'today'   => $q->dueToday(),
                     'week'    => $q->dueThisWeek(),
@@ -32,9 +40,24 @@ class TaskController extends Controller
                     default   => $q,
                 };
             })
-            ->latest()
-            ->paginate(25)
-            ->withQueryString();
+            ->latest();
+
+        $tasks = $query->paginate(25)->withQueryString();
+        $trashedCount = Task::onlyTrashed()->count();
+
+        if ($trashed) {
+            return Inertia::render('Planner/Index', [
+                'tasks'          => $tasks,
+                'calendarEvents' => ['tasks' => [], 'subscriptions' => [], 'invoices' => []],
+                'filters'        => $request->only(['search', 'trashed']),
+                'customers'      => [],
+                'orders'         => [],
+                'invoices'       => [],
+                'alerts'         => [],
+                'ignoredAlerts'  => [],
+                'trashedCount'   => $trashedCount,
+            ]);
+        }
 
         $calendarStart = now()->subMonth()->startOfMonth();
         $calendarEnd = now()->addMonth()->endOfMonth();
@@ -91,12 +114,13 @@ class TaskController extends Controller
                 'subscriptions' => $expiringSubscriptions,
                 'invoices'      => $dueInvoices,
             ],
-            'filters'   => $request->only(['search', 'status', 'priority', 'period']),
-            'customers' => $customers,
-            'orders'    => $orders,
-            'invoices'  => $invoices,
-            'alerts'    => DashboardController::getAttentionAlerts(),
+            'filters'       => $request->only(['search', 'status', 'priority', 'period', 'trashed']),
+            'customers'     => $customers,
+            'orders'        => $orders,
+            'invoices'      => $invoices,
+            'alerts'        => DashboardController::getAttentionAlerts(),
             'ignoredAlerts' => DashboardController::getIgnoredAlerts(),
+            'trashedCount'  => $trashedCount,
         ]);
     }
 
@@ -165,6 +189,24 @@ class TaskController extends Controller
     {
         $planovac->delete();
 
-        return back()->with('success', 'Úkol smazán.');
+        return back()->with('success', 'Úkol přesunut do koše.');
+    }
+
+    public function restore(int $id)
+    {
+        $task = Task::onlyTrashed()->findOrFail($id);
+        $task->restore();
+
+        return redirect()->route('planovac.index')
+            ->with('success', "Úkol \"{$task->title}\" obnoven.");
+    }
+
+    public function forceDelete(int $id)
+    {
+        $task = Task::onlyTrashed()->findOrFail($id);
+        $task->forceDelete();
+
+        return redirect()->route('planovac.index', ['trashed' => 1])
+            ->with('success', 'Úkol trvale smazán.');
     }
 }

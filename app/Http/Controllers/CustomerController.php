@@ -11,20 +11,27 @@ class CustomerController extends Controller
 {
     public function index(Request $request)
     {
+        $trashed = $request->boolean('trashed');
         $sortField = $request->input('sort', 'created_at');
         $sortDir = $request->input('direction', 'desc');
         $allowedSorts = ['name', 'email', 'created_at', 'company'];
 
-        $customers = Customer::query()
-            ->search($request->input('search'))
-            ->when($request->input('type'), fn ($q, $type) => $q->where('type', $type))
+        $query = $trashed
+            ? Customer::onlyTrashed()->search($request->input('search'))
+            : Customer::query()->search($request->input('search'));
+
+        $customers = $query
+            ->when(!$trashed && $request->input('type'), fn ($q, $type) => $q->where('type', $type))
             ->orderBy(in_array($sortField, $allowedSorts) ? $sortField : 'created_at', $sortDir === 'asc' ? 'asc' : 'desc')
             ->paginate(25)
             ->withQueryString();
 
+        $trashedCount = Customer::onlyTrashed()->count();
+
         return Inertia::render('Customers/Index', [
             'customers' => $customers,
-            'filters' => $request->only(['search', 'type', 'sort', 'direction']),
+            'filters' => $request->only(['search', 'type', 'sort', 'direction', 'trashed']),
+            'trashedCount' => $trashedCount,
         ]);
     }
 
@@ -138,7 +145,41 @@ class CustomerController extends Controller
         $zakaznici->delete();
 
         return redirect()->route('zakaznici.index')
-            ->with('success', 'Zákazník smazán.');
+            ->with('success', 'Zákazník přesunut do koše.');
+    }
+
+    public function restore(int $id)
+    {
+        $customer = Customer::onlyTrashed()->findOrFail($id);
+        $customer->restore();
+
+        return redirect()->route('zakaznici.index')
+            ->with('success', "Zákazník \"{$customer->name}\" obnoven.");
+    }
+
+    public function forceDelete(int $id)
+    {
+        $customer = Customer::onlyTrashed()->findOrFail($id);
+
+        // Ochrana: zkontroluj aktivní vazby
+        $activeOrders = $customer->orders()->withTrashed()->whereNull('deleted_at')->count();
+        $unpaidInvoices = $customer->invoices()->withTrashed()->whereNull('deleted_at')
+            ->where('status', '!=', 'zaplacena')->count();
+        $activeSubscriptions = $customer->subscriptions()->where('status', 'aktivni')->count();
+
+        if ($activeOrders > 0 || $unpaidInvoices > 0 || $activeSubscriptions > 0) {
+            $reasons = [];
+            if ($activeOrders > 0) $reasons[] = "{$activeOrders} aktivních zakázek";
+            if ($unpaidInvoices > 0) $reasons[] = "{$unpaidInvoices} nezaplacených faktur";
+            if ($activeSubscriptions > 0) $reasons[] = "{$activeSubscriptions} aktivních služeb";
+
+            return back()->with('error', 'Zákazníka nelze trvale smazat — má: ' . implode(', ', $reasons) . '.');
+        }
+
+        $customer->forceDelete();
+
+        return redirect()->route('zakaznici.index', ['trashed' => 1])
+            ->with('success', 'Zákazník trvale smazán.');
     }
 
     private function prepareData(array $validated): array

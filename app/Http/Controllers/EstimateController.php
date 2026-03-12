@@ -25,10 +25,12 @@ class EstimateController extends Controller
         }
 
         $estimates = $query->paginate(20)->withQueryString();
+        $trashedCount = Estimate::onlyTrashed()->count();
 
         return Inertia::render('Estimates/Index', [
-            'estimates' => $estimates,
-            'filters'   => $request->only(['search', 'status', 'trash']),
+            'estimates'   => $estimates,
+            'filters'     => $request->only(['search', 'status', 'trash']),
+            'trashedCount' => $trashedCount,
         ]);
     }
 

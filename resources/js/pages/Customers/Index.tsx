@@ -1,6 +1,7 @@
 import { type FormEvent, useCallback, useMemo, useRef, useState } from 'react';
 import { router, useForm } from '@inertiajs/react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { formatDate } from '@/lib/utils';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import DataTable, { type Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/button';
@@ -15,8 +16,10 @@ import {
     handleCustomerRowClick,
 } from '@/components/customers/CustomerTable';
 
+type CustomerRowWithTrash = CustomerRow & { deleted_at?: string | null };
+
 interface PaginatedCustomers {
-    data: CustomerRow[];
+    data: CustomerRowWithTrash[];
     current_page: number;
     last_page: number;
     per_page: number;
@@ -31,15 +34,20 @@ interface Props {
         search?: string;
         sort?: string;
         direction?: 'asc' | 'desc';
+        trashed?: string;
     };
+    trashedCount: number;
 }
 
-export default function Index({ customers, filters }: Props) {
+export default function Index({ customers, filters, trashedCount }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
     const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [showCreate, setShowCreate] = useState(false);
-    const [deleteTarget, setDeleteTarget] = useState<CustomerRow | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<CustomerRowWithTrash | null>(null);
     const [deleting, setDeleting] = useState(false);
+    const [restoring, setRestoring] = useState<number | null>(null);
+
+    const isTrashed = filters.trashed === '1';
 
     const form = useForm<CustomerFormData>({ ...defaultCustomerData });
 
@@ -56,17 +64,29 @@ export default function Index({ customers, filters }: Props) {
     const handleDelete = () => {
         if (!deleteTarget) return;
         setDeleting(true);
-        router.delete(`/zakaznici/${deleteTarget.id}`, {
-            onSuccess: () => {
-                setDeleteTarget(null);
-                setDeleting(false);
-            },
-            onError: () => setDeleting(false),
+        if (isTrashed) {
+            router.delete(`/zakaznici/${deleteTarget.id}/force-delete`, {
+                onSuccess: () => { setDeleteTarget(null); setDeleting(false); },
+                onError: () => setDeleting(false),
+            });
+        } else {
+            router.delete(`/zakaznici/${deleteTarget.id}`, {
+                onSuccess: () => { setDeleteTarget(null); setDeleting(false); },
+                onError: () => setDeleting(false),
+            });
+        }
+    };
+
+    const handleRestore = (id: number) => {
+        setRestoring(id);
+        router.post(`/zakaznici/${id}/restore`, {}, {
+            onSuccess: () => setRestoring(null),
+            onError: () => setRestoring(null),
         });
     };
 
-    const columns = useMemo<Column<CustomerRow>[]>(() => [
-        ...customerColumns,
+    const activeColumns = useMemo<Column<CustomerRowWithTrash>[]>(() => [
+        ...(customerColumns as Column<CustomerRowWithTrash>[]),
         {
             key: 'actions',
             label: '',
@@ -91,6 +111,63 @@ export default function Index({ customers, filters }: Props) {
             ),
         },
     ], []);
+
+    const trashedColumns = useMemo<Column<CustomerRowWithTrash>[]>(() => [
+        {
+            key: 'name',
+            label: 'Jméno',
+            render: (c) => (
+                <span className="font-medium text-muted-foreground">{c.name}</span>
+            ),
+        },
+        {
+            key: 'company',
+            label: 'Firma',
+            render: (c) => (
+                <span className="text-muted-foreground">{c.company || '—'}</span>
+            ),
+        },
+        {
+            key: 'email',
+            label: 'E-mail',
+            render: (c) => (
+                <span className="text-muted-foreground">{c.email || '—'}</span>
+            ),
+        },
+        {
+            key: 'deleted_at',
+            label: 'Smazáno',
+            render: (c) => (
+                <span className="text-muted-foreground">
+                    {c.deleted_at ? formatDate(c.deleted_at) : ''}
+                </span>
+            ),
+        },
+        {
+            key: 'actions',
+            label: '',
+            className: 'w-[120px] text-right',
+            render: (row) => (
+                <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                    <button
+                        onClick={() => handleRestore(row.id)}
+                        disabled={restoring === row.id}
+                        className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-emerald-500/10 hover:text-emerald-500"
+                        title="Obnovit"
+                    >
+                        <RotateCcw className={`h-3.5 w-3.5 ${restoring === row.id ? 'animate-spin' : ''}`} />
+                    </button>
+                    <button
+                        onClick={() => setDeleteTarget(row)}
+                        className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-500"
+                        title="Trvale smazat"
+                    >
+                        <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                </div>
+            ),
+        },
+    ], [restoring]);
 
     const applyFilters = useCallback(
         (params: Record<string, string | number | undefined>) => {
@@ -142,18 +219,51 @@ export default function Index({ customers, filters }: Props) {
                     <h1 className="text-2xl font-semibold text-foreground">
                         Zákazníci
                     </h1>
-                    <Button
-                        className="bg-primary text-white hover:bg-primary/80"
-                        onClick={() => setShowCreate(true)}
-                    >
-                        <Plus className="h-4 w-4" />
-                        Nový zákazník
-                    </Button>
+                    {!isTrashed && (
+                        <Button
+                            className="bg-primary text-white hover:bg-primary/80"
+                            onClick={() => setShowCreate(true)}
+                        >
+                            <Plus className="h-4 w-4" />
+                            Nový zákazník
+                        </Button>
+                    )}
+                </div>
+
+                {/* Tabs */}
+                <div className="flex items-center justify-between border-b border-border">
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => applyFilters({ trashed: undefined, search: undefined })}
+                            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+                                !isTrashed
+                                    ? 'border-primary text-foreground'
+                                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                            }`}
+                        >
+                            Všechny
+                        </button>
+                        <button
+                            onClick={() => applyFilters({ trashed: '1', search: undefined })}
+                            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-2 ${
+                                isTrashed
+                                    ? 'border-primary text-foreground'
+                                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                            }`}
+                        >
+                            Smazané
+                            {trashedCount > 0 && (
+                                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500/10 px-1.5 text-xs font-medium text-red-400">
+                                    {trashedCount}
+                                </span>
+                            )}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Table */}
                 <DataTable<CustomerRow>
-                    columns={columns}
+                    columns={isTrashed ? trashedColumns : activeColumns}
                     data={customers.data}
                     pagination={{
                         current_page: customers.current_page,
@@ -170,8 +280,8 @@ export default function Index({ customers, filters }: Props) {
                     sortDirection={filters.direction}
                     onSort={handleSort}
                     onPageChange={handlePageChange}
-                    onRowClick={handleCustomerRowClick}
-                    emptyMessage="Zatím nemáte žádné zákazníky"
+                    onRowClick={isTrashed ? undefined : handleCustomerRowClick}
+                    emptyMessage={isTrashed ? 'Žádní smazaní zákazníci' : 'Zatím nemáte žádné zákazníky'}
                 />
             </div>
 
@@ -193,14 +303,24 @@ export default function Index({ customers, filters }: Props) {
             <GlassModal
                 open={!!deleteTarget}
                 onClose={() => setDeleteTarget(null)}
-                title="Smazat zákazníka"
+                title={isTrashed ? 'Trvale smazat zákazníka' : 'Smazat zákazníka'}
                 maxWidth="max-w-md"
             >
                 <div className="space-y-6">
                     <p className="text-sm text-muted-foreground">
-                        Opravdu chcete smazat zákazníka{' '}
-                        <span className="font-semibold text-foreground">{deleteTarget?.name}</span>?
-                        Tato akce se nedá vrátit.
+                        {isTrashed ? (
+                            <>
+                                Opravdu chcete <span className="font-semibold text-red-400">trvale smazat</span> zákazníka{' '}
+                                <span className="font-semibold text-foreground">{deleteTarget?.name}</span>?
+                                Tuto akci nelze vrátit.
+                            </>
+                        ) : (
+                            <>
+                                Zákazník{' '}
+                                <span className="font-semibold text-foreground">{deleteTarget?.name}</span>{' '}
+                                bude přesunut do koše. Po 30 dnech se smaže trvale.
+                            </>
+                        )}
                     </p>
                     <div className="flex justify-end gap-3">
                         <Button
@@ -217,7 +337,7 @@ export default function Index({ customers, filters }: Props) {
                             className="bg-red-600 hover:bg-red-700"
                         >
                             <Trash2 className="h-4 w-4" />
-                            {deleting ? 'Mažu...' : 'Smazat'}
+                            {deleting ? 'Mažu...' : isTrashed ? 'Trvale smazat' : 'Do koše'}
                         </Button>
                     </div>
                 </div>
