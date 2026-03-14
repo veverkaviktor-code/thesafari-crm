@@ -176,6 +176,7 @@ class CustomerController extends Controller
             return back()->with('error', 'Zákazníka nelze trvale smazat — má: ' . implode(', ', $reasons) . '.');
         }
 
+        $this->cleanupBeforeForceDelete($customer);
         $customer->forceDelete();
 
         return redirect()->route('zakaznici.index', ['trashed' => 1])
@@ -209,6 +210,7 @@ class CustomerController extends Controller
             if ($hasActive) {
                 $blocked[] = $customer->name;
             } else {
+                $this->cleanupBeforeForceDelete($customer);
                 $customer->forceDelete();
                 $deleted++;
             }
@@ -232,6 +234,7 @@ class CustomerController extends Controller
             if ($hasActive) {
                 $blocked++;
             } else {
+                $this->cleanupBeforeForceDelete($customer);
                 $customer->forceDelete();
                 $deleted++;
             }
@@ -239,6 +242,25 @@ class CustomerController extends Controller
         $msg = "Koš vysypán ($deleted zákazníků trvale smazáno).";
         if ($blocked > 0) $msg .= " $blocked zákazníků přeskočeno (aktivní vazby).";
         return back()->with('success', $msg);
+    }
+
+    /**
+     * Odpojí/smaže všechny zbývající záznamy před force delete zákazníka.
+     * PHP soft-delete kontrola už proběhla — zde řešíme PostgreSQL FK constraints.
+     */
+    private function cleanupBeforeForceDelete(Customer $customer): void
+    {
+        // Force delete soft-deleted orders a invoices (v koši stejně jako zákazník)
+        $customer->orders()->onlyTrashed()->forceDelete();
+        $customer->invoices()->onlyTrashed()->forceDelete();
+
+        // Nullify customer_id na zbývajících (zaplacené faktury, uzavřené zakázky apod.)
+        $customer->orders()->update(['customer_id' => null]);
+        $customer->invoices()->update(['customer_id' => null]);
+
+        // Subscriptions — smazat neaktivní, nullify zbytek
+        $customer->subscriptions()->where('status', '!=', 'aktivni')->delete();
+        $customer->subscriptions()->update(['customer_id' => null]);
     }
 
     private function prepareData(array $validated): array
