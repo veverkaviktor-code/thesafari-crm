@@ -1,9 +1,19 @@
 import { useState } from "react";
 import AuthenticatedLayout from "@/layouts/AuthenticatedLayout";
-import { User, Building2 } from "lucide-react";
+import { User, Building2, KeyRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Profile from "./Profile";
 import Company from "./Company";
+import Vault from "./Vault";
+
+interface VaultEntry {
+    id: number;
+    name: string;
+    username: string | null;
+    password: string | null;
+    url: string | null;
+    notes: string | null;
+}
 
 interface Props {
     user: {
@@ -28,15 +38,17 @@ interface Props {
         bank_iban: string | null;
         email_from: string | null;
     };
+    vault: VaultEntry[];
     tab?: string;
 }
 
 const tabs = [
     { value: "profile", label: "Profil", icon: User, description: "Jméno, email a avatar" },
     { value: "company", label: "Firma", icon: Building2, description: "Firemní údaje a fakturace" },
+    { value: "vault", label: "Hesla", icon: KeyRound, description: "Trezor hesel a přístupů" },
 ];
 
-export default function SettingsIndex({ user, company, tab }: Props) {
+export default function SettingsIndex({ user, company, vault, tab }: Props) {
     const [activeTab, setActiveTab] = useState(tab || "profile");
 
     return (
@@ -76,6 +88,7 @@ export default function SettingsIndex({ user, company, tab }: Props) {
                     <div className="flex-1 min-w-0">
                         {activeTab === "profile" && <Profile user={user} />}
                         {activeTab === "company" && <Company company={company} />}
+                        {activeTab === "vault" && <Vault vault={vault} />}
                     </div>
                 </div>
             </div>

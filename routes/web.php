@@ -138,6 +138,9 @@ Route::middleware('auth')->group(function () {
         Route::put('profil/heslo', [ProfileController::class, 'updatePassword'])->name('settings.password.update');
         Route::get('firma', [CompanySettingsController::class, 'edit'])->name('settings.company');
         Route::put('firma', [CompanySettingsController::class, 'update'])->name('settings.company.update');
+        Route::post('hesla', [\App\Http\Controllers\VaultController::class, 'store'])->name('settings.vault.store');
+        Route::put('hesla/{vault}', [\App\Http\Controllers\VaultController::class, 'update'])->name('settings.vault.update');
+        Route::delete('hesla/{vault}', [\App\Http\Controllers\VaultController::class, 'destroy'])->name('settings.vault.destroy');
     });
 
     // Kalkulator (Estimates) — bulk PŘED resource
