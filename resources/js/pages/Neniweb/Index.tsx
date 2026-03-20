@@ -2158,16 +2158,15 @@ function FolderBar({
     onEditFolder: (f: Folder) => void;
     onDeleteFolder: (id: number) => void;
 }) {
-    if (folders.length === 0 && subscriptions.length === 0) return null;
+    if (subscriptions.length === 0 && folders.length === 0) return null;
 
     const folderCounts = new Map<number, number>();
     subscriptions.forEach(s => {
         if (s.folder_id) folderCounts.set(s.folder_id, (folderCounts.get(s.folder_id) || 0) + 1);
     });
 
-    // Only show folders that have items in this tab
+    // Show folders that have items in this tab + all folders when viewing all
     const relevantFolders = folders.filter(f => folderCounts.has(f.id));
-    if (relevantFolders.length === 0) return null;
 
     return (
         <div className="flex flex-wrap items-center gap-2 mb-3">
