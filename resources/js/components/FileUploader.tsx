@@ -1,6 +1,6 @@
 import { useState, useRef, DragEvent, ChangeEvent } from 'react';
 import { router } from '@inertiajs/react';
-import { Upload, X, FileIcon } from 'lucide-react';
+import { Upload, X, File as FileIcon } from 'lucide-react';
 import { formatFileSize } from '@/lib/utils';
 
 interface Props {
