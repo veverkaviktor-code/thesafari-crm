@@ -47,6 +47,8 @@ export interface NeniwebFormData {
     admin_url: string;
     admin_user: string;
     admin_password: string;
+    client_user: string;
+    client_password: string;
 }
 
 export const defaultNeniwebData: NeniwebFormData = {
@@ -73,6 +75,8 @@ export const defaultNeniwebData: NeniwebFormData = {
     admin_url: '',
     admin_user: '',
     admin_password: '',
+    client_user: '',
+    client_password: '',
 };
 
 const PLAN_OPTIONS = [
@@ -587,24 +591,53 @@ export default function NeniwebForm({
                             className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
                         />
                     </div>
-                    <div>
-                        <Label className="text-muted-foreground">Login</Label>
-                        <Input
-                            value={data.admin_user}
-                            onChange={(e) => setData('admin_user', e.target.value)}
-                            placeholder="admin"
-                            className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
-                        />
+                    <div className="sm:col-span-2">
+                        <p className="mb-2 text-xs font-medium text-muted-foreground/70">Můj přístup</p>
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <div>
+                                <Label className="text-muted-foreground">Login</Label>
+                                <Input
+                                    value={data.admin_user}
+                                    onChange={(e) => setData('admin_user', e.target.value)}
+                                    placeholder="admin"
+                                    className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
+                                />
+                            </div>
+                            <div>
+                                <Label className="text-muted-foreground">Heslo</Label>
+                                <Input
+                                    type="text"
+                                    value={data.admin_password}
+                                    onChange={(e) => setData('admin_password', e.target.value)}
+                                    placeholder="heslo"
+                                    className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
+                                />
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <Label className="text-muted-foreground">Heslo</Label>
-                        <Input
-                            type="text"
-                            value={data.admin_password}
-                            onChange={(e) => setData('admin_password', e.target.value)}
-                            placeholder="heslo"
-                            className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
-                        />
+                    <div className="sm:col-span-2">
+                        <p className="mb-2 text-xs font-medium text-muted-foreground/70">Zákazník</p>
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <div>
+                                <Label className="text-muted-foreground">Login</Label>
+                                <Input
+                                    value={data.client_user}
+                                    onChange={(e) => setData('client_user', e.target.value)}
+                                    placeholder="zakaznik"
+                                    className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
+                                />
+                            </div>
+                            <div>
+                                <Label className="text-muted-foreground">Heslo</Label>
+                                <Input
+                                    type="text"
+                                    value={data.client_password}
+                                    onChange={(e) => setData('client_password', e.target.value)}
+                                    placeholder="heslo"
+                                    className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
+                                />
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

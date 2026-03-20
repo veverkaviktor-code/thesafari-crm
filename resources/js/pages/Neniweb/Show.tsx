@@ -108,6 +108,8 @@ interface Subscription {
     admin_url: string | null;
     admin_user: string | null;
     admin_password: string | null;
+    client_user: string | null;
+    client_password: string | null;
 }
 
 interface Customer {
@@ -905,8 +907,8 @@ export default function NeniwebShow({ subscription, paymentStats }: Props) {
                                     </>
                                 )}
 
-                                {/* Admin přístupy */}
-                                {(subscription.admin_url || subscription.admin_user) && (
+                                {/* Přístupy do webu */}
+                                {(subscription.admin_url || subscription.admin_user || subscription.client_user) && (
                                     <>
                                         <Separator className="bg-border" />
                                         <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -926,13 +928,28 @@ export default function NeniwebShow({ subscription, paymentStats }: Props) {
                                             </div>
                                         )}
                                         {subscription.admin_user && (
-                                            <div className="flex items-center justify-between py-1">
-                                                <span className="text-sm text-muted-foreground">Login</span>
-                                                <span className="text-sm text-foreground">{subscription.admin_user}</span>
-                                            </div>
+                                            <>
+                                                <p className="mt-2 text-xs font-medium text-muted-foreground/70">Můj přístup</p>
+                                                <div className="flex items-center justify-between py-1">
+                                                    <span className="text-sm text-muted-foreground">Login</span>
+                                                    <span className="text-sm text-foreground">{subscription.admin_user}</span>
+                                                </div>
+                                                {subscription.admin_password && (
+                                                    <PasswordField password={subscription.admin_password} />
+                                                )}
+                                            </>
                                         )}
-                                        {subscription.admin_password && (
-                                            <PasswordField password={subscription.admin_password} />
+                                        {subscription.client_user && (
+                                            <>
+                                                <p className="mt-2 text-xs font-medium text-muted-foreground/70">Zákazník</p>
+                                                <div className="flex items-center justify-between py-1">
+                                                    <span className="text-sm text-muted-foreground">Login</span>
+                                                    <span className="text-sm text-foreground">{subscription.client_user}</span>
+                                                </div>
+                                                {subscription.client_password && (
+                                                    <PasswordField password={subscription.client_password} />
+                                                )}
+                                            </>
                                         )}
                                     </>
                                 )}

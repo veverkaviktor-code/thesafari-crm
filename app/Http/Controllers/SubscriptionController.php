@@ -239,7 +239,7 @@ class SubscriptionController extends Controller
             ->where('type', $linkedType)
             ->exists();
 
-        $neniweb->makeVisible('admin_password');
+        $neniweb->makeVisible(['admin_password', 'client_password']);
 
         return Inertia::render('Neniweb/Show', [
             'subscription' => array_merge($neniweb->toArray(), [
@@ -293,6 +293,8 @@ class SubscriptionController extends Controller
             'admin_url'       => 'nullable|string|max:500',
             'admin_user'      => 'nullable|string|max:255',
             'admin_password'  => 'nullable|string|max:500',
+            'client_user'     => 'nullable|string|max:255',
+            'client_password' => 'nullable|string|max:500',
         ]);
 
         $validated['price_yearly'] = $validated['price_yearly'] ?? 0;
@@ -308,7 +310,7 @@ class SubscriptionController extends Controller
     public function edit(Subscription $neniweb)
     {
         $customers = Customer::select('id', 'name', 'company')->orderBy('name')->get();
-        $neniweb->makeVisible('admin_password');
+        $neniweb->makeVisible(['admin_password', 'client_password']);
 
         return Inertia::render('Neniweb/Edit', [
             'subscription' => $neniweb,
@@ -344,6 +346,8 @@ class SubscriptionController extends Controller
             'admin_url'       => 'nullable|string|max:500',
             'admin_user'      => 'nullable|string|max:255',
             'admin_password'  => 'nullable|string|max:500',
+            'client_user'     => 'nullable|string|max:255',
+            'client_password' => 'nullable|string|max:500',
         ]);
 
         $validated['price_yearly'] = $validated['price_yearly'] ?? 0;

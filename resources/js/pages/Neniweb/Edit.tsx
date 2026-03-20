@@ -36,6 +36,8 @@ interface Subscription {
     admin_url: string | null;
     admin_user: string | null;
     admin_password: string | null;
+    client_user: string | null;
+    client_password: string | null;
 }
 
 interface Props {
@@ -68,6 +70,8 @@ export default function NeniwebEdit({ subscription, customers }: Props) {
         admin_url: subscription.admin_url || '',
         admin_user: subscription.admin_user || '',
         admin_password: subscription.admin_password || '',
+        client_user: subscription.client_user || '',
+        client_password: subscription.client_password || '',
     });
 
     const handleSubmit = (e: FormEvent) => {

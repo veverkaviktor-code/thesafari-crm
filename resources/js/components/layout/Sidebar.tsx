@@ -39,7 +39,7 @@ const mainNav: NavItem[] = [
     { label: 'Faktury', href: '/faktury', icon: FileText },
     { label: 'Finance', href: '/finance', icon: TrendingUp },
     { label: 'Zprávy', href: '/zpravy', icon: MessageSquare },
-    { label: 'Neniweb', href: '/neniweb', icon: Globe },
+    { label: 'Webové služby', href: '/neniweb', icon: Globe },
     { label: 'Kalkulátor', href: '/kalkulator', icon: Calculator },
     { label: 'To Do', href: '/planovac', icon: CalendarCheck },
     { label: 'Notifikace', href: '/notifikace', icon: Bell },

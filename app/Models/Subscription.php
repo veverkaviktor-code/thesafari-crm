@@ -50,9 +50,11 @@ class Subscription extends Model
         'admin_url',
         'admin_user',
         'admin_password',
+        'client_user',
+        'client_password',
     ];
 
-    protected $hidden = ['admin_password'];
+    protected $hidden = ['admin_password', 'client_password'];
 
     protected function casts(): array
     {
@@ -73,6 +75,7 @@ class Subscription extends Model
             'customer_notified_at' => 'datetime',
             'alerts_ignored_at' => 'datetime',
             'admin_password' => 'encrypted',
+            'client_password' => 'encrypted',
         ];
     }
 
