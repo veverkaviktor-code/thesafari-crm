@@ -72,12 +72,14 @@ Každý záznam v `websites` = flexibilní jednotka. Může být:
 
 **Zachované sloupce:**
 ```
-id, customer_id, name, server, status, notes,
+id, customer_id, name, server, status, notes, starts_at,
 is_registered_by_us, ip_address, storage_quota_mb, storage_used_mb,
 synced_at, auto_renew, auto_invoice, is_free, is_external,
 sell_yearly, cost_yearly, alerts_ignored_at, admin_url,
 created_at, updated_at, deleted_at
 ```
+
+> **Poznámka:** `starts_at` zachován pro historický kontext (kdy web začal být spravován).
 
 **Nové sloupce:**
 ```
@@ -94,11 +96,13 @@ auto_invoice_management BOOLEAN DEFAULT false
 ```
 type, provider, price_yearly, billing_cycle, monthly_price,
 monthly_plan, portal_domain_id, vas_hosting_id, tariff,
-managed_since, customer_notified_at, expires_at,
+managed_since, expires_at,
 parent_subscription_id, vps_server_id,
 admin_user, admin_password, client_user, client_password,
 folder_id
 ```
+
+> **Poznámka:** `customer_notified_at` ZACHOVÁN — přejmenovat na `last_expiry_notified_at`. Používá ho `CheckExpiringWebsites` command pro deduplikaci notifikací.
 
 ### Tabulka `website_credentials` (nová)
 
@@ -222,7 +226,14 @@ Automatické: Portal vrátí "goldsgym.cz", VPS Centrum vrátí hosting "goldsgy
 ```php
 // Aktuální logika (zjednodušeně):
 foreach ($this->subscriptions as $subscription) {
-    $subscription->payments()->create([...]);
+    $subscription->payments()->create([
+        'amount' => (float) $subscription->sell_yearly ?: (float) $subscription->price_yearly,
+        'period_start' => $subscription->expires_at,
+        'period_end' => $subscription->expires_at?->addYear(),
+        'status' => 'zaplaceno',
+        'paid_at' => now(),
+        'invoice_id' => $this->id,
+    ]);
     if ($subscription->type === 'hosting') {
         $subscription->expires_at = $subscription->expires_at->addYear();
     }
@@ -230,8 +241,17 @@ foreach ($this->subscriptions as $subscription) {
 
 // Nová logika:
 foreach ($this->websites as $website) {
-    $website->payments()->create([...]);
     $pivotType = $website->pivot->invoice_type;
+    $amount = (float) $website->sell_yearly ?: (float) $website->cost_yearly;
+    $website->payments()->create([
+        'amount' => $amount,
+        'period_start' => $website->hosting_expires_at ?? now(),
+        'period_end' => ($website->hosting_expires_at ?? now())->copy()->addYear(),
+        'status' => 'zaplaceno',
+        'paid_at' => now(),
+        'invoice_id' => $this->id,
+        'payment_method' => $paymentMethod,
+    ]);
     if ($pivotType === 'hosting') {
         $website->hosting_expires_at = $website->hosting_expires_at?->addYear() ?? now()->addYear();
         if ($website->is_registered_by_us) {
@@ -302,6 +322,8 @@ DELETE /webove-sluzby/vps/{vp}                vps.destroy
 
 **301 redirecty:** `/neniweb*` → `/webove-sluzby*`, `/pozadavky` zůstává → `/zpravy`
 
+**Route registration order:** Statické routy (`/sync`, `/bulk-update`, `/vytvorit`, `/ke-schvaleni`, `/vps/*`, `/faktura-zakaznik/*`) MUSÍ být registrovány PŘED `{website}` parametrizovanými routami. Jinak Laravel interpretuje "vytvorit" jako model binding ID. Existující pattern z routes/web.php (řádek 111).
+
 ## 9. Frontend — Stránky
 
 ### Index (jeden seznam + filtry)
@@ -346,15 +368,15 @@ DELETE /webove-sluzby/vps/{vp}                vps.destroy
 | EmailAccount.subscription_id | EmailAccount.website_id |
 | Invoice->subscriptions() | Invoice->websites() |
 | Customer->subscriptions() | Customer->websites() |
-| VpsServer->subscriptions() | VpsServer->websites() |
+| VpsServer->subscriptions() | VpsServer->websites() (FK: `hosting_server_id`, ne starý `vps_server_id`) |
 
 ### Backend (controllery)
 | Starý | Nový |
 |-------|------|
 | SubscriptionController | WebsiteController |
 | FolderController | SMAZAT |
-| DashboardController (6 metod) | přepojit na Website |
-| FinanceController (6 metod) | přepojit na Website/WebsitePayment |
+| DashboardController (6 metod) | přepojit na Website. **MRR kalkulace:** `sell_yearly / 12` (vždy roční, billing_cycle odpadá). Management plan MRR = `management_plans.price_monthly` (pokud přiřazeno). |
+| FinanceController (6 metod) | přepojit na Website/WebsitePayment. **Stejná MRR logika.** |
 | SearchController | kategorie "websites", link /webove-sluzby/{id} |
 | CustomerController::show() | websites relace, websiteCosts |
 | InvoiceController::show/sendEmail | load websites místo subscriptions |
@@ -364,10 +386,13 @@ DELETE /webove-sluzby/vps/{vp}                vps.destroy
 | Starý | Nový |
 |-------|------|
 | AutoInvoiceSubscriptions | AutoInvoiceWebsites (websites:auto-invoice) |
-| CheckExpiringSubscriptions | CheckExpiringWebsites (websites:check-expiring) |
-| GenerateNotifications | přepojit na Website |
+| CheckExpiringSubscriptions | CheckExpiringWebsites (websites:check-expiring, uses `last_expiry_notified_at`) |
+| GenerateNotifications | přepojit na Website (query `website_id` v JSON, ne `subscription_id`) |
 | SubscriptionExpiring | WebsiteExpiring (link /webove-sluzby/{id}) |
 | SubscriptionInvoiceCreated | WebsiteInvoiceCreated |
+| **bootstrap/app.php** | **Scheduler: `subscriptions:*` → `websites:*`** |
+| SendInvoiceReminders | přepojit linky na /webove-sluzby/{id} |
+| VpsServerController | FK `vps_server_id` → `hosting_server_id`, model Subscription → Website |
 
 ### Frontend
 | Starý | Nový |
@@ -398,15 +423,22 @@ Jedna atomická migrace v 6 krocích:
 - subscription_payments → website_payments
 - invoice_subscription → invoice_website
 - Rename FK sloupců: subscription_id → website_id (website_payments, invoice_website, email_accounts)
+- **PostgreSQL unique constraint:** DROP `invoice_subscription_invoice_id_subscription_id_unique`, ADD `invoice_website_invoice_id_website_id_unique` (PostgreSQL nerenameruje constraint automaticky při column rename)
 
 ### Krok 3: Alter websites
 - Přidat: domain_expires_at, hosting_expires_at, hosting_server_id, alias_of_id, management_plan_id, management_cycle, auto_invoice_management
+- Rename: customer_notified_at → last_expiry_notified_at
 - Data migrace:
   - hosting_expires_at = expires_at (kde stará type=hosting)
   - domain_expires_at = expires_at (kde stará type=domena AND is_registered_by_us=true)
   - hosting_server_id = vps_server_id
   - alias_of_id = parent_subscription_id
-- Odebrat: type, provider, price_yearly, billing_cycle, monthly_price, monthly_plan, portal_domain_id, vas_hosting_id, tariff, managed_since, customer_notified_at, expires_at, parent_subscription_id, vps_server_id, admin_user, admin_password, client_user, client_password, folder_id
+- Odebrat: type, provider, price_yearly, billing_cycle, monthly_price, monthly_plan, portal_domain_id, vas_hosting_id, tariff, managed_since, expires_at, parent_subscription_id, vps_server_id, admin_user, admin_password, client_user, client_password, folder_id
+
+### Krok 3b: Cleanup notifications
+- UPDATE notifications SET data = REPLACE(data, 'subscription_id', 'website_id') WHERE type LIKE '%Subscription%'
+- UPDATE notifications SET data = REPLACE(data, '/neniweb/', '/webove-sluzby/') WHERE data LIKE '%/neniweb/%'
+- UPDATE notifications SET type = REPLACE(type, 'Subscription', 'Website') WHERE type LIKE '%Subscription%'
 
 ### Krok 4: Migrace credentials
 - Pro každý website s admin_url + admin_user → INSERT website_credentials (label: "Admin")
@@ -418,8 +450,29 @@ Jedna atomická migrace v 6 krocích:
 ### Krok 6: Cleanup
 - DROP TABLE subscription_folders
 
-### down() metoda
-- Reverzní operace pro rollback
+### down() metoda (explicitní rollback)
+
+```
+1. DROP TABLE website_credentials, management_plans, sync_pending, sync_blacklist
+2. Rename: invoice_website → invoice_subscription
+3. Rename: website_payments → subscription_payments
+4. Rename FK: website_id → subscription_id (v subscription_payments, invoice_subscription, email_accounts)
+5. PostgreSQL: DROP + re-ADD unique constraint s původním názvem
+6. ALTER websites: re-add dropped columns (type VARCHAR, expires_at TIMESTAMP, provider, price_yearly, billing_cycle, monthly_price, monthly_plan, portal_domain_id, vas_hosting_id, tariff, managed_since, parent_subscription_id, vps_server_id, admin_user, admin_password, client_user, client_password, folder_id)
+7. Data restore:
+   - expires_at = hosting_expires_at
+   - type = CASE WHEN hosting_server_id IS NOT NULL THEN 'hosting' ELSE 'domena' END
+   - vps_server_id = hosting_server_id
+   - parent_subscription_id = alias_of_id
+   - Rename last_expiry_notified_at → customer_notified_at
+8. DROP added columns (domain_expires_at, hosting_expires_at, hosting_server_id, alias_of_id, management_plan_id, management_cycle, auto_invoice_management)
+9. DROP invoice_type from invoice_subscription
+10. Re-CREATE subscription_folders
+11. Rename: websites → subscriptions
+12. Revert notification data (website_id → subscription_id, /webove-sluzby/ → /neniweb/)
+```
+
+> **Varování:** down() neobnoví credentials data (admin_user/password se ztratí pokud rollback po delším provozu). Rollback je bezpečný jen v rámci hodin po deploy.
 
 ## 12. Fázování implementace
 
