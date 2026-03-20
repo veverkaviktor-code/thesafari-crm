@@ -11,7 +11,8 @@ class AttachmentController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|max:10240|mimes:pdf,jpg,jpeg,png,gif,webp,doc,docx,xls,xlsx,zip,txt,svg',
+            'files' => 'required|array|min:1|max:5',
+            'files.*' => 'file|max:10240|mimes:pdf,jpg,jpeg,png,gif,webp,doc,docx,xls,xlsx,zip,txt,svg',
             'attachable_type' => 'required|string|in:customer,order,ticket',
             'attachable_id' => 'required|integer',
             'description' => 'nullable|string|max:500',
@@ -25,29 +26,50 @@ class AttachmentController extends Controller
 
         $type = $modelMap[$request->input('attachable_type')];
         $id = $request->input('attachable_id');
+        $model = $type::findOrFail($id);
 
-        // Verify the parent exists
-        $type::findOrFail($id);
-
-        $file = $request->file('file');
-        $path = $file->store('attachments/' . $request->input('attachable_type') . '/' . $id, 'local');
-
-        try {
-            Attachment::create([
-                'attachable_type' => $type,
-                'attachable_id' => $id,
-                'filename' => $file->getClientOriginalName(),
-                'description' => $request->input('description'),
-                'path' => $path,
-                'mime_type' => $file->getMimeType(),
-                'size' => $file->getSize(),
-            ]);
-        } catch (\Throwable $e) {
-            Storage::disk('local')->delete($path);
-            throw $e;
+        // Build storage directory — for orders use readable slug
+        $attachableType = $request->input('attachable_type');
+        if ($attachableType === 'order') {
+            $slug = \Illuminate\Support\Str::slug($model->title ?? 'order');
+            $directory = "attachments/orders/{$id}-{$slug}";
+        } else {
+            $directory = "attachments/{$attachableType}/{$id}";
         }
 
-        return back()->with('success', 'Soubor nahrán.');
+        $count = 0;
+        foreach ($request->file('files') as $file) {
+            $filename = $file->getClientOriginalName();
+
+            // Deduplicate filename if exists
+            $destPath = $directory . '/' . $filename;
+            if (Storage::disk('local')->exists($destPath)) {
+                $name = pathinfo($filename, PATHINFO_FILENAME);
+                $ext = $file->getClientOriginalExtension();
+                $filename = $name . '_' . time() . '_' . uniqid() . '.' . $ext;
+            }
+
+            $path = $file->storeAs($directory, $filename, 'local');
+
+            try {
+                Attachment::create([
+                    'attachable_type' => $type,
+                    'attachable_id' => $id,
+                    'filename' => $file->getClientOriginalName(),
+                    'description' => $request->input('description'),
+                    'path' => $path,
+                    'mime_type' => $file->getMimeType(),
+                    'size' => $file->getSize(),
+                ]);
+                $count++;
+            } catch (\Throwable $e) {
+                Storage::disk('local')->delete($path);
+                throw $e;
+            }
+        }
+
+        $msg = $count === 1 ? 'Soubor nahrán.' : "{$count} souborů nahráno.";
+        return back()->with('success', $msg);
     }
 
     public function download(Attachment $attachment)
@@ -59,6 +81,27 @@ class AttachmentController extends Controller
         }
 
         return Storage::disk('local')->download($attachment->path, basename($attachment->filename));
+    }
+
+    public function preview(Attachment $attachment)
+    {
+        if (!Storage::disk('local')->exists($attachment->path)) {
+            abort(404);
+        }
+
+        $previewable = ['application/pdf', 'image/svg+xml', 'image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+        if (!in_array($attachment->mime_type, $previewable)) {
+            return $this->download($attachment);
+        }
+
+        return response()->file(
+            Storage::disk('local')->path($attachment->path),
+            [
+                'Content-Type' => $attachment->mime_type,
+                'Content-Disposition' => 'inline; filename="' . $attachment->filename . '"',
+            ]
+        );
     }
 
     public function destroy(Attachment $attachment)
