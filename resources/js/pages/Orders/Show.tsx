@@ -11,7 +11,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import OrderStatusBadge, {
     type OrderStatus,
 } from '@/components/orders/OrderStatusBadge';
@@ -21,17 +20,9 @@ import DivisionBadge, {
 import TimeTracker from '@/components/orders/TimeTracker';
 import CostsList from '@/components/orders/CostsList';
 import OrderItems from '@/components/orders/OrderItems';
-import OrderAttachments from '@/components/orders/OrderAttachments';
+import FileUploader from '@/components/FileUploader';
+import AttachmentList, { type AttachmentData } from '@/components/AttachmentList';
 import { cn, formatCurrency, formatHoursMinutes } from '@/lib/utils';
-
-interface Attachment {
-    id: number;
-    filename: string;
-    description: string | null;
-    mime_type: string | null;
-    size: number;
-    created_at: string;
-}
 
 interface TimeEntry {
     id: number;
@@ -79,7 +70,7 @@ interface Order {
     time_entries: TimeEntry[];
     costs: OrderCost[];
     items: OrderItem[];
-    attachments: Attachment[];
+    attachments: AttachmentData[];
 }
 
 interface Stats {
@@ -325,10 +316,15 @@ export default function Show({ order, stats }: Props) {
                         </Button>
 
                         {/* Attachments */}
-                        <OrderAttachments
-                            orderId={order.id}
-                            attachments={order.attachments ?? []}
-                        />
+                        <div className="rounded-xl border border-border bg-card p-5">
+                            <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground/70">
+                                <span>📎</span> Přílohy
+                            </h3>
+                            <FileUploader attachableType="order" attachableId={order.id} />
+                            <div className="mt-4">
+                                <AttachmentList attachments={order.attachments ?? []} />
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
