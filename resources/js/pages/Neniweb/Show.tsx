@@ -40,6 +40,7 @@ import {
     Eye,
     EyeOff,
     Copy,
+    Check,
 } from 'lucide-react';
 
 const czk = (amount: number) =>
@@ -379,6 +380,13 @@ function PaymentForm({
 
 function PasswordField({ password }: { password: string }) {
     const [visible, setVisible] = useState(false);
+    const [copied, setCopied] = useState(false);
+
+    function handleCopy() {
+        navigator.clipboard.writeText(password);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    }
 
     return (
         <div className="flex items-center justify-between py-1">
@@ -395,13 +403,11 @@ function PasswordField({ password }: { password: string }) {
                     {visible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                 </button>
                 <button
-                    onClick={() => {
-                        navigator.clipboard.writeText(password);
-                    }}
-                    className="rounded p-1 text-muted-foreground hover:text-foreground"
-                    title="Kop\u00edrovat"
+                    onClick={handleCopy}
+                    className={`rounded p-1 transition-colors ${copied ? 'text-emerald-500' : 'text-muted-foreground hover:text-foreground'}`}
+                    title={copied ? 'Zkop\u00edrov\u00e1no!' : 'Kop\u00edrovat'}
                 >
-                    <Copy className="h-3.5 w-3.5" />
+                    {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                 </button>
             </div>
         </div>
