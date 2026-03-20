@@ -34,6 +34,20 @@ class Order extends Model
         ];
     }
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::deleting(function (Order $order) {
+            if ($order->isForceDeleting()) {
+                $order->attachments->each(function ($attachment) {
+                    \Illuminate\Support\Facades\Storage::disk('local')->delete($attachment->path);
+                    $attachment->delete();
+                });
+            }
+        });
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
