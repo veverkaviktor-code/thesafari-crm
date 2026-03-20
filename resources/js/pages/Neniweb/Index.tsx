@@ -97,6 +97,7 @@ interface Folder {
     color: string | null;
     is_collapsed: boolean;
     sort_order: number;
+    subscriptions_count: number;
 }
 
 interface VpsServer {
@@ -414,9 +415,38 @@ export default function NeniwebIndex({
     // Folder collapsed IDs — derived from server state
     const collapsedFolderIds = new Set(folders.filter(f => f.is_collapsed).map(f => f.id));
 
-    // Filter out subscriptions in collapsed folders
-    const filterByFolders = (items: Subscription[]) =>
-        items.filter(s => !s.folder_id || !collapsedFolderIds.has(s.folder_id));
+    // Filter out subscriptions in collapsed folders + sort parent/child together
+    const filterByFolders = (items: Subscription[]) => {
+        const visible = items.filter(s => !s.folder_id || !collapsedFolderIds.has(s.folder_id));
+        // Group children right after their parent
+        const result: Subscription[] = [];
+        const childMap = new Map<number, Subscription[]>();
+        const added = new Set<number>();
+        visible.forEach(s => {
+            if (s.parent_subscription_id) {
+                const children = childMap.get(s.parent_subscription_id) || [];
+                children.push(s);
+                childMap.set(s.parent_subscription_id, children);
+            }
+        });
+        visible.forEach(s => {
+            if (added.has(s.id)) return;
+            if (!s.parent_subscription_id) {
+                result.push(s);
+                added.add(s.id);
+                // Add children right after
+                const children = childMap.get(s.id);
+                if (children) {
+                    children.forEach(c => { result.push(c); added.add(c.id); });
+                }
+            }
+        });
+        // Add orphan children (parent not on this page)
+        visible.forEach(s => {
+            if (!added.has(s.id)) { result.push(s); added.add(s.id); }
+        });
+        return result;
+    };
 
     // Column config state (visibility + order, persisted to localStorage)
     const [colConfigMap, setColConfigMap] = useState<Record<string, ColConfig>>(loadColConfig);
@@ -801,12 +831,21 @@ export default function NeniwebIndex({
             label: 'Hosting',
             sortable: true,
             render: (sub: Subscription) => (
-                <div className="flex items-center gap-2">
+                <div className={`flex items-center gap-2 ${sub.parent_subscription_id ? 'pl-5' : ''}`}>
                     {sub.has_unpaid && (
                         <span className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0" />
                     )}
-                    <Server className="h-4 w-4 text-blue-400 shrink-0" />
-                    <span className="font-medium text-foreground">{sub.name}</span>
+                    {sub.parent_subscription_id ? (
+                        <span className="text-muted-foreground/40 text-xs shrink-0">└</span>
+                    ) : (
+                        <Server className="h-4 w-4 text-blue-400 shrink-0" />
+                    )}
+                    <span className={`font-medium ${sub.parent_subscription_id ? 'text-muted-foreground' : 'text-foreground'}`}>{sub.name}</span>
+                    {sub.parent_subscription_id && (
+                        <span className="inline-flex items-center rounded-full bg-violet-500/15 border border-violet-500/25 px-1.5 py-0 text-[10px] font-semibold text-violet-400">
+                            ALIAS
+                        </span>
+                    )}
                     {sub.is_free && (
                         <span className="inline-flex items-center rounded-full bg-emerald-500/15 border border-emerald-500/25 px-1.5 py-0 text-[10px] font-semibold text-emerald-400">
                             ZDARMA
@@ -1456,6 +1495,20 @@ export default function NeniwebIndex({
                                     {selectedDomainIds.size} vybráno
                                 </span>
                                 <div className="flex items-center gap-1.5 ml-auto">
+                                    {folders.length > 0 && (
+                                        <Select onValueChange={(v) => handleBulkAction('set_folder', v)}>
+                                            <SelectTrigger className="h-7 w-auto gap-1 px-2.5 text-xs border-0 bg-transparent text-violet-400 hover:text-violet-300 hover:bg-violet-500/10">
+                                                <FolderOpen className="h-3.5 w-3.5" />
+                                                Složka
+                                            </SelectTrigger>
+                                            <SelectContent position="popper" align="end" sideOffset={4}>
+                                                <SelectItem value="none">Bez složky</SelectItem>
+                                                {folders.map((f) => (
+                                                    <SelectItem key={f.id} value={String(f.id)}>{f.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
                                     <Select onValueChange={(v) => handleBulkAction('set_customer', v)}>
                                         <SelectTrigger className="h-7 w-auto gap-1 px-2.5 text-xs border-0 bg-transparent text-blue-400 hover:text-blue-300 hover:bg-blue-500/10">
                                             <UserPlus className="h-3.5 w-3.5" />
@@ -1587,6 +1640,20 @@ export default function NeniwebIndex({
                                     {selectedHostingIds.size} vybráno
                                 </span>
                                 <div className="flex items-center gap-1.5 ml-auto">
+                                    {folders.length > 0 && (
+                                        <Select onValueChange={(v) => handleBulkAction('set_folder', v)}>
+                                            <SelectTrigger className="h-7 w-auto gap-1 px-2.5 text-xs border-0 bg-transparent text-violet-400 hover:text-violet-300 hover:bg-violet-500/10">
+                                                <FolderOpen className="h-3.5 w-3.5" />
+                                                Složka
+                                            </SelectTrigger>
+                                            <SelectContent position="popper" align="end" sideOffset={4}>
+                                                <SelectItem value="none">Bez složky</SelectItem>
+                                                {folders.map((f) => (
+                                                    <SelectItem key={f.id} value={String(f.id)}>{f.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
                                     <Select onValueChange={(v) => handleBulkAction('set_customer', v)}>
                                         <SelectTrigger className="h-7 w-auto gap-1 px-2.5 text-xs border-0 bg-transparent text-blue-400 hover:text-blue-300 hover:bg-blue-500/10">
                                             <UserPlus className="h-3.5 w-3.5" />
@@ -1722,6 +1789,20 @@ export default function NeniwebIndex({
                                     {selectedServiceIds.size} vybráno
                                 </span>
                                 <div className="flex items-center gap-1.5 ml-auto">
+                                    {folders.length > 0 && (
+                                        <Select onValueChange={(v) => handleBulkAction('set_folder', v)}>
+                                            <SelectTrigger className="h-7 w-auto gap-1 px-2.5 text-xs border-0 bg-transparent text-violet-400 hover:text-violet-300 hover:bg-violet-500/10">
+                                                <FolderOpen className="h-3.5 w-3.5" />
+                                                Složka
+                                            </SelectTrigger>
+                                            <SelectContent position="popper" align="end" sideOffset={4}>
+                                                <SelectItem value="none">Bez složky</SelectItem>
+                                                {folders.map((f) => (
+                                                    <SelectItem key={f.id} value={String(f.id)}>{f.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
                                     <Select onValueChange={(v) => handleBulkAction('set_customer', v)}>
                                         <SelectTrigger className="h-7 w-auto gap-1 px-2.5 text-xs border-0 bg-transparent text-blue-400 hover:text-blue-300 hover:bg-blue-500/10">
                                             <UserPlus className="h-3.5 w-3.5" />
@@ -2158,20 +2239,21 @@ function FolderBar({
     onEditFolder: (f: Folder) => void;
     onDeleteFolder: (id: number) => void;
 }) {
-    if (subscriptions.length === 0 && folders.length === 0) return null;
+    if (folders.length === 0) return null;
 
+    // Count items on current page (for visual indicator)
     const folderCounts = new Map<number, number>();
     subscriptions.forEach(s => {
         if (s.folder_id) folderCounts.set(s.folder_id, (folderCounts.get(s.folder_id) || 0) + 1);
     });
 
-    // Show folders that have items in this tab + all folders when viewing all
-    const relevantFolders = folders.filter(f => folderCounts.has(f.id));
+    // Show ALL folders, always
+    const relevantFolders = folders;
 
     return (
         <div className="flex flex-wrap items-center gap-2 mb-3">
             {relevantFolders.map(folder => {
-                const count = folderCounts.get(folder.id) || 0;
+                const count = folder.subscriptions_count;
                 return (
                     <div key={folder.id} className="flex items-center gap-0.5 group">
                         <button

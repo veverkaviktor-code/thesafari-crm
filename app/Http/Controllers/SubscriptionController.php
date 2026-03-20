@@ -203,7 +203,9 @@ class SubscriptionController extends Controller
             ->whereNotNull('server')->where('server', '!=', '')
             ->distinct()->pluck('server')->sort()->values();
 
-        $folders = SubscriptionFolder::orderBy('sort_order')->get();
+        $folders = SubscriptionFolder::orderBy('sort_order')
+            ->withCount('subscriptions')
+            ->get();
 
         return Inertia::render('Neniweb/Index', [
             'domains'       => $domains,
@@ -396,7 +398,7 @@ class SubscriptionController extends Controller
         $validated = $request->validate([
             'ids' => 'required|array|min:1',
             'ids.*' => 'exists:subscriptions,id',
-            'action' => 'required|in:set_free,unset_free,set_status,set_customer,clear_expiry,set_external,unset_external',
+            'action' => 'required|in:set_free,unset_free,set_status,set_customer,clear_expiry,set_external,unset_external,set_folder',
             'value' => 'nullable|string',
         ]);
 
@@ -412,6 +414,7 @@ class SubscriptionController extends Controller
             'clear_expiry' => $subscriptions->update(['expires_at' => null]),
             'set_external' => $subscriptions->update(['is_external' => true]),
             'unset_external' => $subscriptions->update(['is_external' => false]),
+            'set_folder' => $subscriptions->update(['folder_id' => $validated['value'] === 'none' ? null : $validated['value']]),
         };
 
         return back()->with('success', count($validated['ids']) . ' položek aktualizováno.');
