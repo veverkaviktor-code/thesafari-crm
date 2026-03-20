@@ -134,11 +134,15 @@ class TicketController extends Controller
             'content' => $validated['content'],
         ]);
 
-        // Send email to customer if they have source_email
+        // Send email to customer if they have source_email — from podpora@
         if ($ticket->source_email) {
             try {
                 Mail::raw($validated['content'], function ($message) use ($ticket) {
-                    $message->to($ticket->source_email)
+                    $message->from(
+                            config('mail.support.address', config('mail.from.address')),
+                            config('mail.support.name', 'TheSafari.cz | Podpora')
+                        )
+                        ->to($ticket->source_email)
                         ->subject("Re: {$ticket->subject}");
                 });
             } catch (\Exception $e) {

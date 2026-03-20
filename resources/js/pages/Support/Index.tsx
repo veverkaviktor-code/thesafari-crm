@@ -236,14 +236,14 @@ export default function SupportIndex() {
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-6">
                             {emailRevealed ? (
                                 <a
-                                    href="mailto:viktor@thesafari.cz"
+                                    href="mailto:podpora@thesafari.cz"
                                     className="inline-flex items-center gap-2 text-sm transition-colors"
                                     style={{ color: '#2e3a36' }}
                                     onMouseOver={(e) => (e.currentTarget.style.color = '#d6863f')}
                                     onMouseOut={(e) => (e.currentTarget.style.color = '#2e3a36')}
                                 >
                                     <Mail className="h-4 w-4" />
-                                    viktor@thesafari.cz
+                                    podpora@thesafari.cz
                                 </a>
                             ) : (
                                 <button

@@ -115,4 +115,9 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    'support' => [
+        'address' => env('MAIL_SUPPORT_ADDRESS', 'podpora@thesafari.cz'),
+        'name' => env('MAIL_SUPPORT_NAME', 'TheSafari.cz | Podpora'),
+    ],
+
 ];
