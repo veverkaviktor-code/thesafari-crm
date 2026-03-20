@@ -11,8 +11,7 @@ class AttachmentController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'files' => 'required|array|min:1|max:5',
-            'files.*' => 'file|max:10240|mimes:pdf,jpg,jpeg,png,gif,webp,doc,docx,xls,xlsx,zip,txt,svg',
+            'file' => 'required|file|max:10240|mimes:pdf,jpg,jpeg,png,gif,webp,doc,docx,xls,xlsx,zip,txt,svg',
             'attachable_type' => 'required|string|in:customer,order,ticket',
             'attachable_id' => 'required|integer',
             'description' => 'nullable|string|max:500',
@@ -28,6 +27,8 @@ class AttachmentController extends Controller
         $id = $request->input('attachable_id');
         $model = $type::findOrFail($id);
 
+        $file = $request->file('file');
+
         // Build storage directory — for orders use readable slug
         $attachableType = $request->input('attachable_type');
         if ($attachableType === 'order') {
@@ -37,39 +38,33 @@ class AttachmentController extends Controller
             $directory = "attachments/{$attachableType}/{$id}";
         }
 
-        $count = 0;
-        foreach ($request->file('files') as $file) {
-            $filename = $file->getClientOriginalName();
+        $filename = $file->getClientOriginalName();
 
-            // Deduplicate filename if exists
-            $destPath = $directory . '/' . $filename;
-            if (Storage::disk('local')->exists($destPath)) {
-                $name = pathinfo($filename, PATHINFO_FILENAME);
-                $ext = $file->getClientOriginalExtension();
-                $filename = $name . '_' . time() . '_' . uniqid() . '.' . $ext;
-            }
-
-            $path = $file->storeAs($directory, $filename, 'local');
-
-            try {
-                Attachment::create([
-                    'attachable_type' => $type,
-                    'attachable_id' => $id,
-                    'filename' => $file->getClientOriginalName(),
-                    'description' => $request->input('description'),
-                    'path' => $path,
-                    'mime_type' => $file->getMimeType(),
-                    'size' => $file->getSize(),
-                ]);
-                $count++;
-            } catch (\Throwable $e) {
-                Storage::disk('local')->delete($path);
-                throw $e;
-            }
+        // Deduplicate filename if exists
+        if (Storage::disk('local')->exists($directory . '/' . $filename)) {
+            $name = pathinfo($filename, PATHINFO_FILENAME);
+            $ext = $file->getClientOriginalExtension();
+            $filename = $name . '_' . time() . '_' . uniqid() . '.' . $ext;
         }
 
-        $msg = $count === 1 ? 'Soubor nahrán.' : "{$count} souborů nahráno.";
-        return back()->with('success', $msg);
+        $path = $file->storeAs($directory, $filename, 'local');
+
+        try {
+            Attachment::create([
+                'attachable_type' => $type,
+                'attachable_id' => $id,
+                'filename' => $file->getClientOriginalName(),
+                'description' => $request->input('description'),
+                'path' => $path,
+                'mime_type' => $file->getMimeType(),
+                'size' => $file->getSize(),
+            ]);
+        } catch (\Throwable $e) {
+            Storage::disk('local')->delete($path);
+            throw $e;
+        }
+
+        return back()->with('success', 'Soubor nahrán.');
     }
 
     public function download(Attachment $attachment)

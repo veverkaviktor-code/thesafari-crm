@@ -47,21 +47,37 @@ export default function FileUploader({ attachableType, attachableId }: Props) {
     function upload() {
         if (files.length === 0) return;
 
-        const formData = new FormData();
-        files.forEach(f => formData.append('files[]', f));
-        formData.append('attachable_type', attachableType);
-        formData.append('attachable_id', String(attachableId));
-        if (description) formData.append('description', description);
-
         setUploading(true);
-        router.post('/attachments', formData, {
-            preserveScroll: true,
-            onSuccess: () => {
+
+        // Upload files sequentially — Inertia handles one file at a time reliably
+        let remaining = [...files];
+
+        function uploadNext() {
+            if (remaining.length === 0) {
                 setFiles([]);
                 setDescription('');
-            },
-            onFinish: () => setUploading(false),
-        });
+                setUploading(false);
+                return;
+            }
+
+            const file = remaining.shift()!;
+            router.post('/attachments', {
+                attachable_type: attachableType,
+                attachable_id: attachableId,
+                file: file,
+                description: description || '',
+            }, {
+                forceFormData: true,
+                preserveScroll: true,
+                onSuccess: () => uploadNext(),
+                onError: () => {
+                    setUploading(false);
+                    setFiles(remaining);
+                },
+            });
+        }
+
+        uploadNext();
     }
 
     return (
