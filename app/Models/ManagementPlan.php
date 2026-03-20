@@ -5,24 +5,25 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class SubscriptionFolder extends Model
+class ManagementPlan extends Model
 {
     protected $fillable = [
         'name',
-        'color',
-        'is_collapsed',
+        'price_monthly',
+        'is_active',
         'sort_order',
     ];
 
     protected function casts(): array
     {
         return [
-            'is_collapsed' => 'boolean',
+            'is_active' => 'boolean',
+            'price_monthly' => 'decimal:2',
         ];
     }
 
-    public function subscriptions(): HasMany
+    public function websites(): HasMany
     {
-        return $this->hasMany(Subscription::class, 'folder_id');
+        return $this->hasMany(Website::class);
     }
 }

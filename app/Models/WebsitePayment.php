@@ -8,12 +8,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
-class SubscriptionPayment extends Model
+class WebsitePayment extends Model
 {
     use HasFactory, LogsActivity;
 
     protected $fillable = [
-        'subscription_id',
+        'website_id',
         'amount',
         'period_start',
         'period_end',
@@ -41,9 +41,9 @@ class SubscriptionPayment extends Model
             ->logOnlyDirty();
     }
 
-    public function subscription(): BelongsTo
+    public function website(): BelongsTo
     {
-        return $this->belongsTo(Subscription::class);
+        return $this->belongsTo(Website::class);
     }
 
     public function invoice(): BelongsTo
