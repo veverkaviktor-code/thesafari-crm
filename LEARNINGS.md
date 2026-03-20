@@ -130,6 +130,54 @@
 
 ---
 
+### 2026-03-20 — PHP-FPM verze na VPS ≠ CLI verze
+**Context**: Upload souborů na zakázkách selhával s "file failed to upload" i přesto, že PHP limity byly nastavené na 12M.
+**Learning**: VPS má PHP 8.3, 8.4 i 8.5. CLI (`php`) = 8.4, ale nginx reverse proxy používá PHP 8.4-FPM specifický socket. Editoval jsem `php.ini` pro PHP 8.3, ale web běžel na 8.4 s původními limity 2M. `php -i` zobrazí CLI konfiguraci, NE FPM.
+**Pattern/Anti-pattern**: Anti-pattern: editovat `php.ini` podle CLI verze. Vždy ověřit `grep fastcgi_pass /etc/nginx/scripts/php-version.conf` pro zjištění skutečné PHP-FPM verze, pak editovat správný `/etc/php/{verze}/fpm/php.ini`.
+**Action**: Před úpravou PHP limitů VŽDY: (1) zjistit PHP verzi z nginx config, (2) editovat správný fpm/php.ini, (3) restartovat správný `php{verze}-fpm`.
+
+---
+
+### 2026-03-20 — Inertia.js + FormData s file upload
+**Context**: Multiple file upload přes `router.post('/attachments', formData)` nefungoval — soubory se neposlaly.
+**Learning**: Inertia `router.post()` s hotovým `FormData` objektem interně data reserializuje a ztratí File objekty. S polem souborů `files: [File, File]` a `forceFormData: true` taky nefunguje — Inertia konvertuje pole ale PHP nedostane platné UploadedFile. Jediné spolehlivé řešení: posílat jeden soubor per request (`file: File` + `forceFormData: true`), pro multiple soubory uploadovat sekvenčně.
+**Pattern/Anti-pattern**: Anti-pattern: posílat pole File objektů přes Inertia. Pattern: jeden soubor per request, sekvenční upload z frontendu.
+**Action**: Pro file upload v Inertia vždy single file per request. Multiple = sekvenční loop na frontendu.
+
+---
+
+### 2026-03-20 — Theme-aware CSS třídy vs hardcoded barvy
+**Context**: FileUploader a AttachmentList komponenty měly `text-white/60`, `border-white/20` — neviditelné na světlém pozadí CRM karet.
+**Learning**: CRM má Shadcn/UI theme s CSS proměnnými. Sidebar je tmavý ale `bg-card` je světlý. Komponenty MUSÍ používat theme-aware třídy: `text-foreground`, `text-muted-foreground`, `border-border`, `bg-accent` — nikdy hardcoded `white/XX` nebo `black/XX`.
+**Pattern/Anti-pattern**: Anti-pattern: `text-white/60` na komponentě která může být na světlém i tmavém pozadí. Pattern: vždy `text-foreground`, `text-muted-foreground`, `border-border`, `bg-accent`.
+**Action**: V CRM projektu NIKDY `text-white/*` ani `text-black/*` — vždy Shadcn theme třídy.
+
+---
+
+### 2026-03-20 — Lucide React `FileIcon` vs `File as FileIcon`
+**Context**: FileUploader se nerendroval — prázdný box pod "Přílohy" nadpisem.
+**Learning**: `import { FileIcon } from 'lucide-react'` importuje TypeScript TYPE, ne komponentu. Správně: `import { File as FileIcon } from 'lucide-react'`. Lucide exportuje ikony jako pojmenované komponenty (`File`, `Download`...) a typy jako `*Icon` sufixed (`FileIcon`, `DownloadIcon`). Runtime error = celá React subtree se nezobrazí.
+**Pattern/Anti-pattern**: Anti-pattern: `import { XxxIcon } from 'lucide-react'`. Pattern: `import { Xxx as XxxIcon } from 'lucide-react'` pokud potřebuješ alias.
+**Action**: Při importu z lucide-react NIKDY `*Icon` — vždy base name nebo explicit alias.
+
+---
+
+### 2026-03-20 — Semantic versioning — kdy měnit verzi CRM
+**Context**: Uživatel se ptal kdy měnit verzi (v1.0.1 je hardcoded v footer).
+**Learning**: Verzování podle semver: PATCH (v1.0.x) = bugfixy a drobné opravy. MINOR (v1.x.0) = nové features (přílohy, admin credentials, přejmenování). MAJOR (vx.0.0) = breaking changes (multi-user, nová architektura). Dnešní session = v1.1.0 (nové features: přílohy, admin credentials, přejmenování Webové služby).
+**Pattern**: Po každé session kde přidáme novou funkčnost → bump MINOR. Po bugfixech → bump PATCH. Verze v footeru + git tag.
+**Action**: Na konci každé session s novými features: (1) bump verze v AuthenticatedLayout.tsx, (2) git tag, (3) update CHANGELOG.md.
+
+---
+
+### 2026-03-20 — Encrypted password storage v Laravel
+**Context**: Ukládání admin/client hesel k webům v subscriptions.
+**Learning**: Laravel `encrypted` cast automaticky šifruje při zápisu a dešifruje při čtení. Kombinace s `$hidden` zajistí, že heslo se neserializuje do JSON responses — explicitně zobrazit přes `makeVisible(['admin_password'])` jen tam kde je potřeba (show, edit). Frontend: eye toggle + copy button s checkmark feedback.
+**Pattern**: Pro citlivá data: `encrypted` cast + `$hidden` + `makeVisible()` v konkrétních controller metodách.
+**Action**: Pro jakékoliv credentials/secrets v DB vždy tento pattern.
+
+---
+
 ### 2026-03-07 — Activity log pruning — 7 dní stačí
 **Context**: activity_log tabulka by neomezeně rostla. Dashboard zobrazuje jen poslední aktivitu.
 **Learning**: Pro CRM s jedním adminem stačí 7 dní activity logu. Scheduler `Activity::where('created_at', '<', now()->subDays(7))->delete()` v 03:30. Dashboard query filtruje `->where('created_at', '>=', now()->subDays(7))` pro konzistenci.

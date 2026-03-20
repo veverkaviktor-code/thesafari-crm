@@ -39,6 +39,17 @@ Laravel 12 + Inertia.js + React 19 + TypeScript + Tailwind 4 + Shadcn/UI + Postg
 - Kalkulátor: řezaná fólie 2cm margin, overlap 0→0, mobile UX (větší ikony, viditelné buttony)
 - Estimate inactive notifikace (7+ dní bez aktivity)
 
+### Round 8 — Přílohy + Admin přístupy + Rebranding (2026-03-20) ✅ NASAZENO
+- **Přílohy na zakázkách**: drag & drop upload (multiple, sekvenční), seznam s ikonou/názvem/velikostí/datem, download/open/delete akce
+- **Zákaznický tab "Soubory"**: agreguje přílohy ze všech zakázek zákazníka (read-only)
+- **Admin přístupy na hostingu**: admin_url + dva páry credentials (můj + zákazník), šifrované hesla, eye toggle + copy s checkmark feedback
+- **Přejmenování**: Neniweb → "Webové služby" (sidebar + breadcrumbs + page titles)
+- **Organizovaná storage**: soubory v `attachments/orders/{id}-{slug}/` pro přehlednost na FTP
+- **ForceDelete cleanup**: automatické smazání příloh z disku při force delete zakázky
+- **VPS infra**: PHP 8.4-FPM limity (upload_max=12M, post_max=64M), nginx client_max_body_size=64m
+- **Preview endpoint**: `/attachments/{id}/preview` pro inline zobrazení PDF/SVG/obrázků v novém tabu
+- **Verze**: v1.1.0
+
 ### Budoucí (backlog)
 - [ ] Multi-user + role-based access
 - [ ] Statistiky a reporty (filtry, export)
@@ -47,6 +58,7 @@ Laravel 12 + Inertia.js + React 19 + TypeScript + Tailwind 4 + Shadcn/UI + Postg
 - [ ] Dashboard/Neniweb index stats cachování (Cache::remember)
 - [ ] Mail odesílání přes queue (ne synchronně)
 - [ ] Soft delete/trash pattern na všechny modely (princip koše)
+- [ ] Email odeslání příloh (výběr souborů → email tiskárně)
 
 ## Design
 Safari Dark paleta — warm dark backgrounds (#0a0a08, #16140f), amber accent (#D97706), warm white (#F5F0E8).
@@ -63,7 +75,7 @@ Karel "Lenoch" (lenochod) = maskot fakturace. Obrázky v `storage/app/email-asse
 
 ## Server
 - VPS: 37.235.108.29 (sss06.vas-server.cz)
-- Nginx + PHP 8.3-FPM + PostgreSQL
+- Nginx + PHP 8.4-FPM + PostgreSQL
 - SSL: Let's Encrypt
 - Deploy: rsync + ssh (viz CLAUDE.md)
 
