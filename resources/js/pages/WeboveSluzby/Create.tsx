@@ -14,15 +14,33 @@ interface Customer {
     company: string | null;
 }
 
-interface Props {
-    customers: Customer[];
-    type?: string;
+interface VpsServerOption {
+    id: number;
+    name: string;
 }
 
-export default function WeboveSluzbyCreate({ customers, type: initialType }: Props) {
+interface ManagementPlanOption {
+    id: number;
+    name: string;
+    price_monthly: number | string;
+    is_active: boolean;
+}
+
+interface AliasOption {
+    id: number;
+    name: string;
+}
+
+interface Props {
+    customers: Customer[];
+    vpsServers: VpsServerOption[];
+    managementPlans: ManagementPlanOption[];
+    aliasOptions: AliasOption[];
+}
+
+export default function WeboveSluzbyCreate({ customers, vpsServers, managementPlans, aliasOptions }: Props) {
     const form = useForm<WebsiteFormData>({
         ...defaultWebsiteData,
-        type: initialType || 'domena',
     });
 
     const handleSubmit = (e: FormEvent) => {
@@ -30,14 +48,12 @@ export default function WeboveSluzbyCreate({ customers, type: initialType }: Pro
         form.post('/webove-sluzby');
     };
 
-    const isDomain = form.data.type === 'domena';
-
     return (
         <AuthenticatedLayout
-            title={isDomain ? 'Nová doména' : 'Nový hosting'}
+            title="Nový web"
             breadcrumbs={[
                 { label: 'Webové služby', href: '/webove-sluzby' },
-                { label: isDomain ? 'Nová doména' : 'Nový hosting' },
+                { label: 'Nový web' },
             ]}
         >
             <div className="p-6 max-w-2xl mx-auto">
@@ -56,6 +72,9 @@ export default function WeboveSluzbyCreate({ customers, type: initialType }: Pro
                         onSubmit={handleSubmit}
                         submitLabel="Uložit"
                         customers={customers}
+                        vpsServers={vpsServers}
+                        managementPlans={managementPlans}
+                        aliasOptions={aliasOptions}
                         onCancel={() => router.visit('/webove-sluzby')}
                     />
                 </div>

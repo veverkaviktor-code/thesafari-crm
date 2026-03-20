@@ -23,11 +23,10 @@ import {
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Separator } from '@/components/ui/separator';
-import { format, addYears, addMonths } from 'date-fns';
+import { format, addYears } from 'date-fns';
 import { cs } from 'date-fns/locale';
 import {
     Globe,
-    Server,
     ArrowLeft,
     Pencil,
     Trash2,
@@ -43,6 +42,8 @@ import {
     Copy,
     Check,
     Mail,
+    Shield,
+    Link2,
 } from 'lucide-react';
 
 const czk = (amount: number) =>
@@ -51,6 +52,23 @@ const czk = (amount: number) =>
         currency: 'CZK',
         maximumFractionDigits: 0,
     }).format(amount);
+
+interface WebsiteCredential {
+    id: number;
+    label: string;
+    login: string;
+    password: string | null;
+    notes: string | null;
+    sort_order: number;
+}
+
+interface EmailAccount {
+    id: number;
+    email: string;
+    password: string | null;
+    quota_mb: number;
+    notes: string | null;
+}
 
 interface Payment {
     id: number;
@@ -62,6 +80,7 @@ interface Payment {
     paid_at: string | null;
     payment_method: string | null;
     notes: string | null;
+    invoice?: { id: number; invoice_number: string } | null;
 }
 
 interface Invoice {
@@ -73,55 +92,53 @@ interface Invoice {
     total: number;
 }
 
+interface ManagementPlan {
+    id: number;
+    name: string;
+    price_monthly: number | string;
+}
+
+interface AliasWebsite {
+    id: number;
+    name: string;
+}
+
 interface Website {
     id: number;
-    type: 'hosting' | 'domena';
     name: string;
-    provider: string | null;
     server: string | null;
-    price_yearly: number;
-    cost_yearly: number;
-    sell_yearly: number;
-    billing_cycle: string;
-    monthly_price: number;
-    monthly_plan: string | null;
-    starts_at: string | null;
-    expires_at: string | null;
-    managed_since: string | null;
-    auto_renew: boolean;
-    is_free: boolean;
     status: string;
     notes: string | null;
-    payments: Payment[];
-    invoices: Invoice[];
+    starts_at: string | null;
+    is_registered_by_us: boolean;
+    auto_renew: boolean;
+    auto_invoice: boolean;
+    auto_invoice_management: boolean;
+    is_free: boolean;
+    is_external: boolean;
+    sell_yearly: number;
+    cost_yearly: number;
+    admin_url: string | null;
+    domain_expires_at: string | null;
+    hosting_expires_at: string | null;
+    ip_address: string | null;
+    storage_quota_mb: number;
+    storage_used_mb: number;
+    synced_at: string | null;
     days_until_expiry: number | null;
     urgency: string;
     yearly_margin: number;
     monthly_revenue: number;
     total_annual_revenue: number;
     customer: { id: number; name: string; company: string | null } | null;
-    is_registered_by_us: boolean;
-    ip_address: string | null;
-    storage_quota_mb: number;
-    storage_used_mb: number;
-    tariff: string | null;
-    synced_at: string | null;
-    has_linked_hosting: boolean | null;
-    has_linked_domain: boolean | null;
-    admin_url: string | null;
-    admin_user: string | null;
-    admin_password: string | null;
-    client_user: string | null;
-    client_password: string | null;
+    hosting_server: { id: number; name: string } | null;
+    alias_of: { id: number; name: string } | null;
+    aliases: AliasWebsite[];
+    management_plan: ManagementPlan | null;
+    credentials: WebsiteCredential[];
     email_accounts: EmailAccount[];
-}
-
-interface EmailAccount {
-    id: number;
-    email: string;
-    password: string | null;
-    quota_mb: number;
-    notes: string | null;
+    payments: Payment[];
+    invoices: Invoice[];
 }
 
 interface Customer {
@@ -178,6 +195,12 @@ const paymentStatusConfig: Record<string, { label: string; className: string }> 
     },
 };
 
+const managementCycleLabels: Record<string, string> = {
+    quarterly: 'Čtvrtletně',
+    semi_annual: 'Pololetně',
+    annual: 'Ročně',
+};
+
 function PaymentStatusBadge({ status }: { status: string }) {
     const config = paymentStatusConfig[status] ?? paymentStatusConfig.nezaplaceno;
     return (
@@ -187,18 +210,6 @@ function PaymentStatusBadge({ status }: { status: string }) {
     );
 }
 
-const billingCycleLabels: Record<string, string> = {
-    yearly: 'Roční',
-    monthly: 'Měsíční',
-    once: 'Jednorázově',
-};
-
-const monthlyPlanLabels: Record<string, string> = {
-    'klidny-spanek': 'Klidný spánek',
-    vlastni: 'Vlastní',
-    zadny: 'Žádný',
-};
-
 function PaymentForm({
     website,
     onClose,
@@ -206,15 +217,9 @@ function PaymentForm({
     website: Website;
     onClose: () => void;
 }) {
-    const isMonthly = website.billing_cycle === 'monthly';
-    const defaultAmount = isMonthly
-        ? String(website.monthly_price || '')
-        : String(website.sell_yearly || website.price_yearly || '');
-
+    const defaultAmount = String(website.sell_yearly || '');
     const defaultPeriodStart = format(new Date(), 'yyyy-MM-dd');
-    const defaultPeriodEnd = isMonthly
-        ? format(addMonths(new Date(), 1), 'yyyy-MM-dd')
-        : format(addYears(new Date(), 1), 'yyyy-MM-dd');
+    const defaultPeriodEnd = format(addYears(new Date(), 1), 'yyyy-MM-dd');
 
     const { data, setData, post, processing, errors } = useForm<PaymentFormData>({
         amount: defaultAmount,
@@ -236,7 +241,6 @@ function PaymentForm({
 
     return (
         <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Amount */}
             <div>
                 <Label className="text-muted-foreground">Částka (Kč)</Label>
                 <Input
@@ -251,7 +255,6 @@ function PaymentForm({
                 )}
             </div>
 
-            {/* Period */}
             <div className="grid grid-cols-2 gap-4">
                 <div>
                     <Label className="text-muted-foreground">Období od</Label>
@@ -274,9 +277,7 @@ function PaymentForm({
                                 onSelect={(d) => {
                                     if (!d) return;
                                     const startStr = format(d, 'yyyy-MM-dd');
-                                    const endStr = isMonthly
-                                        ? format(addMonths(d, 1), 'yyyy-MM-dd')
-                                        : format(addYears(d, 1), 'yyyy-MM-dd');
+                                    const endStr = format(addYears(d, 1), 'yyyy-MM-dd');
                                     setData('period_start', startStr);
                                     setData('period_end', endStr);
                                 }}
@@ -319,13 +320,9 @@ function PaymentForm({
                 </div>
             </div>
 
-            {/* Status */}
             <div>
                 <Label className="text-muted-foreground">Stav</Label>
-                <Select
-                    value={data.status}
-                    onValueChange={(v) => setData('status', v)}
-                >
+                <Select value={data.status} onValueChange={(v) => setData('status', v)}>
                     <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
                         <SelectValue />
                     </SelectTrigger>
@@ -336,14 +333,10 @@ function PaymentForm({
                 </Select>
             </div>
 
-            {/* Payment method — only when paid */}
             {isPaid && (
                 <div>
                     <Label className="text-muted-foreground">Způsob platby</Label>
-                    <Select
-                        value={data.payment_method}
-                        onValueChange={(v) => setData('payment_method', v)}
-                    >
+                    <Select value={data.payment_method} onValueChange={(v) => setData('payment_method', v)}>
                         <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
                             <SelectValue />
                         </SelectTrigger>
@@ -356,7 +349,6 @@ function PaymentForm({
                 </div>
             )}
 
-            {/* Notes */}
             <div>
                 <Label className="text-muted-foreground">Poznámka</Label>
                 <Textarea
@@ -368,20 +360,11 @@ function PaymentForm({
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-2">
-                <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={onClose}
-                    className="text-muted-foreground hover:text-foreground"
-                >
+                <Button type="button" variant="ghost" onClick={onClose} className="text-muted-foreground hover:text-foreground">
                     Zrušit
                 </Button>
                 <Separator orientation="vertical" className="h-6 bg-border" />
-                <Button
-                    type="submit"
-                    disabled={processing}
-                    className="bg-primary hover:bg-primary/80 text-white"
-                >
+                <Button type="submit" disabled={processing} className="bg-primary hover:bg-primary/80 text-white">
                     {processing ? 'Ukládám...' : 'Uložit platbu'}
                 </Button>
             </div>
@@ -400,27 +383,24 @@ function PasswordField({ password }: { password: string }) {
     }
 
     return (
-        <div className="flex items-center justify-between py-1">
-            <span className="text-sm text-muted-foreground">Heslo</span>
-            <div className="flex items-center gap-1.5">
-                <span className="text-sm font-mono text-foreground">
-                    {visible ? password : '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'}
-                </span>
-                <button
-                    onClick={() => setVisible(!visible)}
-                    className="rounded p-1 text-muted-foreground hover:text-foreground"
-                    title={visible ? 'Skr\u00fdt' : 'Zobrazit'}
-                >
-                    {visible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                </button>
-                <button
-                    onClick={handleCopy}
-                    className={`rounded p-1 transition-colors ${copied ? 'text-emerald-500' : 'text-muted-foreground hover:text-foreground'}`}
-                    title={copied ? 'Zkop\u00edrov\u00e1no!' : 'Kop\u00edrovat'}
-                >
-                    {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                </button>
-            </div>
+        <div className="flex items-center gap-1.5">
+            <span className="text-sm font-mono text-foreground">
+                {visible ? password : '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'}
+            </span>
+            <button
+                onClick={() => setVisible(!visible)}
+                className="rounded p-1 text-muted-foreground hover:text-foreground"
+                title={visible ? 'Skrýt' : 'Zobrazit'}
+            >
+                {visible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+            </button>
+            <button
+                onClick={handleCopy}
+                className={`rounded p-1 transition-colors ${copied ? 'text-emerald-500' : 'text-muted-foreground hover:text-foreground'}`}
+                title={copied ? 'Zkopírováno!' : 'Kopírovat'}
+            >
+                {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            </button>
         </div>
     );
 }
@@ -429,7 +409,6 @@ export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-    const isDomain = website.type === 'domena';
     const statusInfo = statusMap[website.status];
 
     const handleDelete = () => setShowDeleteConfirm(true);
@@ -457,7 +436,6 @@ export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
             const data = await response.json();
             if (response.ok) {
                 setActivateHostingResult({ success: true, message: data.message ?? 'Hosting aktivován.' });
-                // Spustí sync aby se hosting objevil v CRM
                 setTimeout(() => router.post('/webove-sluzby/sync', {}, { preserveState: false }), 1500);
             } else {
                 setActivateHostingResult({ success: false, message: data.message ?? 'Aktivace selhala.' });
@@ -497,11 +475,7 @@ export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
                             </Button>
                             <div className="min-w-0">
                                 <div className="flex items-center gap-3 mb-1 flex-wrap">
-                                    {isDomain ? (
-                                        <Globe className="h-6 w-6 text-amber-500 shrink-0" />
-                                    ) : (
-                                        <Server className="h-6 w-6 text-blue-400 shrink-0" />
-                                    )}
+                                    <Globe className="h-6 w-6 text-amber-500 shrink-0" />
                                     <h1 className="text-2xl font-semibold tracking-tight text-foreground">
                                         {website.name}
                                     </h1>
@@ -510,10 +484,15 @@ export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
                                             {statusInfo.label}
                                         </StatusBadge>
                                     )}
-                                    <ExpirationBadge expiresAt={website.expires_at} />
+                                    <ExpirationBadge expiresAt={website.hosting_expires_at} />
                                     {website.is_free && (
                                         <span className="inline-flex items-center rounded-full bg-emerald-500/15 border border-emerald-500/25 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
                                             ZDARMA
+                                        </span>
+                                    )}
+                                    {website.alias_of && (
+                                        <span className="inline-flex items-center rounded-full bg-violet-500/15 border border-violet-500/25 px-2 py-0.5 text-[10px] font-semibold text-violet-400">
+                                            ALIAS &rarr; {website.alias_of.name}
                                         </span>
                                     )}
                                 </div>
@@ -526,12 +505,12 @@ export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
                                             {website.customer.company || website.customer.name}
                                         </a>
                                     )}
-                                    {website.customer && website.managed_since && (
+                                    {website.customer && website.starts_at && (
                                         <span className="text-muted-foreground/40">·</span>
                                     )}
-                                    {website.managed_since && (
+                                    {website.starts_at && (
                                         <span className="text-muted-foreground/70 text-xs">
-                                            Spravujeme od {format(new Date(website.managed_since), 'MMMM yyyy', { locale: cs })}
+                                            Od {format(new Date(website.starts_at), 'MMMM yyyy', { locale: cs })}
                                         </span>
                                     )}
                                 </div>
@@ -540,21 +519,19 @@ export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
                     </div>
 
                     <div className="flex items-center gap-2 flex-wrap justify-end">
-                        {isDomain && !website.has_linked_hosting && (
-                            <Button
-                                variant="ghost"
-                                onClick={handleActivateHosting}
-                                disabled={activatingHosting}
-                                className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 border border-emerald-500/25"
-                            >
-                                {activatingHosting ? (
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                ) : (
-                                    <Play className="h-4 w-4 mr-2" />
-                                )}
-                                Aktivovat hosting
-                            </Button>
-                        )}
+                        <Button
+                            variant="ghost"
+                            onClick={handleActivateHosting}
+                            disabled={activatingHosting}
+                            className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 border border-emerald-500/25"
+                        >
+                            {activatingHosting ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                                <Play className="h-4 w-4 mr-2" />
+                            )}
+                            Aktivovat hosting
+                        </Button>
                         {!website.is_free && website.customer && (
                             <Button
                                 onClick={() => router.post(`/webove-sluzby/${website.id}/faktura`)}
@@ -587,7 +564,7 @@ export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
                 </div>
 
                 {/* Stats cards */}
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     <div className="bg-card border border-border rounded-xl px-4 py-4">
                         <p className="text-xs text-muted-foreground mb-1">Roční náklad</p>
                         <p className="text-xl font-semibold text-foreground">
@@ -597,7 +574,7 @@ export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
                     <div className="bg-card border border-border rounded-xl px-4 py-4">
                         <p className="text-xs text-muted-foreground mb-1">Prodejní cena</p>
                         <p className="text-xl font-semibold text-foreground">
-                            {website.sell_yearly ? czk(website.sell_yearly) : czk(website.price_yearly)}
+                            {website.sell_yearly ? czk(website.sell_yearly) : '—'}
                         </p>
                     </div>
                     <div className="bg-card border border-border rounded-xl px-4 py-4">
@@ -606,6 +583,17 @@ export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
                             {website.yearly_margin != null ? czk(website.yearly_margin) : '—'}
                         </p>
                     </div>
+                    {website.management_plan && (
+                        <div className="bg-card border border-border rounded-xl px-4 py-4">
+                            <p className="text-xs text-muted-foreground mb-1">Správa</p>
+                            <p className="text-lg font-semibold text-foreground">
+                                {website.management_plan.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                {Number(website.management_plan.price_monthly).toLocaleString('cs-CZ')} Kč/měs
+                            </p>
+                        </div>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -687,7 +675,6 @@ export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
                                 </div>
                             )}
 
-                            {/* Payment stats footer */}
                             {paymentStats.payments_count > 0 && (
                                 <div className="flex items-center gap-6 px-5 py-3 border-t border-border bg-muted/30">
                                     <div>
@@ -703,15 +690,14 @@ export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
                                 </div>
                             )}
                         </div>
+
                         {/* Linked invoices */}
                         {website.invoices && website.invoices.length > 0 && (
                             <div className="bg-card border border-border rounded-xl overflow-hidden mt-4">
                                 <div className="flex items-center gap-2 px-5 py-4 border-b border-border">
                                     <FileText className="h-4 w-4 text-muted-foreground" />
                                     <h2 className="text-sm font-semibold text-foreground">Faktury</h2>
-                                    <span className="text-xs text-muted-foreground">
-                                        ({website.invoices.length})
-                                    </span>
+                                    <span className="text-xs text-muted-foreground">({website.invoices.length})</span>
                                 </div>
                                 <div className="divide-y divide-border">
                                     {website.invoices.map((inv) => {
@@ -723,17 +709,13 @@ export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
                                                 className="flex items-center justify-between px-5 py-3 hover:bg-muted/30 transition-colors"
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <span className="text-sm font-medium text-foreground">
-                                                        {inv.invoice_number}
-                                                    </span>
+                                                    <span className="text-sm font-medium text-foreground">{inv.invoice_number}</span>
                                                     <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${invStatus.className}`}>
                                                         {invStatus.label}
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center gap-4">
-                                                    <span className="text-sm font-medium text-foreground">
-                                                        {czk(Number(inv.total))}
-                                                    </span>
+                                                    <span className="text-sm font-medium text-foreground">{czk(Number(inv.total))}</span>
                                                     <span className="text-xs text-muted-foreground">
                                                         {format(new Date(inv.issue_date), 'd. M. yyyy', { locale: cs })}
                                                     </span>
@@ -752,83 +734,58 @@ export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
                             <h2 className="text-sm font-semibold text-foreground mb-3">Informace</h2>
 
                             <div className="space-y-2.5 text-sm">
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Typ</span>
-                                    <span className="text-foreground">
-                                        {isDomain ? 'Doména' : 'Hosting'}
-                                    </span>
+                                {/* TWO expirations side by side */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <span className="text-muted-foreground text-xs block mb-0.5">Doména exp.</span>
+                                        <span className="text-foreground font-medium">
+                                            {website.domain_expires_at
+                                                ? format(new Date(website.domain_expires_at), 'd. M. yyyy', { locale: cs })
+                                                : <span className="text-muted-foreground/50">—</span>}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span className="text-muted-foreground text-xs block mb-0.5">Hosting exp.</span>
+                                        <span className="text-foreground font-medium">
+                                            {website.hosting_expires_at
+                                                ? format(new Date(website.hosting_expires_at), 'd. M. yyyy', { locale: cs })
+                                                : <span className="text-muted-foreground/50">—</span>}
+                                        </span>
+                                    </div>
                                 </div>
 
-                                {isDomain && website.has_linked_hosting !== null && (
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Hosting</span>
-                                        {website.has_linked_hosting ? (
-                                            <span className="inline-flex items-center gap-1.5">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                                <span className="text-emerald-400 font-medium">Ano</span>
-                                            </span>
-                                        ) : (
-                                            <span className="inline-flex items-center gap-1.5">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
-                                                <span className="text-muted-foreground/60">Ne</span>
-                                            </span>
-                                        )}
-                                    </div>
-                                )}
+                                <Separator className="bg-border" />
 
-                                {!isDomain && website.has_linked_domain !== null && (
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Doména</span>
-                                        {website.has_linked_domain ? (
-                                            <span className="inline-flex items-center gap-1.5">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                                <span className="text-emerald-400 font-medium">Ano</span>
-                                            </span>
-                                        ) : (
-                                            <span className="inline-flex items-center gap-1.5">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
-                                                <span className="text-muted-foreground/60">Ne</span>
-                                            </span>
-                                        )}
-                                    </div>
-                                )}
-
-                                {isDomain && (
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Registrátor</span>
-                                        {website.is_registered_by_us ? (
-                                            <span className="inline-flex items-center gap-1.5">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                                <span className="text-emerald-400 font-medium">Váš-Hosting</span>
-                                            </span>
-                                        ) : (
-                                            <span className="text-muted-foreground/60">Externí</span>
-                                        )}
-                                    </div>
-                                )}
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Registrátor</span>
+                                    {website.is_registered_by_us ? (
+                                        <span className="inline-flex items-center gap-1.5">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                            <span className="text-emerald-400 font-medium">Váš-Hosting</span>
+                                        </span>
+                                    ) : (
+                                        <span className="text-muted-foreground/60">Externí</span>
+                                    )}
+                                </div>
 
                                 {website.ip_address && (
                                     <div className="flex justify-between">
                                         <span className="text-muted-foreground">IP adresa</span>
-                                        <span className="text-foreground font-mono text-xs">
-                                            {website.ip_address}
-                                        </span>
-                                    </div>
-                                )}
-
-                                {website.tariff && (
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Tarif</span>
-                                        <span className="text-foreground">{website.tariff}</span>
+                                        <span className="text-foreground font-mono text-xs">{website.ip_address}</span>
                                     </div>
                                 )}
 
                                 {website.server && (
                                     <div className="flex justify-between">
                                         <span className="text-muted-foreground">Server</span>
-                                        <span className="text-foreground font-mono text-xs">
-                                            {website.server}
-                                        </span>
+                                        <span className="text-foreground font-mono text-xs">{website.server}</span>
+                                    </div>
+                                )}
+
+                                {website.hosting_server && (
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">VPS server</span>
+                                        <span className="text-foreground">{website.hosting_server.name}</span>
                                     </div>
                                 )}
 
@@ -855,22 +812,21 @@ export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
                                     </div>
                                 )}
 
-                                {!isDomain && (
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Fakturační cyklus</span>
-                                        <span className="text-foreground">
-                                            {billingCycleLabels[website.billing_cycle] ?? website.billing_cycle}
-                                        </span>
-                                    </div>
-                                )}
-
-                                {!isDomain && website.monthly_plan && (
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Plán</span>
-                                        <span className="text-foreground">
-                                            {monthlyPlanLabels[website.monthly_plan] ?? website.monthly_plan}
-                                        </span>
-                                    </div>
+                                {website.management_plan && (
+                                    <>
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Správa</span>
+                                            <span className="text-foreground">{website.management_plan.name}</span>
+                                        </div>
+                                        {website.management_plan && (
+                                            <div className="flex justify-between">
+                                                <span className="text-muted-foreground">Fakturace správy</span>
+                                                <span className="text-foreground">
+                                                    {managementCycleLabels[(website as Record<string, unknown>).management_cycle as string] ?? '—'}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </>
                                 )}
 
                                 <div className="flex justify-between">
@@ -891,24 +847,6 @@ export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
                                     </span>
                                 </div>
 
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Expirace</span>
-                                    <span className="text-foreground">
-                                        {website.expires_at
-                                            ? format(new Date(website.expires_at), 'd. M. yyyy', { locale: cs })
-                                            : <span className="text-muted-foreground/50">Nenastaveno</span>}
-                                    </span>
-                                </div>
-
-                                {website.managed_since && (
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Ve správě od</span>
-                                        <span className="text-foreground">
-                                            {format(new Date(website.managed_since), 'd. M. yyyy', { locale: cs })}
-                                        </span>
-                                    </div>
-                                )}
-
                                 {website.synced_at && (
                                     <>
                                         <Separator className="bg-border" />
@@ -921,12 +859,33 @@ export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
                                     </>
                                 )}
 
-                                {/* Přístupy do webu */}
-                                {(website.admin_url || website.admin_user || website.client_user) && (
+                                {/* Aliases */}
+                                {website.aliases && website.aliases.length > 0 && (
                                     <>
                                         <Separator className="bg-border" />
                                         <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                            Přístupy do webu
+                                            Aliasy
+                                        </h4>
+                                        {website.aliases.map((alias) => (
+                                            <div key={alias.id} className="flex items-center justify-between py-0.5">
+                                                <a
+                                                    href={`/webove-sluzby/${alias.id}`}
+                                                    className="text-sm text-primary hover:underline flex items-center gap-1.5"
+                                                >
+                                                    <Link2 className="h-3 w-3" />
+                                                    {alias.name}
+                                                </a>
+                                            </div>
+                                        ))}
+                                    </>
+                                )}
+
+                                {/* Credentials */}
+                                {website.credentials && website.credentials.length > 0 && (
+                                    <>
+                                        <Separator className="bg-border" />
+                                        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                            Přístupy
                                         </h4>
                                         {website.admin_url && (
                                             <div className="flex items-center justify-between py-1">
@@ -937,34 +896,49 @@ export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
                                                     rel="noopener noreferrer"
                                                     className="text-sm text-primary hover:underline"
                                                 >
-                                                    Otevřít →
+                                                    Otevřít &rarr;
                                                 </a>
                                             </div>
                                         )}
-                                        {website.admin_user && (
-                                            <>
-                                                <p className="mt-2 text-xs font-medium text-muted-foreground/70">Můj přístup</p>
-                                                <div className="flex items-center justify-between py-1">
-                                                    <span className="text-sm text-muted-foreground">Login</span>
-                                                    <span className="text-sm text-foreground">{website.admin_user}</span>
+                                        {website.credentials.map((cred) => (
+                                            <div key={cred.id} className="rounded-lg bg-accent px-3 py-2.5 mb-1">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <Shield className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                                    <span className="text-xs font-medium text-foreground">{cred.label}</span>
                                                 </div>
-                                                {website.admin_password && (
-                                                    <PasswordField password={website.admin_password} />
-                                                )}
-                                            </>
-                                        )}
-                                        {website.client_user && (
-                                            <>
-                                                <p className="mt-2 text-xs font-medium text-muted-foreground/70">Zákazník</p>
-                                                <div className="flex items-center justify-between py-1">
-                                                    <span className="text-sm text-muted-foreground">Login</span>
-                                                    <span className="text-sm text-foreground">{website.client_user}</span>
+                                                <div className="flex items-center justify-between py-0.5">
+                                                    <span className="text-xs text-muted-foreground">Login</span>
+                                                    <span className="text-sm text-foreground">{cred.login}</span>
                                                 </div>
-                                                {website.client_password && (
-                                                    <PasswordField password={website.client_password} />
+                                                {cred.password && (
+                                                    <div className="flex items-center justify-between py-0.5">
+                                                        <span className="text-xs text-muted-foreground">Heslo</span>
+                                                        <PasswordField password={cred.password} />
+                                                    </div>
                                                 )}
-                                            </>
-                                        )}
+                                                {cred.notes && (
+                                                    <p className="text-xs text-muted-foreground/70 mt-1">{cred.notes}</p>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </>
+                                )}
+
+                                {/* Admin URL without credentials */}
+                                {website.admin_url && (!website.credentials || website.credentials.length === 0) && (
+                                    <>
+                                        <Separator className="bg-border" />
+                                        <div className="flex items-center justify-between py-1">
+                                            <span className="text-sm text-muted-foreground">Admin URL</span>
+                                            <a
+                                                href={website.admin_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-sm text-primary hover:underline"
+                                            >
+                                                Otevřít &rarr;
+                                            </a>
+                                        </div>
                                     </>
                                 )}
                             </div>
@@ -979,7 +953,7 @@ export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
                             </div>
                         )}
 
-                        {/* E-mail účty */}
+                        {/* E-mail accounts */}
                         <EmailAccountsSection websiteId={website.id} emailAccounts={website.email_accounts ?? []} />
                     </div>
                 </div>
@@ -1001,14 +975,14 @@ export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
                 open={showDeleteConfirm}
                 onClose={() => setShowDeleteConfirm(false)}
                 onConfirm={() => router.delete(`/webove-sluzby/${website.id}`)}
-                title="Smazat službu"
+                title="Smazat web"
                 message={`Opravdu chcete smazat "${website.name}"?`}
             />
         </AuthenticatedLayout>
     );
 }
 
-/* ───── Email Accounts Section ───── */
+/* ---- Email Accounts Section ---- */
 
 function EmailAccountsSection({ websiteId, emailAccounts }: { websiteId: number; emailAccounts: EmailAccount[] }) {
     const [showForm, setShowForm] = useState(false);

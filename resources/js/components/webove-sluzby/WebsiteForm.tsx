@@ -24,72 +24,54 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 
 export interface WebsiteFormData {
-    type: string;
     customer_id: string;
     name: string;
-    provider: string;
     server: string;
-    storage_quota_mb: string;
-    price_yearly: string;
-    cost_yearly: string;
-    sell_yearly: string;
-    billing_cycle: string;
-    monthly_price: string;
-    monthly_plan: string;
-    starts_at: string;
-    expires_at: string;
-    auto_renew: boolean;
-    auto_invoice: boolean;
-    is_free: boolean;
-    is_external: boolean;
     status: string;
     notes: string;
+    starts_at: string;
+    is_registered_by_us: boolean;
+    auto_renew: boolean;
+    auto_invoice: boolean;
+    auto_invoice_management: boolean;
+    is_free: boolean;
+    is_external: boolean;
+    sell_yearly: string;
+    cost_yearly: string;
     admin_url: string;
-    admin_user: string;
-    admin_password: string;
-    client_user: string;
-    client_password: string;
-    folder_id: string;
-    parent_subscription_id: string;
+    domain_expires_at: string;
+    hosting_expires_at: string;
+    hosting_server_id: string;
+    alias_of_id: string;
+    management_plan_id: string;
+    management_cycle: string;
+    storage_quota_mb: string;
 }
 
 export const defaultWebsiteData: WebsiteFormData = {
-    type: 'domena',
     customer_id: '',
     name: '',
-    provider: '',
     server: '',
-    storage_quota_mb: '',
-    price_yearly: '',
-    cost_yearly: '',
-    sell_yearly: '',
-    billing_cycle: 'yearly',
-    monthly_price: '',
-    monthly_plan: '',
-    starts_at: format(new Date(), 'yyyy-MM-dd'),
-    expires_at: '',
-    auto_renew: true,
-    auto_invoice: true,
-    is_free: false,
-    is_external: false,
     status: 'aktivni',
     notes: '',
+    starts_at: format(new Date(), 'yyyy-MM-dd'),
+    is_registered_by_us: true,
+    auto_renew: true,
+    auto_invoice: true,
+    auto_invoice_management: false,
+    is_free: false,
+    is_external: false,
+    sell_yearly: '',
+    cost_yearly: '',
     admin_url: '',
-    admin_user: '',
-    admin_password: '',
-    client_user: '',
-    client_password: '',
-    folder_id: '',
-    parent_subscription_id: '',
+    domain_expires_at: '',
+    hosting_expires_at: '',
+    hosting_server_id: '',
+    alias_of_id: '',
+    management_plan_id: '',
+    management_cycle: '',
+    storage_quota_mb: '',
 };
-
-const PLAN_OPTIONS = [
-    { value: 'spravuji_sam', label: 'Spravuji sám', price: 0 },
-    { value: 'zaklad', label: 'Základ', price: 490 },
-    { value: 'klidny_spanek', label: 'Klidný spánek', price: 1490 },
-    { value: 'aktivni_rozvoj', label: 'Aktivní rozvoj', price: 2990 },
-    { value: 'vip_pece', label: 'VIP péče', price: 5990 },
-] as const;
 
 interface Customer {
     id: number;
@@ -97,15 +79,21 @@ interface Customer {
     company: string | null;
 }
 
-interface FolderOption {
+interface VpsServerOption {
     id: number;
     name: string;
 }
 
-interface ParentOption {
+interface ManagementPlanOption {
     id: number;
     name: string;
-    type: string;
+    price_monthly: number | string;
+    is_active: boolean;
+}
+
+interface AliasOption {
+    id: number;
+    name: string;
 }
 
 interface WebsiteFormProps {
@@ -113,8 +101,9 @@ interface WebsiteFormProps {
     onSubmit: (e: FormEvent) => void;
     submitLabel: string;
     customers: Customer[];
-    folders?: FolderOption[];
-    parentOptions?: ParentOption[];
+    vpsServers?: VpsServerOption[];
+    managementPlans?: ManagementPlanOption[];
+    aliasOptions?: AliasOption[];
     onCancel?: () => void;
 }
 
@@ -123,8 +112,9 @@ export default function WebsiteForm({
     onSubmit,
     submitLabel,
     customers,
-    folders = [],
-    parentOptions = [],
+    vpsServers = [],
+    managementPlans = [],
+    aliasOptions = [],
     onCancel,
 }: WebsiteFormProps) {
     const { data, setData, errors, processing } = form;
@@ -134,11 +124,6 @@ export default function WebsiteForm({
             setData('auto_invoice', false);
         }
     }, [data.auto_renew]);
-
-    const isDomain = data.type === 'domena';
-    const isService = data.type === 'sluzba';
-    const isHosting = data.type === 'hosting';
-    const isMonthly = data.billing_cycle === 'monthly';
 
     const handleCancel = () => {
         if (onCancel) {
@@ -150,43 +135,18 @@ export default function WebsiteForm({
 
     return (
         <form onSubmit={onSubmit} className="space-y-5">
-            {/* Type */}
-            <div>
-                <Label className="text-muted-foreground">Typ</Label>
-                <Select
-                    value={data.type}
-                    onValueChange={(v) => {
-                        setData('type', v);
-                        if (v === 'sluzba') {
-                            setData('billing_cycle', 'monthly');
-                        }
-                    }}
-                >
-                    <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-card border-border">
-                        <SelectItem value="domena">Doména</SelectItem>
-                        <SelectItem value="hosting">Hosting</SelectItem>
-                        <SelectItem value="sluzba">Služba (správa)</SelectItem>
-                    </SelectContent>
-                </Select>
-                {errors.type && (
-                    <p className="mt-1 text-xs text-red-400">{errors.type}</p>
-                )}
-            </div>
-
             {/* Customer */}
             <div>
                 <Label className="text-muted-foreground">Zákazník</Label>
                 <Select
                     value={data.customer_id}
-                    onValueChange={(v) => setData('customer_id', v)}
+                    onValueChange={(v) => setData('customer_id', v === 'none' ? '' : v)}
                 >
                     <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
                         <SelectValue placeholder="Vyberte zákazníka" />
                     </SelectTrigger>
                     <SelectContent className="bg-card border-border">
+                        <SelectItem value="none">Bez zákazníka</SelectItem>
                         {customers.map((c) => (
                             <SelectItem key={c.id} value={String(c.id)}>
                                 {c.company || c.name}
@@ -195,23 +155,17 @@ export default function WebsiteForm({
                     </SelectContent>
                 </Select>
                 {errors.customer_id && (
-                    <p className="mt-1 text-xs text-red-400">
-                        {errors.customer_id}
-                    </p>
+                    <p className="mt-1 text-xs text-red-400">{errors.customer_id}</p>
                 )}
             </div>
 
             {/* Name */}
             <div>
-                <Label className="text-muted-foreground">
-                    {isDomain ? 'Název domény' : isService ? 'Název služby' : 'Název hostingu'}
-                </Label>
+                <Label className="text-muted-foreground">Název (doména)</Label>
                 <Input
                     value={data.name}
                     onChange={(e) => setData('name', e.target.value)}
-                    placeholder={
-                        isDomain ? 'example.cz' : isService ? 'Správa webu example.cz' : 'Hosting example.cz'
-                    }
+                    placeholder="example.cz"
                     className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
                 />
                 {errors.name && (
@@ -219,262 +173,160 @@ export default function WebsiteForm({
                 )}
             </div>
 
-            {/* Provider / Server — hidden for services */}
-            {!isService && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <Label className="text-muted-foreground">
-                            {isDomain ? 'Registrár' : 'Poskytovatel'}
-                        </Label>
-                        <Input
-                            value={data.provider}
-                            onChange={(e) => setData('provider', e.target.value)}
-                            placeholder={
-                                isDomain ? 'WEDOS, Forpsi...' : 'WEDOS, VPS...'
-                            }
-                            className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
-                        />
-                    </div>
-                    {isHosting && (
-                        <div>
-                            <Label className="text-muted-foreground">Server</Label>
-                            <Input
-                                value={data.server}
-                                onChange={(e) =>
-                                    setData('server', e.target.value)
-                                }
-                                placeholder="37.235.108.29"
-                                className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
-                            />
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {data.type === 'hosting' && (
-                <div className="space-y-1.5">
-                    <Label className="text-muted-foreground">Úložiště kvóta (MB)</Label>
-                    <Input
-                        type="number"
-                        value={data.storage_quota_mb}
-                        onChange={(e) => setData('storage_quota_mb', e.target.value)}
-                        placeholder="např. 4096"
-                        className="bg-muted border-border"
-                    />
-                </div>
-            )}
-
-            {/* Roční cena + Nákupní/Prodejní — hidden for services */}
-            {!isService && (
-                <>
-                    <div>
-                        <Label className="text-muted-foreground">Roční cena (Kč)</Label>
-                        <Input
-                            type="number"
-                            value={data.price_yearly}
-                            onChange={(e) => setData('price_yearly', e.target.value)}
-                            placeholder={isDomain ? '250' : '1200'}
-                            className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <Label className="text-muted-foreground">Nákupní cena (Kč)</Label>
-                            <Input
-                                type="number"
-                                value={data.cost_yearly}
-                                onChange={(e) => setData('cost_yearly', e.target.value)}
-                                placeholder="200"
-                                className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
-                            />
-                            {errors.cost_yearly && (
-                                <p className="mt-1 text-xs text-red-400">{errors.cost_yearly}</p>
-                            )}
-                        </div>
-                        <div>
-                            <Label className="text-muted-foreground">Prodejní cena (Kč)</Label>
-                            <Input
-                                type="number"
-                                value={data.sell_yearly}
-                                onChange={(e) => setData('sell_yearly', e.target.value)}
-                                placeholder="350"
-                                className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
-                            />
-                            {errors.sell_yearly && (
-                                <p className="mt-1 text-xs text-red-400">{errors.sell_yearly}</p>
-                            )}
-                        </div>
-                    </div>
-                </>
-            )}
-
-            {/* Billing cycle — only for hosting and služba (domains are always yearly) */}
-            {!isDomain && (
-                <div>
-                    <Label className="text-muted-foreground">Fakturační cyklus</Label>
-                    <Select
-                        value={data.billing_cycle}
-                        onValueChange={(v) => setData('billing_cycle', v)}
-                    >
-                        <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-card border-border">
-                            {isService ? (
-                                <>
-                                    <SelectItem value="monthly">Měsíčně</SelectItem>
-                                    <SelectItem value="quarterly">Čtvrtletně</SelectItem>
-                                    <SelectItem value="yearly">Ročně</SelectItem>
-                                </>
-                            ) : (
-                                <>
-                                    <SelectItem value="yearly">Roční</SelectItem>
-                                    <SelectItem value="monthly">Měsíční</SelectItem>
-                                    <SelectItem value="once">Jednorázově</SelectItem>
-                                </>
-                            )}
-                        </SelectContent>
-                    </Select>
-                    {errors.billing_cycle && (
-                        <p className="mt-1 text-xs text-red-400">{errors.billing_cycle}</p>
-                    )}
-                </div>
-            )}
-
-            {/* Service fields — package + monthly price */}
-            {isService && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <Label className="text-muted-foreground">Balíček</Label>
-                        <Select
-                            value={data.monthly_plan}
-                            onValueChange={(v) => {
-                                setData('monthly_plan', v);
-                                const plan = PLAN_OPTIONS.find((p) => p.value === v);
-                                if (plan) setData('monthly_price', String(plan.price));
-                            }}
-                        >
-                            <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
-                                <SelectValue placeholder="Vyberte balíček" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-card border-border">
-                                {PLAN_OPTIONS.map((p) => (
-                                    <SelectItem key={p.value} value={p.value}>
-                                        {p.label} — {p.price} Kč/měs
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        {errors.monthly_plan && (
-                            <p className="mt-1 text-xs text-red-400">{errors.monthly_plan}</p>
-                        )}
-                    </div>
-                    <div>
-                        <Label className="text-muted-foreground">Měsíční cena (Kč)</Label>
-                        <Input
-                            type="number"
-                            value={data.monthly_price}
-                            onChange={(e) => setData('monthly_price', e.target.value)}
-                            placeholder="490"
-                            className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
-                        />
-                        {errors.monthly_price && (
-                            <p className="mt-1 text-xs text-red-400">{errors.monthly_price}</p>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* Monthly fields for hosting — only visible when billing_cycle = monthly and NOT service */}
-            {isMonthly && !isService && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <Label className="text-muted-foreground">Balíček</Label>
-                        <Select
-                            value={data.monthly_plan}
-                            onValueChange={(v) => {
-                                setData('monthly_plan', v);
-                                const plan = PLAN_OPTIONS.find((p) => p.value === v);
-                                if (plan) setData('monthly_price', String(plan.price));
-                            }}
-                        >
-                            <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
-                                <SelectValue placeholder="Vyberte balíček" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-card border-border">
-                                {PLAN_OPTIONS.map((p) => (
-                                    <SelectItem key={p.value} value={p.value}>
-                                        {p.label} — {p.price} Kč/měs
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        {errors.monthly_plan && (
-                            <p className="mt-1 text-xs text-red-400">{errors.monthly_plan}</p>
-                        )}
-                    </div>
-                    <div>
-                        <Label className="text-muted-foreground">Měsíční cena (Kč)</Label>
-                        <Input
-                            type="number"
-                            value={data.monthly_price}
-                            onChange={(e) => setData('monthly_price', e.target.value)}
-                            placeholder="490"
-                            className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
-                        />
-                        {errors.monthly_price && (
-                            <p className="mt-1 text-xs text-red-400">{errors.monthly_price}</p>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* Dates */}
+            {/* Server + Hosting Server */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <Label className="text-muted-foreground">Začátek</Label>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button
-                                variant="outline"
-                                className="mt-1.5 w-full justify-start text-left bg-muted border-border text-foreground hover:bg-muted"
-                            >
-                                <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                                {data.starts_at
-                                    ? format(
-                                          new Date(data.starts_at),
-                                          'd. M. yyyy',
-                                          { locale: cs },
-                                      )
-                                    : 'Vyberte datum'}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0 bg-card border-border">
-                            <Calendar
-                                mode="single"
-                                selected={
-                                    data.starts_at
-                                        ? new Date(data.starts_at)
-                                        : undefined
-                                }
-                                onSelect={(d) => {
-                                    if (!d) return;
-                                    setData('starts_at', format(d, 'yyyy-MM-dd'));
-                                    // Auto-set expiration +1 year for yearly billing
-                                    if (data.billing_cycle === 'yearly') {
-                                        const exp = new Date(d);
-                                        exp.setFullYear(exp.getFullYear() + 1);
-                                        setData('expires_at', format(exp, 'yyyy-MM-dd'));
-                                    }
-                                }}
-                                locale={cs}
-                            />
-                        </PopoverContent>
-                    </Popover>
+                    <Label className="text-muted-foreground">Server (hostname)</Label>
+                    <Input
+                        value={data.server}
+                        onChange={(e) => setData('server', e.target.value)}
+                        placeholder="sss06.vas-server.cz"
+                        className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
+                    />
+                </div>
+                {vpsServers.length > 0 && (
+                    <div>
+                        <Label className="text-muted-foreground">VPS server</Label>
+                        <Select
+                            value={data.hosting_server_id || 'none'}
+                            onValueChange={(v) => setData('hosting_server_id', v === 'none' ? '' : v)}
+                        >
+                            <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
+                                <SelectValue placeholder="Žádný" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-card border-border">
+                                <SelectItem value="none">Žádný</SelectItem>
+                                {vpsServers.map((vps) => (
+                                    <SelectItem key={vps.id} value={String(vps.id)}>
+                                        {vps.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                )}
+            </div>
+
+            {/* Alias of */}
+            {aliasOptions.length > 0 && (
+                <div>
+                    <Label className="text-muted-foreground">Alias webu (nadřazený hosting)</Label>
+                    <Select
+                        value={data.alias_of_id || 'none'}
+                        onValueChange={(v) => setData('alias_of_id', v === 'none' ? '' : v)}
+                    >
+                        <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
+                            <SelectValue placeholder="Žádný (samostatný web)" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-card border-border">
+                            <SelectItem value="none">Žádný (samostatný web)</SelectItem>
+                            {aliasOptions.map((opt) => (
+                                <SelectItem key={opt.id} value={String(opt.id)}>
+                                    {opt.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    {errors.alias_of_id && (
+                        <p className="mt-1 text-xs text-red-400">{errors.alias_of_id}</p>
+                    )}
+                </div>
+            )}
+
+            {/* Storage quota */}
+            <div className="space-y-1.5">
+                <Label className="text-muted-foreground">Úložiště kvóta (MB)</Label>
+                <Input
+                    type="number"
+                    value={data.storage_quota_mb}
+                    onChange={(e) => setData('storage_quota_mb', e.target.value)}
+                    placeholder="např. 4096"
+                    className="bg-muted border-border"
+                />
+            </div>
+
+            {/* Prices */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <Label className="text-muted-foreground">Nákupní cena / rok (Kč)</Label>
+                    <Input
+                        type="number"
+                        value={data.cost_yearly}
+                        onChange={(e) => setData('cost_yearly', e.target.value)}
+                        placeholder="200"
+                        className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
+                    />
+                    {errors.cost_yearly && (
+                        <p className="mt-1 text-xs text-red-400">{errors.cost_yearly}</p>
+                    )}
                 </div>
                 <div>
-                    <Label className="text-muted-foreground">Expirace</Label>
+                    <Label className="text-muted-foreground">Prodejní cena / rok (Kč)</Label>
+                    <Input
+                        type="number"
+                        value={data.sell_yearly}
+                        onChange={(e) => setData('sell_yearly', e.target.value)}
+                        placeholder="2050"
+                        className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
+                    />
+                    {errors.sell_yearly && (
+                        <p className="mt-1 text-xs text-red-400">{errors.sell_yearly}</p>
+                    )}
+                </div>
+            </div>
+
+            {/* Management plan + cycle */}
+            {managementPlans.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <Label className="text-muted-foreground">Balíček správy</Label>
+                        <Select
+                            value={data.management_plan_id || 'none'}
+                            onValueChange={(v) => setData('management_plan_id', v === 'none' ? '' : v)}
+                        >
+                            <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
+                                <SelectValue placeholder="Bez správy" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-card border-border">
+                                <SelectItem value="none">Bez správy</SelectItem>
+                                {managementPlans.map((p) => (
+                                    <SelectItem key={p.id} value={String(p.id)}>
+                                        {p.name} — {Number(p.price_monthly).toLocaleString('cs-CZ')} Kč/měs
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        {errors.management_plan_id && (
+                            <p className="mt-1 text-xs text-red-400">{errors.management_plan_id}</p>
+                        )}
+                    </div>
+                    <div>
+                        <Label className="text-muted-foreground">Fakturační cyklus správy</Label>
+                        <Select
+                            value={data.management_cycle || 'none'}
+                            onValueChange={(v) => setData('management_cycle', v === 'none' ? '' : v)}
+                        >
+                            <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
+                                <SelectValue placeholder="Nevybráno" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-card border-border">
+                                <SelectItem value="none">Nevybráno</SelectItem>
+                                <SelectItem value="quarterly">Čtvrtletně</SelectItem>
+                                <SelectItem value="semi_annual">Pololetně</SelectItem>
+                                <SelectItem value="annual">Ročně</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        {errors.management_cycle && (
+                            <p className="mt-1 text-xs text-red-400">{errors.management_cycle}</p>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Dates — domain expiry + hosting expiry */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <Label className="text-muted-foreground">Expirace domény</Label>
                     <Popover>
                         <PopoverTrigger asChild>
                             <Button
@@ -483,22 +335,15 @@ export default function WebsiteForm({
                             >
                                 <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground" />
                                 <span className="flex-1 truncate">
-                                    {data.expires_at
-                                        ? format(
-                                              new Date(data.expires_at),
-                                              'd. M. yyyy',
-                                              { locale: cs },
-                                          )
+                                    {data.domain_expires_at
+                                        ? format(new Date(data.domain_expires_at), 'd. M. yyyy', { locale: cs })
                                         : 'Bez expirace'}
                                 </span>
-                                {data.expires_at && (
+                                {data.domain_expires_at && (
                                     <span
                                         role="button"
                                         className="ml-1 rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-accent"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setData('expires_at', '');
-                                        }}
+                                        onClick={(e) => { e.stopPropagation(); setData('domain_expires_at', ''); }}
                                         title="Bez expirace"
                                     >
                                         <X className="h-3.5 w-3.5" />
@@ -509,28 +354,81 @@ export default function WebsiteForm({
                         <PopoverContent className="w-auto p-0 bg-card border-border">
                             <Calendar
                                 mode="single"
-                                selected={
-                                    data.expires_at
-                                        ? new Date(data.expires_at)
-                                        : undefined
-                                }
-                                onSelect={(d) =>
-                                    d &&
-                                    setData(
-                                        'expires_at',
-                                        format(d, 'yyyy-MM-dd'),
-                                    )
-                                }
+                                selected={data.domain_expires_at ? new Date(data.domain_expires_at) : undefined}
+                                onSelect={(d) => d && setData('domain_expires_at', format(d, 'yyyy-MM-dd'))}
                                 locale={cs}
                             />
                         </PopoverContent>
                     </Popover>
-                    {errors.expires_at && (
-                        <p className="mt-1 text-xs text-red-400">
-                            {errors.expires_at}
-                        </p>
+                    {errors.domain_expires_at && (
+                        <p className="mt-1 text-xs text-red-400">{errors.domain_expires_at}</p>
                     )}
                 </div>
+                <div>
+                    <Label className="text-muted-foreground">Expirace hostingu</Label>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="outline"
+                                className="mt-1.5 w-full justify-start text-left bg-muted border-border text-foreground hover:bg-muted"
+                            >
+                                <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                                <span className="flex-1 truncate">
+                                    {data.hosting_expires_at
+                                        ? format(new Date(data.hosting_expires_at), 'd. M. yyyy', { locale: cs })
+                                        : 'Bez expirace'}
+                                </span>
+                                {data.hosting_expires_at && (
+                                    <span
+                                        role="button"
+                                        className="ml-1 rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-accent"
+                                        onClick={(e) => { e.stopPropagation(); setData('hosting_expires_at', ''); }}
+                                        title="Bez expirace"
+                                    >
+                                        <X className="h-3.5 w-3.5" />
+                                    </span>
+                                )}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0 bg-card border-border">
+                            <Calendar
+                                mode="single"
+                                selected={data.hosting_expires_at ? new Date(data.hosting_expires_at) : undefined}
+                                onSelect={(d) => d && setData('hosting_expires_at', format(d, 'yyyy-MM-dd'))}
+                                locale={cs}
+                            />
+                        </PopoverContent>
+                    </Popover>
+                    {errors.hosting_expires_at && (
+                        <p className="mt-1 text-xs text-red-400">{errors.hosting_expires_at}</p>
+                    )}
+                </div>
+            </div>
+
+            {/* Starts at */}
+            <div>
+                <Label className="text-muted-foreground">Začátek</Label>
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button
+                            variant="outline"
+                            className="mt-1.5 w-full justify-start text-left bg-muted border-border text-foreground hover:bg-muted"
+                        >
+                            <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                            {data.starts_at
+                                ? format(new Date(data.starts_at), 'd. M. yyyy', { locale: cs })
+                                : 'Vyberte datum'}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-card border-border">
+                        <Calendar
+                            mode="single"
+                            selected={data.starts_at ? new Date(data.starts_at) : undefined}
+                            onSelect={(d) => d && setData('starts_at', format(d, 'yyyy-MM-dd'))}
+                            locale={cs}
+                        />
+                    </PopoverContent>
+                </Popover>
             </div>
 
             {/* Flags + Status */}
@@ -550,16 +448,32 @@ export default function WebsiteForm({
                             disabled={!data.auto_renew}
                         />
                         <Label className={!data.auto_renew ? 'text-muted-foreground/50' : 'text-muted-foreground'}>
-                            Automatická fakturace
+                            Auto-fakturace hosting
                         </Label>
                     </div>
+                    <div className="flex items-center gap-3 pt-2">
+                        <Switch
+                            checked={data.auto_invoice_management}
+                            onCheckedChange={(v) => setData('auto_invoice_management', v)}
+                        />
+                        <Label className="text-muted-foreground">Auto-fakturace správa</Label>
+                    </div>
                 </div>
-                <div className="flex items-center gap-3 pt-6">
-                    <Switch
-                        checked={data.is_free}
-                        onCheckedChange={(v) => setData('is_free', v)}
-                    />
-                    <Label className="text-muted-foreground">Zdarma</Label>
+                <div className="space-y-2">
+                    <div className="flex items-center gap-3 pt-6">
+                        <Switch
+                            checked={data.is_free}
+                            onCheckedChange={(v) => setData('is_free', v)}
+                        />
+                        <Label className="text-muted-foreground">Zdarma</Label>
+                    </div>
+                    <div className="flex items-center gap-3 pt-2">
+                        <Switch
+                            checked={data.is_registered_by_us}
+                            onCheckedChange={(v) => setData('is_registered_by_us', v)}
+                        />
+                        <Label className="text-muted-foreground">Naše doména</Label>
+                    </div>
                 </div>
                 <div className="flex items-center gap-3 pt-6">
                     <Switch
@@ -586,43 +500,16 @@ export default function WebsiteForm({
                 </div>
             </div>
 
-            {/* Složka + nadřazený hosting */}
-            {(folders.length > 0 || parentOptions.length > 0) && (
-                <div className="grid gap-4 sm:grid-cols-2">
-                    {folders.length > 0 && (
-                        <div>
-                            <Label className="text-muted-foreground">Složka</Label>
-                            <Select value={data.folder_id || 'none'} onValueChange={(v) => setData('folder_id', v === 'none' ? '' : v)}>
-                                <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
-                                    <SelectValue placeholder="Bez složky" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-card border-border">
-                                    <SelectItem value="none" className="focus:bg-muted">Bez složky</SelectItem>
-                                    {folders.map((f) => (
-                                        <SelectItem key={f.id} value={String(f.id)} className="focus:bg-muted">{f.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    )}
-                    {parentOptions.length > 0 && (
-                        <div>
-                            <Label className="text-muted-foreground">Nadřazený hosting</Label>
-                            <Select value={data.parent_subscription_id || 'none'} onValueChange={(v) => setData('parent_subscription_id', v === 'none' ? '' : v)}>
-                                <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
-                                    <SelectValue placeholder="Žádný (samostatný)" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-card border-border">
-                                    <SelectItem value="none" className="focus:bg-muted">Žádný (samostatný)</SelectItem>
-                                    {parentOptions.map((p) => (
-                                        <SelectItem key={p.id} value={String(p.id)} className="focus:bg-muted">{p.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    )}
-                </div>
-            )}
+            {/* Admin URL */}
+            <div>
+                <Label className="text-muted-foreground">Admin URL</Label>
+                <Input
+                    value={data.admin_url}
+                    onChange={(e) => setData('admin_url', e.target.value)}
+                    placeholder="https://example.cz/wp-admin"
+                    className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
+                />
+            </div>
 
             {/* Notes */}
             <div>
@@ -633,70 +520,6 @@ export default function WebsiteForm({
                     rows={3}
                     className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground resize-none"
                 />
-            </div>
-
-            {/* Přístupy do webu */}
-            <div className="border-t border-border pt-4 mt-2">
-                <h3 className="mb-3 text-sm font-semibold text-foreground/70">Přístupy do webu</h3>
-                <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="sm:col-span-2">
-                        <Label className="text-muted-foreground">Admin URL</Label>
-                        <Input
-                            value={data.admin_url}
-                            onChange={(e) => setData('admin_url', e.target.value)}
-                            placeholder="https://example.cz/wp-admin"
-                            className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
-                        />
-                    </div>
-                    <div className="sm:col-span-2">
-                        <p className="mb-2 text-xs font-medium text-muted-foreground/70">Můj přístup</p>
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <div>
-                                <Label className="text-muted-foreground">Login</Label>
-                                <Input
-                                    value={data.admin_user}
-                                    onChange={(e) => setData('admin_user', e.target.value)}
-                                    placeholder="admin"
-                                    className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
-                                />
-                            </div>
-                            <div>
-                                <Label className="text-muted-foreground">Heslo</Label>
-                                <Input
-                                    type="text"
-                                    value={data.admin_password}
-                                    onChange={(e) => setData('admin_password', e.target.value)}
-                                    placeholder="heslo"
-                                    className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                    <div className="sm:col-span-2">
-                        <p className="mb-2 text-xs font-medium text-muted-foreground/70">Zákazník</p>
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <div>
-                                <Label className="text-muted-foreground">Login</Label>
-                                <Input
-                                    value={data.client_user}
-                                    onChange={(e) => setData('client_user', e.target.value)}
-                                    placeholder="zakaznik"
-                                    className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
-                                />
-                            </div>
-                            <div>
-                                <Label className="text-muted-foreground">Heslo</Label>
-                                <Input
-                                    type="text"
-                                    value={data.client_password}
-                                    onChange={(e) => setData('client_password', e.target.value)}
-                                    placeholder="heslo"
-                                    className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-2">

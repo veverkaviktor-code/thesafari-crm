@@ -12,83 +12,82 @@ interface Customer {
     company: string | null;
 }
 
+interface VpsServerOption {
+    id: number;
+    name: string;
+}
+
+interface ManagementPlanOption {
+    id: number;
+    name: string;
+    price_monthly: number | string;
+    is_active: boolean;
+}
+
+interface AliasOption {
+    id: number;
+    name: string;
+}
+
 interface Website {
     id: number;
-    type: string;
-    customer_id: number;
+    customer_id: number | null;
     name: string;
-    provider: string | null;
     server: string | null;
-    storage_quota_mb: number;
-    price_yearly: number;
-    cost_yearly: number;
-    sell_yearly: number;
-    billing_cycle: string;
-    monthly_price: number;
-    monthly_plan: string | null;
-    starts_at: string;
-    expires_at: string;
-    auto_renew: boolean;
-    auto_invoice: boolean;
-    is_free: boolean;
-    is_external: boolean;
     status: string;
     notes: string | null;
+    starts_at: string | null;
+    is_registered_by_us: boolean;
+    auto_renew: boolean;
+    auto_invoice: boolean;
+    auto_invoice_management: boolean;
+    is_free: boolean;
+    is_external: boolean;
+    sell_yearly: number;
+    cost_yearly: number;
     admin_url: string | null;
-    admin_user: string | null;
-    admin_password: string | null;
-    client_user: string | null;
-    client_password: string | null;
-}
-
-interface FolderOption {
-    id: number;
-    name: string;
-}
-
-interface ParentOption {
-    id: number;
-    name: string;
-    type: string;
+    domain_expires_at: string | null;
+    hosting_expires_at: string | null;
+    hosting_server_id: number | null;
+    alias_of_id: number | null;
+    management_plan_id: number | null;
+    management_cycle: string | null;
+    storage_quota_mb: number;
 }
 
 interface Props {
-    website: Website & { folder_id?: number | null; parent_subscription_id?: number | null };
+    website: Website;
     customers: Customer[];
-    folders?: FolderOption[];
-    parentOptions?: ParentOption[];
+    vpsServers: VpsServerOption[];
+    managementPlans: ManagementPlanOption[];
+    aliasOptions: AliasOption[];
 }
 
-export default function WeboveSluzbyEdit({ website, customers, folders = [], parentOptions = [] }: Props) {
+export default function WeboveSluzbyEdit({ website, customers, vpsServers, managementPlans, aliasOptions }: Props) {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const form = useForm<WebsiteFormData>({
-        type: website.type,
         customer_id: website.customer_id ? String(website.customer_id) : '',
         name: website.name,
-        provider: website.provider || '',
         server: website.server || '',
-        storage_quota_mb: String(website.storage_quota_mb || ''),
-        price_yearly: String(website.price_yearly || ''),
-        cost_yearly: String(website.cost_yearly || ''),
-        sell_yearly: String(website.sell_yearly || ''),
-        billing_cycle: website.billing_cycle || 'yearly',
-        monthly_price: String(website.monthly_price || ''),
-        monthly_plan: website.monthly_plan || '',
-        starts_at: website.starts_at || '',
-        expires_at: website.expires_at || '',
-        auto_renew: website.auto_renew,
-        auto_invoice: website.auto_invoice ?? true,
-        is_free: website.is_free ?? false,
-        is_external: website.is_external ?? false,
         status: website.status,
         notes: website.notes || '',
+        starts_at: website.starts_at || '',
+        is_registered_by_us: website.is_registered_by_us ?? true,
+        auto_renew: website.auto_renew ?? true,
+        auto_invoice: website.auto_invoice ?? true,
+        auto_invoice_management: website.auto_invoice_management ?? false,
+        is_free: website.is_free ?? false,
+        is_external: website.is_external ?? false,
+        sell_yearly: String(website.sell_yearly || ''),
+        cost_yearly: String(website.cost_yearly || ''),
         admin_url: website.admin_url || '',
-        admin_user: website.admin_user || '',
-        admin_password: website.admin_password || '',
-        client_user: website.client_user || '',
-        client_password: website.client_password || '',
-        folder_id: website.folder_id ? String(website.folder_id) : '',
-        parent_subscription_id: website.parent_subscription_id ? String(website.parent_subscription_id) : '',
+        domain_expires_at: website.domain_expires_at || '',
+        hosting_expires_at: website.hosting_expires_at || '',
+        hosting_server_id: website.hosting_server_id ? String(website.hosting_server_id) : '',
+        alias_of_id: website.alias_of_id ? String(website.alias_of_id) : '',
+        management_plan_id: website.management_plan_id ? String(website.management_plan_id) : '',
+        management_cycle: website.management_cycle || '',
+        storage_quota_mb: String(website.storage_quota_mb || ''),
     });
 
     const handleSubmit = (e: FormEvent) => {
@@ -133,8 +132,9 @@ export default function WeboveSluzbyEdit({ website, customers, folders = [], par
                         onSubmit={handleSubmit}
                         submitLabel="Uložit změny"
                         customers={customers}
-                        folders={folders}
-                        parentOptions={parentOptions}
+                        vpsServers={vpsServers}
+                        managementPlans={managementPlans}
+                        aliasOptions={aliasOptions}
                         onCancel={() => router.visit(`/webove-sluzby/${website.id}`)}
                     />
                 </div>
@@ -143,7 +143,7 @@ export default function WeboveSluzbyEdit({ website, customers, folders = [], par
                 open={showDeleteConfirm}
                 onClose={() => setShowDeleteConfirm(false)}
                 onConfirm={() => router.delete(`/webove-sluzby/${website.id}`)}
-                title="Smazat službu"
+                title="Smazat web"
                 message={`Opravdu chcete smazat "${website.name}"?`}
             />
         </AuthenticatedLayout>
