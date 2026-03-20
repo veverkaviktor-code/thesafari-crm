@@ -34,7 +34,7 @@ class SendInvoiceReminders extends Command
         $company = CompanySetting::get();
         $sent = 0;
 
-        $invoices = Invoice::with(['customer', 'items', 'subscriptions'])
+        $invoices = Invoice::with(['customer', 'items', 'websites'])
             ->where('status', 'po_splatnosti')
             ->where('reminder_count', '<', 3)
             ->whereNotNull('due_date')

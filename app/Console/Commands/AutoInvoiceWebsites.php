@@ -3,21 +3,21 @@
 namespace App\Console\Commands;
 
 use App\Models\Invoice;
-use App\Models\Subscription;
 use App\Models\User;
-use App\Notifications\SubscriptionInvoiceCreated;
+use App\Models\Website;
+use App\Notifications\WebsiteInvoiceCreated;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-class AutoInvoiceSubscriptions extends Command
+class AutoInvoiceWebsites extends Command
 {
-    protected $signature = 'subscriptions:auto-invoice {--dry-run : Only show what would be invoiced}';
-    protected $description = 'Create invoices for subscriptions expiring within 30 days';
+    protected $signature = 'websites:auto-invoice {--dry-run : Only show what would be invoiced}';
+    protected $description = 'Create invoices for websites with hosting expiring within 30 days';
 
     public function handle(): int
     {
-        $lock = \Illuminate\Support\Facades\Cache::lock('auto-invoice-subscriptions', 300);
+        $lock = \Illuminate\Support\Facades\Cache::lock('auto-invoice-websites', 300);
         if (!$lock->get()) {
             $this->warn('Příkaz již běží.');
             return 0;
@@ -35,51 +35,48 @@ class AutoInvoiceSubscriptions extends Command
         $dryRun = $this->option('dry-run');
         $admin = User::admin();
 
-        $subscriptions = Subscription::where('status', 'aktivni')
-            ->whereNull('parent_subscription_id') // Skip children — covered by parent
+        $websites = Website::where('status', 'aktivni')
+            ->whereNull('alias_of_id') // Skip aliases — covered by main website
             ->where('auto_renew', true)
             ->where('auto_invoice', true)
             ->where('is_free', false)
-            ->whereNotNull('expires_at')
-            ->where('expires_at', '>', now())
-            ->where('expires_at', '<=', now()->addDays(30))
-            ->where(function ($q) {
-                $q->where('sell_yearly', '>', 0)
-                  ->orWhere('price_yearly', '>', 0);
-            })
+            ->whereNotNull('hosting_expires_at')
+            ->where('hosting_expires_at', '>', now())
+            ->where('hosting_expires_at', '<=', now()->addDays(30))
+            ->where('sell_yearly', '>', 0)
             ->whereDoesntHave('invoices', function ($q) {
                 $q->whereIn('status', ['vystavena', 'odeslana']);
             })
             ->with('customer')
             ->get();
 
-        if ($subscriptions->isEmpty()) {
-            $this->info('No subscriptions to invoice.');
+        if ($websites->isEmpty()) {
+            $this->info('No websites to invoice.');
             return 0;
         }
 
         // Group by customer_id — one invoice per customer with all services
-        $groups = $subscriptions->groupBy('customer_id');
+        $groups = $websites->groupBy('customer_id');
 
         $created = 0;
 
-        foreach ($groups as $key => $subs) {
-            $customer = $subs->first()->customer;
+        foreach ($groups as $key => $siteGroup) {
+            $customer = $siteGroup->first()->customer;
 
             if (!$customer) {
-                Log::warning("AutoInvoice: subscription {$subs->first()->id} has no customer, skipping.");
+                Log::warning("AutoInvoice: website {$siteGroup->first()->id} has no customer, skipping.");
                 continue;
             }
 
             $items = [];
-            foreach ($subs as $sub) {
-                $price = (float) $sub->sell_yearly ?: (float) $sub->price_yearly;
+            foreach ($siteGroup as $website) {
+                $price = (float) $website->sell_yearly;
                 if ($price <= 0) {
-                    Log::warning("AutoInvoice: subscription {$sub->id} ({$sub->name}) has zero price, skipping.");
+                    Log::warning("AutoInvoice: website {$website->id} ({$website->name}) has zero price, skipping.");
                     continue;
                 }
 
-                $typeLabel = match ($sub->type) {
+                $typeLabel = match ($website->type) {
                     'domena' => 'Obnova domény',
                     'hosting' => 'Hosting',
                     'sluzba' => 'Služba',
@@ -87,8 +84,8 @@ class AutoInvoiceSubscriptions extends Command
                 };
 
                 $items[] = [
-                    'subscription' => $sub,
-                    'description' => "{$typeLabel} {$sub->name} (1 rok)",
+                    'website' => $website,
+                    'description' => "{$typeLabel} {$website->name} (1 rok)",
                     'quantity' => 1,
                     'unit' => 'rok',
                     'unit_price' => $price,
@@ -101,7 +98,7 @@ class AutoInvoiceSubscriptions extends Command
             }
 
             $total = collect($items)->sum('total_price');
-            $earliestExpiry = $subs->min('expires_at');
+            $earliestExpiry = $siteGroup->min('hosting_expires_at');
 
             if ($dryRun) {
                 $serviceNames = collect($items)->pluck('description')->implode(', ');
@@ -135,12 +132,14 @@ class AutoInvoiceSubscriptions extends Command
                         'sort_order' => $i,
                     ]);
 
-                    $invoice->subscriptions()->attach($item['subscription']->id);
+                    $invoice->websites()->attach($item['website']->id, [
+                        'invoice_type' => 'hosting',
+                    ]);
                 }
 
                 if ($admin) {
-                    $names = collect($items)->pluck('subscription.name')->unique()->toArray();
-                    $admin->notify(new SubscriptionInvoiceCreated($invoice, $names));
+                    $names = collect($items)->pluck('website.name')->unique()->toArray();
+                    $admin->notify(new WebsiteInvoiceCreated($invoice, $names));
                 }
             });
 

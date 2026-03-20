@@ -6,13 +6,13 @@ use App\Models\Invoice;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
-class SubscriptionInvoiceCreated extends Notification
+class WebsiteInvoiceCreated extends Notification
 {
     use Queueable;
 
     public function __construct(
         public Invoice $invoice,
-        public array $subscriptionNames
+        public array $websiteNames
     ) {}
 
     public function via($notifiable): array
@@ -22,9 +22,9 @@ class SubscriptionInvoiceCreated extends Notification
 
     public function toArray($notifiable): array
     {
-        $names = implode(', ', $this->subscriptionNames);
+        $names = implode(', ', $this->websiteNames);
         return [
-            'type' => 'subscription_invoice_created',
+            'type' => 'website_invoice_created',
             'title' => "Faktura za obnovu: {$names}",
             'message' => number_format((float) $this->invoice->total, 0, ',', ' ') . ' Kč — zkontroluj a odešli',
             'link' => "/faktury/{$this->invoice->id}",
