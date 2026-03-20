@@ -81,19 +81,13 @@ class SubscriptionController extends Controller
         $sortBy = $request->input('sort_by');
         $sortDir = $request->input('sort_dir') === 'desc' ? 'desc' : 'asc';
 
-        // Always group children with their parent
-        $baseQuery->orderByRaw('COALESCE(parent_subscription_id, id)')
-            ->orderByRaw('parent_subscription_id IS NOT NULL'); // parent first, then children
-
         if ($sortBy && in_array($sortBy, $allowedSorts)) {
-            // Re-apply: group by parent, then sort within groups
-            $baseQuery->reorder()
-                ->orderByRaw('COALESCE(parent_subscription_id, id)')
-                ->orderByRaw('parent_subscription_id IS NOT NULL')
-                ->orderBy($sortBy, $sortDir);
+            $baseQuery->orderBy($sortBy, $sortDir);
         } else {
             $baseQuery->orderByRaw('expires_at IS NULL, expires_at ASC');
         }
+        // Within same sort position, group children right after parent
+        $baseQuery->orderByRaw('parent_subscription_id IS NOT NULL');
 
         // Get all hosting names for quick lookup (domain ↔ hosting linking)
         $hostingNames = Subscription::where('type', 'hosting')->pluck('name')->flip();
@@ -383,6 +377,19 @@ class SubscriptionController extends Controller
         $validated['sell_yearly'] = $validated['sell_yearly'] ?? 0;
         $validated['storage_quota_mb'] = $validated['storage_quota_mb'] ?? 0;
         $neniweb->update($validated);
+
+        // If parent was set, sync child expiration from parent
+        if ($neniweb->parent_subscription_id) {
+            $parent = Subscription::find($neniweb->parent_subscription_id);
+            if ($parent && $neniweb->expires_at != $parent->expires_at) {
+                $neniweb->update(['expires_at' => $parent->expires_at]);
+            }
+        }
+
+        // If expiration changed on parent, sync to all children
+        if ($neniweb->wasChanged('expires_at')) {
+            $neniweb->childSubscriptions()->update(['expires_at' => $neniweb->expires_at]);
+        }
 
         $tabMap = ['domena' => 'domeny', 'hosting' => 'hostingy', 'sluzba' => 'sluzby'];
 

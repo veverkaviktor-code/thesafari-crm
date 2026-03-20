@@ -36,6 +36,7 @@ class AutoInvoiceSubscriptions extends Command
         $admin = User::admin();
 
         $subscriptions = Subscription::where('status', 'aktivni')
+            ->whereNull('parent_subscription_id') // Skip children — covered by parent
             ->where('auto_renew', true)
             ->where('auto_invoice', true)
             ->where('is_free', false)
