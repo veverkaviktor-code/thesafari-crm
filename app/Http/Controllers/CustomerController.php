@@ -87,12 +87,25 @@ class CustomerController extends Controller
             ->withCount('hostings')
             ->get();
 
+        // Aggregate attachments from all customer's orders
+        $orderAttachments = $customer->orders()
+            ->with('attachments')
+            ->get()
+            ->flatMap(function ($order) {
+                return $order->attachments->map(fn ($att) => array_merge(
+                    $att->only(['id', 'filename', 'description', 'mime_type', 'size', 'created_at']),
+                    ['order_id' => $order->id, 'order_title' => $order->title]
+                ));
+            })
+            ->values();
+
         return Inertia::render('Customers/Show', [
             'customer' => $customer,
             'stats' => $stats,
             'orders' => $orders,
             'invoices' => $invoices,
             'vpsServers' => $vpsServers,
+            'orderAttachments' => $orderAttachments,
         ]);
     }
 

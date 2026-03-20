@@ -2,6 +2,7 @@ import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import CustomerProfile from '@/components/customers/CustomerProfile';
 import CustomerMiniDashboard from '@/components/customers/CustomerMiniDashboard';
 import CustomerTabs from '@/components/customers/CustomerTabs';
+import { type AttachmentData } from '@/components/AttachmentList';
 
 interface Props {
     customer: {
@@ -69,6 +70,7 @@ interface Props {
         total: number;
         due_date: string;
     }[];
+    orderAttachments: (AttachmentData & { order_id: number; order_title: string })[];
 }
 
 export default function Show({
@@ -77,6 +79,7 @@ export default function Show({
     orders,
     invoices,
     vpsServers,
+    orderAttachments,
 }: Props) {
     return (
         <AuthenticatedLayout
@@ -112,6 +115,7 @@ export default function Show({
                     invoices={invoices ?? []}
                     subscriptions={customer.subscriptions ?? []}
                     vpsServers={vpsServers ?? []}
+                    orderAttachments={orderAttachments ?? []}
                 />
             </div>
         </AuthenticatedLayout>

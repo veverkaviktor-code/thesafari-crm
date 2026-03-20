@@ -1,7 +1,8 @@
 import { Link } from '@inertiajs/react';
 import { router } from '@inertiajs/react';
-import { FileText, Package, Server, ChevronRight } from 'lucide-react';
+import { FileText, Package, Server, ChevronRight, File as FileIcon } from 'lucide-react';
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
+import AttachmentList, { type AttachmentData } from '@/components/AttachmentList';
 
 interface Order {
     id: number;
@@ -37,11 +38,14 @@ interface VpsServer {
     hostings_count: number;
 }
 
+type OrderAttachment = AttachmentData & { order_id: number; order_title: string };
+
 interface Props {
     orders: Order[];
     invoices: Invoice[];
     subscriptions: Subscription[];
     vpsServers: VpsServer[];
+    orderAttachments: OrderAttachment[];
 }
 
 /* ── Status configs ── */
@@ -110,11 +114,11 @@ function EmptyState({ icon: Icon, message }: { icon: React.ElementType; message:
     );
 }
 
-export default function CustomerTabs({ orders, invoices, subscriptions, vpsServers }: Props) {
+export default function CustomerTabs({ orders, invoices, subscriptions, vpsServers, orderAttachments }: Props) {
     const totalServices = subscriptions.length + vpsServers.length;
 
     return (
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid gap-4 lg:grid-cols-4">
             {/* Zakazky */}
             <div className="rounded-xl border border-border bg-card">
                 <div className="border-b border-border px-4 py-3">
@@ -277,6 +281,41 @@ export default function CustomerTabs({ orders, invoices, subscriptions, vpsServe
                                     </Link>
                                 );
                             })}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Soubory */}
+            <div className="rounded-xl border border-border bg-card">
+                <div className="border-b border-border px-4 py-3">
+                    <h3 className="text-sm font-semibold text-foreground">
+                        Soubory ({orderAttachments.length})
+                    </h3>
+                </div>
+                <div className="p-4">
+                    {orderAttachments.length === 0 ? (
+                        <EmptyState icon={FileIcon} message="Žádné soubory" />
+                    ) : (
+                        <div className="space-y-6">
+                            {Object.entries(
+                                orderAttachments.reduce((groups, att) => {
+                                    const key = att.order_id;
+                                    if (!groups[key]) groups[key] = { title: att.order_title, items: [] as OrderAttachment[] };
+                                    groups[key].items.push(att);
+                                    return groups;
+                                }, {} as Record<number, { title: string; items: OrderAttachment[] }>)
+                            ).map(([orderId, group]) => (
+                                <div key={orderId}>
+                                    <a
+                                        href={`/zakazky/${orderId}`}
+                                        className="mb-2 inline-flex items-center gap-1.5 text-sm font-medium text-amber-500 hover:text-amber-400"
+                                    >
+                                        {group.title}
+                                    </a>
+                                    <AttachmentList attachments={group.items} readOnly />
+                                </div>
+                            ))}
                         </div>
                     )}
                 </div>
