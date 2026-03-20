@@ -57,7 +57,7 @@ class InvoiceController extends Controller
     public function show(Invoice $faktury)
     {
         $invoice = $faktury;
-        $invoice->load(['items', 'customer', 'order', 'subscriptions:id,name,type,expires_at', 'bankTransaction']);
+        $invoice->load(['items', 'customer', 'order', 'websites:id,name,hosting_expires_at,domain_expires_at', 'bankTransaction']);
 
         $activities = \Spatie\Activitylog\Models\Activity::query()
             ->where('subject_type', Invoice::class)
@@ -283,7 +283,7 @@ class InvoiceController extends Controller
 
     public function sendEmail(Invoice $invoice)
     {
-        $invoice->load(['items', 'customer', 'subscriptions', 'order']);
+        $invoice->load(['items', 'customer', 'websites', 'order']);
 
         if (! $invoice->customer->email) {
             return back()->with('error', 'Zákazník nemá e-mail.');

@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\Task;
-use App\Models\Subscription;
-use App\Models\SubscriptionPayment;
+use App\Models\Website;
+use App\Models\WebsitePayment;
 use App\Models\Ticket;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +24,7 @@ class DashboardController extends Controller
             'revenueData' => $this->getRevenueData(),
             'recentActivity' => $this->getRecentActivity(),
             'recentTickets' => $this->getRecentTickets(),
-            'neniwebStats' => $this->getNeniwebStats(),
+            'websiteStats' => $this->getWebsiteStats(),
             'alerts' => static::getAttentionAlerts(),
             'ignoredAlerts' => static::getIgnoredAlerts(),
             'taskStats' => $this->getTaskStats(),
@@ -58,36 +58,32 @@ class DashboardController extends Controller
 
     private function getMRR(): array
     {
-        $ownSubs = Subscription::where('status', 'aktivni')
+        $ownWebsites = Website::where('status', 'aktivni')
             ->where('is_external', false)
             ->get();
 
         // Revenue (what we charge) — monthly equivalent
-        $mrrCalc = fn($sub) => $sub->billing_cycle === 'monthly'
-            ? (float) $sub->monthly_price
-            : (float) ($sub->sell_yearly ?: $sub->price_yearly) / 12;
+        // New simplified formula: always sell_yearly / 12 + management plan price
+        $mrrCalc = fn($website) =>
+            (float) ($website->sell_yearly ?: 0) / 12
+            + ($website->managementPlan?->price_monthly ?? 0);
 
-        $totalMRR = $ownSubs->sum($mrrCalc);
-        $hostingMRR = $ownSubs->where('type', 'hosting')->sum($mrrCalc);
-        $domainMRR = $ownSubs->where('type', 'domena')->sum($mrrCalc);
-        $serviceMRR = $ownSubs->where('type', 'sluzba')->sum($mrrCalc);
+        $totalMRR = $ownWebsites->sum($mrrCalc);
         $vpsMRR = (float) \App\Models\VpsServer::active()->sum('price_yearly') / 12;
 
         // Costs (what we pay) — monthly equivalent
-        $costCalc = fn($sub) => (float) $sub->cost_yearly / 12;
-        $subCosts = $ownSubs->sum($costCalc);
+        $costCalc = fn($website) => (float) $website->cost_yearly / 12;
+        $websiteCosts = $ownWebsites->sum($costCalc);
         $vpsCosts = $vpsMRR; // VPS price is our cost (we pay for servers)
 
         $totalRevenue = $totalMRR + $vpsMRR;
-        $totalCosts = $subCosts + $vpsCosts;
+        $totalCosts = $websiteCosts + $vpsCosts;
 
         return [
             'total' => round($totalRevenue),
-            'hosting' => round($hostingMRR),
-            'domain' => round($domainMRR),
-            'service' => round($serviceMRR),
+            'websites' => round($totalMRR),
             'vps' => round($vpsMRR),
-            'count' => $ownSubs->count(),
+            'count' => $ownWebsites->count(),
             'costs_monthly' => round($totalCosts),
             'margin_monthly' => round($totalRevenue - $totalCosts),
             // Annual totals for clarity
@@ -167,8 +163,8 @@ class DashboardController extends Controller
                     'Ticket'              => 'ticket',
                     'Task'                => 'task',
                     'Estimate'            => 'estimate',
-                    'Subscription'        => 'order',
-                    'SubscriptionPayment' => 'payment',
+                    'Website'             => 'order',
+                    'WebsitePayment'      => 'payment',
                     'VpsServer'           => 'order',
                     default               => 'order',
                 };
@@ -182,8 +178,8 @@ class DashboardController extends Controller
                     'Ticket'              => 'Ticket',
                     'Task'                => 'Úkol',
                     'Estimate'            => 'Kalkulace',
-                    'Subscription'        => 'Služba',
-                    'SubscriptionPayment' => 'Platba',
+                    'Website'             => 'Web',
+                    'WebsitePayment'      => 'Platba',
                     'VpsServer'           => 'VPS',
                     default               => 'Záznam',
                 };
@@ -221,16 +217,17 @@ class DashboardController extends Controller
                     $changedFields = array_keys(array_diff_assoc($attrs, $old));
                     $fieldLabels = [
                         'status' => 'stav', 'price' => 'cena', 'name' => 'název',
-                        'is_free' => 'zdarma', 'expires_at' => 'expirace',
+                        'is_free' => 'zdarma', 'hosting_expires_at' => 'expirace hostingu',
+                        'domain_expires_at' => 'expirace domény',
                         'customer_id' => 'zákazník', 'notes' => 'poznámky',
                         'sell_yearly' => 'prodejní cena', 'cost_yearly' => 'nákupní cena',
-                        'monthly_plan' => 'plán', 'billing_cycle' => 'fakturační cyklus',
+                        'management_plan_id' => 'plán správy',
                         'starts_at' => 'datum zahájení', 'managed_since' => 've správě od',
                         'auto_renew' => 'auto-renew', 'provider' => 'poskytovatel',
                         'server' => 'server', 'title' => 'název', 'division' => 'divize',
                         'deadline' => 'termín', 'priority' => 'priorita',
                         'subject' => 'předmět', 'email' => 'e-mail', 'phone' => 'telefon',
-                        'company' => 'firma', 'type' => 'typ', 'description' => 'popis',
+                        'company' => 'firma', 'description' => 'popis',
                         'storage_quota_mb' => 'kvóta úložiště',
                     ];
                     $readable = array_map(fn($f) => $fieldLabels[$f] ?? $f, array_slice($changedFields, 0, 3));
@@ -247,11 +244,11 @@ class DashboardController extends Controller
                         : ($subjectType === 'Order' ? "/zakazky/{$a->subject_id}" : null),
                     'Invoice'             => "/faktury/{$a->subject_id}",
                     'Ticket'              => "/zpravy/{$a->subject_id}",
-                    'Subscription', 'SubscriptionPayment' => $subjectType === 'SubscriptionPayment'
-                        ? ($a->subject?->subscription_id ? "/neniweb/{$a->subject->subscription_id}" : null)
-                        : "/neniweb/{$a->subject_id}",
+                    'Website', 'WebsitePayment' => $subjectType === 'WebsitePayment'
+                        ? ($a->subject?->website_id ? "/webove-sluzby/{$a->subject->website_id}" : null)
+                        : "/webove-sluzby/{$a->subject_id}",
                     'Task'                => '/planovac',
-                    'VpsServer'           => '/neniweb',
+                    'VpsServer'           => '/webove-sluzby',
                     'Estimate'            => "/kalkulator/{$a->subject_id}",
                     default               => null,
                 };
@@ -355,72 +352,72 @@ class DashboardController extends Controller
             ];
         }
 
-        // 4. Služby expirující do 7 dní (bez ignorovaných)
-        $expiringSubs = Subscription::where('status', 'aktivni')
+        // 4. Weby expirující do 7 dní (bez ignorovaných)
+        $expiringWebsites = Website::where('status', 'aktivni')
             ->whereNull('alerts_ignored_at')
-            ->whereNotNull('expires_at')
-            ->where('expires_at', '>=', now())
-            ->where('expires_at', '<=', now()->addDays(7))
-            ->orderBy('expires_at')
+            ->whereNotNull('hosting_expires_at')
+            ->where('hosting_expires_at', '>=', now())
+            ->where('hosting_expires_at', '<=', now()->addDays(7))
+            ->orderBy('hosting_expires_at')
             ->get();
 
-        foreach ($expiringSubs as $sub) {
-            $days = (int) now()->diffInDays($sub->expires_at);
+        foreach ($expiringWebsites as $website) {
+            $days = (int) now()->diffInDays($website->hosting_expires_at);
             $label = $days === 0 ? 'dnes' : ($days === 1 ? 'zítra' : "za {$days} dní");
             $alerts[] = [
                 'type' => $days <= 1 ? 'danger' : 'warning',
                 'icon' => 'subscription',
-                'title' => "{$sub->name} expiruje {$label}",
-                'subtitle' => ucfirst($sub->type),
-                'link' => "/neniweb/{$sub->id}",
-                'subscription_id' => $sub->id,
+                'title' => "{$website->name} expiruje {$label}",
+                'subtitle' => 'Hosting',
+                'link' => "/webove-sluzby/{$website->id}",
+                'website_id' => $website->id,
             ];
         }
 
-        // 5. Služby po expiraci (stále aktivní, bez ignorovaných)
-        $expiredSubs = Subscription::where('status', 'aktivni')
+        // 5. Weby po expiraci (stále aktivní, bez ignorovaných)
+        $expiredWebsites = Website::where('status', 'aktivni')
             ->whereNull('alerts_ignored_at')
-            ->whereNotNull('expires_at')
-            ->where('expires_at', '<', now())
-            ->orderBy('expires_at')
+            ->whereNotNull('hosting_expires_at')
+            ->where('hosting_expires_at', '<', now())
+            ->orderBy('hosting_expires_at')
             ->get();
 
-        foreach ($expiredSubs as $sub) {
-            $days = (int) abs(now()->diffInDays($sub->expires_at));
+        foreach ($expiredWebsites as $website) {
+            $days = (int) abs(now()->diffInDays($website->hosting_expires_at));
             $alerts[] = [
                 'type' => 'danger',
                 'icon' => 'subscription',
-                'title' => "{$sub->name} — expirováno před {$days} dny",
-                'subtitle' => ucfirst($sub->type) . ' · stále označeno jako aktivní',
-                'link' => "/neniweb/{$sub->id}",
-                'subscription_id' => $sub->id,
+                'title' => "{$website->name} — expirováno před {$days} dny",
+                'subtitle' => 'Hosting · stále označeno jako aktivní',
+                'link' => "/webove-sluzby/{$website->id}",
+                'website_id' => $website->id,
             ];
         }
 
         // 5b. Úložiště přes 90% kvóty
-        $storageSubs = Subscription::where('status', 'aktivni')
+        $storageWebsites = Website::where('status', 'aktivni')
             ->whereNull('alerts_ignored_at')
             ->where('storage_quota_mb', '>', 0)
             ->whereColumn('storage_used_mb', '>', DB::raw('storage_quota_mb * 0.9'))
             ->orderByRaw('storage_used_mb::float / storage_quota_mb DESC')
             ->get();
 
-        foreach ($storageSubs as $sub) {
-            $pct = round(($sub->storage_used_mb / $sub->storage_quota_mb) * 100);
-            $over = $sub->storage_used_mb > $sub->storage_quota_mb;
+        foreach ($storageWebsites as $website) {
+            $pct = round(($website->storage_used_mb / $website->storage_quota_mb) * 100);
+            $over = $website->storage_used_mb > $website->storage_quota_mb;
             $alerts[] = [
                 'type' => $over ? 'danger' : 'warning',
                 'icon' => 'subscription',
-                'title' => "{$sub->name} — úložiště {$pct}%",
-                'subtitle' => "{$sub->storage_used_mb} / {$sub->storage_quota_mb} MB",
-                'link' => "/neniweb/{$sub->id}",
-                'subscription_id' => $sub->id,
+                'title' => "{$website->name} — úložiště {$pct}%",
+                'subtitle' => "{$website->storage_used_mb} / {$website->storage_quota_mb} MB",
+                'link' => "/webove-sluzby/{$website->id}",
+                'website_id' => $website->id,
             ];
         }
 
         // 6. Nezaplacené platby po splatnosti
-        $overduePayments = SubscriptionPayment::where('status', 'po_splatnosti')
-            ->with('subscription:id,name')
+        $overduePayments = WebsitePayment::where('status', 'po_splatnosti')
+            ->with('website:id,name')
             ->orderBy('period_end')
             ->get();
 
@@ -428,34 +425,34 @@ class DashboardController extends Controller
             $alerts[] = [
                 'type' => 'danger',
                 'icon' => 'payment',
-                'title' => "Nezaplacená platba: {$pay->subscription?->name}",
+                'title' => "Nezaplacená platba: {$pay->website?->name}",
                 'subtitle' => number_format($pay->amount, 0, ',', ' ') . ' Kč po splatnosti',
-                'link' => "/neniweb/{$pay->subscription_id}",
+                'link' => "/webove-sluzby/{$pay->website_id}",
             ];
         }
 
-        // 7. Subscriptions to manually invoice (auto_renew=true, auto_invoice=false, expiring soon)
-        $manualInvoiceSubs = Subscription::where('status', 'aktivni')
+        // 7. Websites to manually invoice (auto_renew=true, auto_invoice=false, expiring soon)
+        $manualInvoiceWebsites = Website::where('status', 'aktivni')
             ->whereNull('alerts_ignored_at')
             ->where('auto_renew', true)
             ->where('auto_invoice', false)
             ->where('is_free', false)
-            ->whereNotNull('expires_at')
-            ->where('expires_at', '>=', now())
-            ->where('expires_at', '<=', now()->addDays(30))
-            ->orderBy('expires_at')
+            ->whereNotNull('hosting_expires_at')
+            ->where('hosting_expires_at', '>=', now())
+            ->where('hosting_expires_at', '<=', now()->addDays(30))
+            ->orderBy('hosting_expires_at')
             ->get();
 
-        foreach ($manualInvoiceSubs as $sub) {
-            $days = (int) now()->diffInDays($sub->expires_at);
+        foreach ($manualInvoiceWebsites as $website) {
+            $days = (int) now()->diffInDays($website->hosting_expires_at);
             $label = $days === 0 ? 'dnes' : ($days === 1 ? 'zítra' : "za {$days} dní");
             $alerts[] = [
                 'type' => 'warning',
                 'icon' => 'invoice',
-                'title' => "{$sub->name} — ručně fakturovat ({$label})",
-                'subtitle' => ucfirst($sub->type) . ' — auto-fakturace vypnuta',
-                'link' => "/neniweb/{$sub->id}",
-                'subscription_id' => $sub->id,
+                'title' => "{$website->name} — ručně fakturovat ({$label})",
+                'subtitle' => 'Auto-fakturace vypnuta',
+                'link' => "/webove-sluzby/{$website->id}",
+                'website_id' => $website->id,
             ];
         }
 
@@ -467,16 +464,15 @@ class DashboardController extends Controller
 
     public static function getIgnoredAlerts(): array
     {
-        return Subscription::whereNotNull('alerts_ignored_at')
+        return Website::whereNotNull('alerts_ignored_at')
             ->where('status', 'aktivni')
             ->orderByDesc('alerts_ignored_at')
             ->get()
-            ->map(fn ($sub) => [
-                'subscription_id' => $sub->id,
-                'name' => $sub->name,
-                'type' => ucfirst($sub->type),
-                'ignored_at' => $sub->alerts_ignored_at->diffForHumans(),
-                'link' => "/neniweb/{$sub->id}",
+            ->map(fn ($website) => [
+                'website_id' => $website->id,
+                'name' => $website->name,
+                'ignored_at' => $website->alerts_ignored_at->diffForHumans(),
+                'link' => "/webove-sluzby/{$website->id}",
             ])
             ->toArray();
     }
@@ -496,31 +492,28 @@ class DashboardController extends Controller
         ];
     }
 
-    private function getNeniwebStats(): array
+    private function getWebsiteStats(): array
     {
-        $activeDomains = Subscription::where('type', 'domena')->where('status', 'aktivni')->count();
-        $activeHostings = Subscription::where('type', 'hosting')->where('status', 'aktivni')->count();
+        $activeWebsites = Website::where('status', 'aktivni')->count();
 
-        $expiringSoon = Subscription::where('status', 'aktivni')
-            ->whereNotNull('expires_at')
-            ->where('expires_at', '>=', now())
-            ->where('expires_at', '<=', now()->addDays(30))
+        $expiringSoon = Website::where('status', 'aktivni')
+            ->whereNotNull('hosting_expires_at')
+            ->where('hosting_expires_at', '>=', now())
+            ->where('hosting_expires_at', '<=', now()->addDays(30))
             ->count();
 
-        $expired = Subscription::where('status', 'aktivni')
-            ->whereNotNull('expires_at')
-            ->where('expires_at', '<', now())
+        $expired = Website::where('status', 'aktivni')
+            ->whereNotNull('hosting_expires_at')
+            ->where('hosting_expires_at', '<', now())
             ->count();
 
-        $unpaidPayments = SubscriptionPayment::whereIn('status', ['nezaplaceno', 'po_splatnosti'])->count();
+        $unpaidPayments = WebsitePayment::whereIn('status', ['nezaplaceno', 'po_splatnosti'])->count();
 
-        $totalStorageMb = (int) Subscription::where('type', 'hosting')
-            ->where('status', 'aktivni')
+        $totalStorageMb = (int) Website::where('status', 'aktivni')
             ->sum('storage_used_mb');
 
         // Storage by server
-        $storageByServer = Subscription::where('type', 'hosting')
-            ->where('status', 'aktivni')
+        $storageByServer = Website::where('status', 'aktivni')
             ->whereNotNull('server')
             ->selectRaw("server, COUNT(*) as count, COALESCE(SUM(storage_used_mb), 0) as total_mb")
             ->groupBy('server')
@@ -534,28 +527,26 @@ class DashboardController extends Controller
             ->toArray();
 
         // Top 5 expiring soon
-        $expiring = Subscription::where('status', 'aktivni')
-            ->whereNotNull('expires_at')
-            ->where('expires_at', '>=', now())
-            ->where('expires_at', '<=', now()->addDays(60))
+        $expiring = Website::where('status', 'aktivni')
+            ->whereNotNull('hosting_expires_at')
+            ->where('hosting_expires_at', '>=', now())
+            ->where('hosting_expires_at', '<=', now()->addDays(60))
             ->with('customer:id,name')
-            ->orderBy('expires_at')
+            ->orderBy('hosting_expires_at')
             ->limit(5)
             ->get()
-            ->map(fn ($s) => [
-                'id' => $s->id,
-                'name' => $s->name,
-                'type' => $s->type,
-                'expires_at' => $s->expires_at->toDateString(),
-                'days' => $s->daysUntilExpiry(),
-                'urgency' => $s->expiryUrgency(),
-                'customer_name' => $s->customer?->name,
+            ->map(fn ($w) => [
+                'id' => $w->id,
+                'name' => $w->name,
+                'hosting_expires_at' => $w->hosting_expires_at->toDateString(),
+                'days' => $w->daysUntilExpiry(),
+                'urgency' => $w->expiryUrgency(),
+                'customer_name' => $w->customer?->name,
             ])
             ->toArray();
 
         return [
-            'active_domains' => $activeDomains,
-            'active_hostings' => $activeHostings,
+            'active_websites' => $activeWebsites,
             'expiring_soon' => $expiringSoon,
             'expired' => $expired,
             'unpaid_payments' => $unpaidPayments,
@@ -581,8 +572,8 @@ class DashboardController extends Controller
         // Nezaplacené faktury
         $unpaidInvoices = (float) Invoice::whereIn('status', ['vystavena', 'odeslana', 'po_splatnosti'])->sum('total');
 
-        // Nezaplacené subscription platby
-        $unpaidSubs = (float) SubscriptionPayment::whereIn('status', ['nezaplaceno', 'po_splatnosti'])->sum('amount');
+        // Nezaplacené website platby
+        $unpaidWebsites = (float) WebsitePayment::whereIn('status', ['nezaplaceno', 'po_splatnosti'])->sum('amount');
 
         // Hotové zakázky bez faktury
         $notInvoiced = (float) Order::whereIn('status', ['hotovo', 'fakturovano'])
@@ -595,7 +586,7 @@ class DashboardController extends Controller
             'total_profit' => round($orderProfit),
             'paid' => round($paid),
             'unpaid_invoices' => round($unpaidInvoices),
-            'unpaid_subscriptions' => round($unpaidSubs),
+            'unpaid_websites' => round($unpaidWebsites),
             'not_invoiced' => round($notInvoiced),
         ];
     }
@@ -640,26 +631,26 @@ class DashboardController extends Controller
                 'link' => "/zakazky/{$order->id}",
             ]);
 
-        // Nezaplacené subscription platby (hostingy, domény po expiraci atd.)
-        $fromSubscriptions = SubscriptionPayment::whereIn('status', ['nezaplaceno', 'po_splatnosti'])
-            ->with(['subscription.customer:id,name,company'])
+        // Nezaplacené website platby
+        $fromWebsites = WebsitePayment::whereIn('status', ['nezaplaceno', 'po_splatnosti'])
+            ->with(['website.customer:id,name,company'])
             ->get()
             ->map(fn ($pay) => [
                 'id' => $pay->id,
-                'customer_id' => $pay->subscription?->customer_id,
-                'customer_name' => $pay->subscription?->customer?->company ?: $pay->subscription?->customer?->name ?? 'Neznámý',
-                'type' => 'subscription',
-                'label' => $pay->subscription?->name ?? 'Služba',
+                'customer_id' => $pay->website?->customer_id,
+                'customer_name' => $pay->website?->customer?->company ?: $pay->website?->customer?->name ?? 'Neznámý',
+                'type' => 'website',
+                'label' => $pay->website?->name ?? 'Web',
                 'amount' => (float) $pay->amount,
                 'status' => $pay->status,
                 'due_date' => $pay->period_end?->toDateString() ?? null,
                 'days_overdue' => $pay->period_end && $pay->period_end->lt(now())
                     ? (int) now()->diffInDays($pay->period_end)
                     : null,
-                'link' => "/neniweb/{$pay->subscription_id}",
+                'link' => "/webove-sluzby/{$pay->website_id}",
             ]);
 
-        return $fromInvoices->concat($fromOrders)->concat($fromSubscriptions)
+        return $fromInvoices->concat($fromOrders)->concat($fromWebsites)
             ->sortByDesc('amount')
             ->values()
             ->toArray();
