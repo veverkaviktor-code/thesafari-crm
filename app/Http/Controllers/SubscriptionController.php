@@ -320,7 +320,7 @@ class SubscriptionController extends Controller
         $customers = Customer::select('id', 'name', 'company')->orderBy('name')->get();
         $folders = SubscriptionFolder::orderBy('sort_order')->get(['id', 'name']);
         $parentOptions = Subscription::where('id', '!=', $neniweb->id)
-            ->whereIn('type', ['hosting', 'domena'])
+            ->where('type', 'hosting')
             ->select('id', 'name', 'type')
             ->orderBy('name')
             ->get();

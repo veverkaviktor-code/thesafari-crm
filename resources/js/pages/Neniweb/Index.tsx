@@ -1923,7 +1923,7 @@ export default function NeniwebIndex({
                     submitLabel="Uložit"
                     customers={customers}
                     folders={folders}
-                    parentOptions={[...domains.data, ...hostings.data].map(s => ({ id: s.id, name: s.name, type: s.type }))}
+                    parentOptions={hostings.data.map(s => ({ id: s.id, name: s.name, type: s.type }))}
                     onCancel={() => setShowCreate(false)}
                 />
             </GlassModal>
