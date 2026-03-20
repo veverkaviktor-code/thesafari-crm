@@ -10,6 +10,7 @@ use App\Http\Controllers\CompanySettingsController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmailAccountController;
+use App\Http\Controllers\SubscriptionFolderController;
 use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\NotificationController;
@@ -99,6 +100,13 @@ Route::middleware('auth')->group(function () {
     Route::get('finance', [FinanceController::class, 'index'])->name('finance');
 
     // Legacy pozadavky routes removed — use /zpravy instead (redirect below)
+
+    // Složky webových služeb
+    Route::post('neniweb/slozky', [SubscriptionFolderController::class, 'store'])->name('folders.store');
+    Route::put('neniweb/slozky/{folder}', [SubscriptionFolderController::class, 'update'])->name('folders.update');
+    Route::post('neniweb/slozky/{folder}/toggle', [SubscriptionFolderController::class, 'toggleCollapse'])->name('folders.toggle');
+    Route::delete('neniweb/slozky/{folder}', [SubscriptionFolderController::class, 'destroy'])->name('folders.destroy');
+    Route::put('neniweb/{neniweb}/folder', [SubscriptionController::class, 'updateFolder'])->name('neniweb.updateFolder');
 
     // Pevné neniweb routy PŘED resource (bez {neniweb} parametru — jinak by Laravel bral za ID)
     Route::post('neniweb/activate-domain', [SubscriptionController::class, 'activateDomain'])->name('neniweb.activate-domain');

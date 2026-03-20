@@ -52,6 +52,8 @@ class Subscription extends Model
         'admin_password',
         'client_user',
         'client_password',
+        'folder_id',
+        'parent_subscription_id',
     ];
 
     protected $hidden = ['admin_password', 'client_password'];
@@ -99,6 +101,21 @@ class Subscription extends Model
     public function emailAccounts(): HasMany
     {
         return $this->hasMany(EmailAccount::class);
+    }
+
+    public function folder(): BelongsTo
+    {
+        return $this->belongsTo(SubscriptionFolder::class, 'folder_id');
+    }
+
+    public function parentSubscription(): BelongsTo
+    {
+        return $this->belongsTo(Subscription::class, 'parent_subscription_id');
+    }
+
+    public function childSubscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class, 'parent_subscription_id');
     }
 
     public function vpsServer(): BelongsTo

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Subscription;
+use App\Models\SubscriptionFolder;
 use App\Models\SubscriptionPayment;
 use App\Models\VpsServer;
 use App\Services\VasHostingService;
@@ -202,6 +203,8 @@ class SubscriptionController extends Controller
             ->whereNotNull('server')->where('server', '!=', '')
             ->distinct()->pluck('server')->sort()->values();
 
+        $folders = SubscriptionFolder::orderBy('sort_order')->get();
+
         return Inertia::render('Neniweb/Index', [
             'domains'       => $domains,
             'hostings'      => $hostings,
@@ -209,6 +212,7 @@ class SubscriptionController extends Controller
             'vpsServers'    => $vpsServers,
             'payments'      => $payments,
             'stats'         => $stats,
+            'folders'       => $folders,
             'customers'     => Customer::select('id', 'name', 'company')->orderBy('name')->get(),
             'filterOptions' => ['servers' => $serverOptions],
             'filters'       => $request->only([
@@ -297,6 +301,8 @@ class SubscriptionController extends Controller
             'admin_password'  => 'nullable|string|max:500',
             'client_user'     => 'nullable|string|max:255',
             'client_password' => 'nullable|string|max:500',
+            'folder_id'       => 'nullable|exists:subscription_folders,id',
+            'parent_subscription_id' => 'nullable|exists:subscriptions,id',
         ]);
 
         $validated['price_yearly'] = $validated['price_yearly'] ?? 0;
@@ -312,11 +318,19 @@ class SubscriptionController extends Controller
     public function edit(Subscription $neniweb)
     {
         $customers = Customer::select('id', 'name', 'company')->orderBy('name')->get();
+        $folders = SubscriptionFolder::orderBy('sort_order')->get(['id', 'name']);
+        $parentOptions = Subscription::where('id', '!=', $neniweb->id)
+            ->whereIn('type', ['hosting', 'domena'])
+            ->select('id', 'name', 'type')
+            ->orderBy('name')
+            ->get();
         $neniweb->makeVisible(['admin_password', 'client_password']);
 
         return Inertia::render('Neniweb/Edit', [
             'subscription' => $neniweb,
             'customers' => $customers,
+            'folders' => $folders,
+            'parentOptions' => $parentOptions,
         ]);
     }
 
@@ -350,6 +364,8 @@ class SubscriptionController extends Controller
             'admin_password'  => 'nullable|string|max:500',
             'client_user'     => 'nullable|string|max:255',
             'client_password' => 'nullable|string|max:500',
+            'folder_id'       => 'nullable|exists:subscription_folders,id',
+            'parent_subscription_id' => 'nullable|exists:subscriptions,id',
         ]);
 
         $validated['price_yearly'] = $validated['price_yearly'] ?? 0;
@@ -918,5 +934,17 @@ class SubscriptionController extends Controller
         $label = $neniweb->alerts_ignored_at ? 'Upozornění ignorována' : 'Upozornění obnovena';
 
         return back()->with('success', $label);
+    }
+
+    public function updateFolder(Request $request, Subscription $neniweb)
+    {
+        $validated = $request->validate([
+            'folder_id' => ['nullable', 'exists:subscription_folders,id'],
+            'parent_subscription_id' => ['nullable', 'exists:subscriptions,id'],
+        ]);
+
+        $neniweb->update($validated);
+
+        return back()->with('success', 'Aktualizováno.');
     }
 }

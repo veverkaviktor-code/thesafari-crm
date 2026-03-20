@@ -49,6 +49,8 @@ export interface NeniwebFormData {
     admin_password: string;
     client_user: string;
     client_password: string;
+    folder_id: string;
+    parent_subscription_id: string;
 }
 
 export const defaultNeniwebData: NeniwebFormData = {
@@ -77,6 +79,8 @@ export const defaultNeniwebData: NeniwebFormData = {
     admin_password: '',
     client_user: '',
     client_password: '',
+    folder_id: '',
+    parent_subscription_id: '',
 };
 
 const PLAN_OPTIONS = [
@@ -93,11 +97,24 @@ interface Customer {
     company: string | null;
 }
 
+interface FolderOption {
+    id: number;
+    name: string;
+}
+
+interface ParentOption {
+    id: number;
+    name: string;
+    type: string;
+}
+
 interface NeniwebFormProps {
     form: InertiaFormProps<NeniwebFormData>;
     onSubmit: (e: FormEvent) => void;
     submitLabel: string;
     customers: Customer[];
+    folders?: FolderOption[];
+    parentOptions?: ParentOption[];
     onCancel?: () => void;
 }
 
@@ -106,6 +123,8 @@ export default function NeniwebForm({
     onSubmit,
     submitLabel,
     customers,
+    folders = [],
+    parentOptions = [],
     onCancel,
 }: NeniwebFormProps) {
     const { data, setData, errors, processing } = form;
@@ -566,6 +585,44 @@ export default function NeniwebForm({
                     </Select>
                 </div>
             </div>
+
+            {/* Složka + nadřazený hosting */}
+            {(folders.length > 0 || parentOptions.length > 0) && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                    {folders.length > 0 && (
+                        <div>
+                            <Label className="text-muted-foreground">Složka</Label>
+                            <Select value={data.folder_id || 'none'} onValueChange={(v) => setData('folder_id', v === 'none' ? '' : v)}>
+                                <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
+                                    <SelectValue placeholder="Bez složky" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-card border-border">
+                                    <SelectItem value="none" className="focus:bg-muted">Bez složky</SelectItem>
+                                    {folders.map((f) => (
+                                        <SelectItem key={f.id} value={String(f.id)} className="focus:bg-muted">{f.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+                    {parentOptions.length > 0 && (
+                        <div>
+                            <Label className="text-muted-foreground">Nadřazený hosting</Label>
+                            <Select value={data.parent_subscription_id || 'none'} onValueChange={(v) => setData('parent_subscription_id', v === 'none' ? '' : v)}>
+                                <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
+                                    <SelectValue placeholder="Žádný (samostatný)" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-card border-border">
+                                    <SelectItem value="none" className="focus:bg-muted">Žádný (samostatný)</SelectItem>
+                                    {parentOptions.map((p) => (
+                                        <SelectItem key={p.id} value={String(p.id)} className="focus:bg-muted">{p.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Notes */}
             <div>

@@ -19,6 +19,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import GlassModal from '@/components/ui/GlassModal';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import NeniwebForm, {
     defaultNeniwebData,
     type NeniwebFormData,
@@ -49,6 +50,10 @@ import {
     Play,
     Pause,
     CircleStop,
+    ChevronRight,
+    ChevronDown,
+    FolderOpen,
+    FolderClosed,
 } from 'lucide-react';
 
 interface Subscription {
@@ -82,6 +87,16 @@ interface Subscription {
     is_external: boolean;
     has_linked_hosting?: boolean;
     has_linked_domain?: boolean;
+    folder_id: number | null;
+    parent_subscription_id: number | null;
+}
+
+interface Folder {
+    id: number;
+    name: string;
+    color: string | null;
+    is_collapsed: boolean;
+    sort_order: number;
 }
 
 interface VpsServer {
@@ -138,6 +153,7 @@ interface Props {
     services: PaginatedData<Subscription>;
     payments: PaginatedData<Payment>;
     vpsServers: VpsServer[];
+    folders: Folder[];
     stats: {
         total_domains: number;
         total_hostings: number;
@@ -377,6 +393,7 @@ export default function NeniwebIndex({
     services,
     payments,
     vpsServers,
+    folders,
     stats,
     customers,
     filterOptions,
@@ -390,6 +407,16 @@ export default function NeniwebIndex({
     const [selectedServiceIds, setSelectedServiceIds] = useState<Set<number>>(new Set());
     const [deleteTarget, setDeleteTarget] = useState<Subscription | null>(null);
     const [deleting, setDeleting] = useState(false);
+    const [showFolderForm, setShowFolderForm] = useState(false);
+    const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
+    const [deleteFolderId, setDeleteFolderId] = useState<number | null>(null);
+
+    // Folder collapsed IDs — derived from server state
+    const collapsedFolderIds = new Set(folders.filter(f => f.is_collapsed).map(f => f.id));
+
+    // Filter out subscriptions in collapsed folders
+    const filterByFolders = (items: Subscription[]) =>
+        items.filter(s => !s.folder_id || !collapsedFolderIds.has(s.folder_id));
 
     // Column config state (visibility + order, persisted to localStorage)
     const [colConfigMap, setColConfigMap] = useState<Record<string, ColConfig>>(loadColConfig);
@@ -1496,8 +1523,9 @@ export default function NeniwebIndex({
                                 </button>
                             ))}
                         </div>
+                        <FolderBar folders={folders} subscriptions={domains.data} onNewFolder={() => setShowFolderForm(true)} onEditFolder={setEditingFolder} onDeleteFolder={setDeleteFolderId} />
                         <DataTable
-                            data={domains.data}
+                            data={filterByFolders(domains.data)}
                             columns={applyColumnConfig(domainColumns, getConfig('domeny'))}
                             pagination={{
                                 current_page: domains.current_page,
@@ -1630,8 +1658,9 @@ export default function NeniwebIndex({
                                 </button>
                             ))}
                         </div>
+                        <FolderBar folders={folders} subscriptions={hostings.data} onNewFolder={() => setShowFolderForm(true)} onEditFolder={setEditingFolder} onDeleteFolder={setDeleteFolderId} />
                         <DataTable
-                            data={hostings.data}
+                            data={filterByFolders(hostings.data)}
                             columns={applyColumnConfig(hostingColumns, getConfig('hostingy'))}
                             pagination={{
                                 current_page: hostings.current_page,
@@ -1740,8 +1769,9 @@ export default function NeniwebIndex({
                                 </div>
                             </div>
                         )}
+                        <FolderBar folders={folders} subscriptions={services.data} onNewFolder={() => setShowFolderForm(true)} onEditFolder={setEditingFolder} onDeleteFolder={setDeleteFolderId} />
                         <DataTable
-                            data={services.data}
+                            data={filterByFolders(services.data)}
                             columns={applyColumnConfig(serviceColumns, getConfig('sluzby'))}
                             pagination={{
                                 current_page: services.current_page,
@@ -1892,6 +1922,8 @@ export default function NeniwebIndex({
                     onSubmit={handleCreateSubmit}
                     submitLabel="Uložit"
                     customers={customers}
+                    folders={folders}
+                    parentOptions={[...domains.data, ...hostings.data].map(s => ({ id: s.id, name: s.name, type: s.type }))}
                     onCancel={() => setShowCreate(false)}
                 />
             </GlassModal>
@@ -2078,6 +2110,168 @@ export default function NeniwebIndex({
                     </div>
                 </div>
             </GlassModal>
+
+            {/* Folder create/edit modal */}
+            <GlassModal
+                open={showFolderForm || !!editingFolder}
+                onClose={() => { setShowFolderForm(false); setEditingFolder(null); }}
+                title={editingFolder ? 'Upravit složku' : 'Nová složka'}
+                maxWidth="max-w-sm"
+            >
+                <FolderForm
+                    folder={editingFolder}
+                    onSuccess={() => { setShowFolderForm(false); setEditingFolder(null); }}
+                    onCancel={() => { setShowFolderForm(false); setEditingFolder(null); }}
+                />
+            </GlassModal>
+
+            {/* Folder delete confirm */}
+            <ConfirmDialog
+                open={deleteFolderId !== null}
+                onClose={() => setDeleteFolderId(null)}
+                onConfirm={() => {
+                    if (deleteFolderId !== null) {
+                        router.delete(`/neniweb/slozky/${deleteFolderId}`, { preserveScroll: true });
+                        setDeleteFolderId(null);
+                    }
+                }}
+                title="Smazat složku"
+                message="Opravdu chcete smazat tuto složku? Služby v ní zůstanou, jen budou bez složky."
+                variant="warning"
+            />
         </AuthenticatedLayout>
+    );
+}
+
+/* ───── Folder Components ───── */
+
+function FolderBar({
+    folders,
+    subscriptions,
+    onNewFolder,
+    onEditFolder,
+    onDeleteFolder,
+}: {
+    folders: Folder[];
+    subscriptions: Subscription[];
+    onNewFolder: () => void;
+    onEditFolder: (f: Folder) => void;
+    onDeleteFolder: (id: number) => void;
+}) {
+    if (folders.length === 0 && subscriptions.length === 0) return null;
+
+    const folderCounts = new Map<number, number>();
+    subscriptions.forEach(s => {
+        if (s.folder_id) folderCounts.set(s.folder_id, (folderCounts.get(s.folder_id) || 0) + 1);
+    });
+
+    // Only show folders that have items in this tab
+    const relevantFolders = folders.filter(f => folderCounts.has(f.id));
+    if (relevantFolders.length === 0) return null;
+
+    return (
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+            {relevantFolders.map(folder => {
+                const count = folderCounts.get(folder.id) || 0;
+                return (
+                    <div key={folder.id} className="flex items-center gap-0.5 group">
+                        <button
+                            onClick={() => router.post(`/neniweb/slozky/${folder.id}/toggle`, {}, { preserveScroll: true })}
+                            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors border ${
+                                folder.is_collapsed
+                                    ? 'bg-muted/50 text-muted-foreground border-border'
+                                    : 'bg-primary/10 text-primary border-primary/20'
+                            }`}
+                            title={folder.is_collapsed ? `Zobrazit ${count} položek` : `Skrýt ${count} položek`}
+                        >
+                            {folder.is_collapsed
+                                ? <FolderClosed className="h-3 w-3" />
+                                : <FolderOpen className="h-3 w-3" />
+                            }
+                            {folder.name}
+                            <span className={`rounded-full px-1.5 text-[10px] ${
+                                folder.is_collapsed ? 'bg-muted-foreground/20' : 'bg-primary/20'
+                            }`}>
+                                {count}
+                            </span>
+                        </button>
+                        <button
+                            onClick={() => onEditFolder(folder)}
+                            className="opacity-0 group-hover:opacity-100 rounded p-1 text-muted-foreground hover:text-foreground transition-opacity"
+                            title="Upravit"
+                        >
+                            <Pencil className="h-3 w-3" />
+                        </button>
+                        <button
+                            onClick={() => onDeleteFolder(folder.id)}
+                            className="opacity-0 group-hover:opacity-100 rounded p-1 text-muted-foreground hover:text-destructive transition-opacity"
+                            title="Smazat složku"
+                        >
+                            <Trash2 className="h-3 w-3" />
+                        </button>
+                    </div>
+                );
+            })}
+            <button
+                onClick={onNewFolder}
+                className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors border border-dashed border-border"
+                title="Nová složka"
+            >
+                <Plus className="h-3 w-3" />
+            </button>
+        </div>
+    );
+}
+
+function FolderForm({
+    folder,
+    onSuccess,
+    onCancel,
+}: {
+    folder?: Folder | null;
+    onSuccess: () => void;
+    onCancel: () => void;
+}) {
+    const isEdit = !!folder;
+    const form = useForm({
+        name: folder?.name ?? '',
+        color: folder?.color ?? '',
+    });
+
+    const handleSubmit = (e: FormEvent) => {
+        e.preventDefault();
+        if (isEdit) {
+            form.put(`/neniweb/slozky/${folder!.id}`, {
+                preserveScroll: true,
+                onSuccess,
+            });
+        } else {
+            form.post('/neniweb/slozky', {
+                preserveScroll: true,
+                onSuccess: () => { form.reset(); onSuccess(); },
+            });
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+                <Label>Název složky</Label>
+                <Input
+                    value={form.data.name}
+                    onChange={(e) => form.setData('name', e.target.value)}
+                    placeholder="např. Lukáš Klaška"
+                    className="mt-1"
+                    autoFocus
+                />
+                {form.errors.name && <p className="text-xs text-red-400 mt-1">{form.errors.name}</p>}
+            </div>
+            <div className="flex justify-end gap-3">
+                <Button type="button" variant="ghost" onClick={onCancel}>Zrušit</Button>
+                <Button type="submit" disabled={form.processing} className="bg-primary text-white hover:bg-primary/80">
+                    {form.processing ? 'Ukládám...' : isEdit ? 'Uložit' : 'Vytvořit'}
+                </Button>
+            </div>
+        </form>
     );
 }

@@ -41,12 +41,25 @@ interface Subscription {
     client_password: string | null;
 }
 
-interface Props {
-    subscription: Subscription;
-    customers: Customer[];
+interface FolderOption {
+    id: number;
+    name: string;
 }
 
-export default function NeniwebEdit({ subscription, customers }: Props) {
+interface ParentOption {
+    id: number;
+    name: string;
+    type: string;
+}
+
+interface Props {
+    subscription: Subscription & { folder_id?: number | null; parent_subscription_id?: number | null };
+    customers: Customer[];
+    folders?: FolderOption[];
+    parentOptions?: ParentOption[];
+}
+
+export default function NeniwebEdit({ subscription, customers, folders = [], parentOptions = [] }: Props) {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const form = useForm<NeniwebFormData>({
         type: subscription.type,
@@ -74,6 +87,8 @@ export default function NeniwebEdit({ subscription, customers }: Props) {
         admin_password: subscription.admin_password || '',
         client_user: subscription.client_user || '',
         client_password: subscription.client_password || '',
+        folder_id: subscription.folder_id ? String(subscription.folder_id) : '',
+        parent_subscription_id: subscription.parent_subscription_id ? String(subscription.parent_subscription_id) : '',
     });
 
     const handleSubmit = (e: FormEvent) => {
@@ -118,6 +133,8 @@ export default function NeniwebEdit({ subscription, customers }: Props) {
                         onSubmit={handleSubmit}
                         submitLabel="Uložit změny"
                         customers={customers}
+                        folders={folders}
+                        parentOptions={parentOptions}
                         onCancel={() => router.visit(`/neniweb/${subscription.id}`)}
                     />
                 </div>
