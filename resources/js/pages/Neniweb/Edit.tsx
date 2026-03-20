@@ -30,8 +30,12 @@ interface Subscription {
     auto_renew: boolean;
     auto_invoice: boolean;
     is_free: boolean;
+    is_external: boolean;
     status: string;
     notes: string | null;
+    admin_url: string | null;
+    admin_user: string | null;
+    admin_password: string | null;
 }
 
 interface Props {
@@ -58,8 +62,12 @@ export default function NeniwebEdit({ subscription, customers }: Props) {
         auto_renew: subscription.auto_renew,
         auto_invoice: subscription.auto_invoice ?? true,
         is_free: subscription.is_free ?? false,
+        is_external: subscription.is_external ?? false,
         status: subscription.status,
         notes: subscription.notes || '',
+        admin_url: subscription.admin_url || '',
+        admin_user: subscription.admin_user || '',
+        admin_password: subscription.admin_password || '',
     });
 
     const handleSubmit = (e: FormEvent) => {

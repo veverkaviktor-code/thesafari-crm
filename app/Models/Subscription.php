@@ -47,7 +47,12 @@ class Subscription extends Model
         'customer_notified_at',
         'alerts_ignored_at',
         'vps_server_id',
+        'admin_url',
+        'admin_user',
+        'admin_password',
     ];
+
+    protected $hidden = ['admin_password'];
 
     protected function casts(): array
     {
@@ -67,6 +72,7 @@ class Subscription extends Model
             'synced_at' => 'datetime',
             'customer_notified_at' => 'datetime',
             'alerts_ignored_at' => 'datetime',
+            'admin_password' => 'encrypted',
         ];
     }
 

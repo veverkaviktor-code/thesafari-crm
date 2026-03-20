@@ -37,6 +37,9 @@ import {
     FileText,
     Play,
     Loader2,
+    Eye,
+    EyeOff,
+    Copy,
 } from 'lucide-react';
 
 const czk = (amount: number) =>
@@ -102,6 +105,9 @@ interface Subscription {
     synced_at: string | null;
     has_linked_hosting: boolean | null;
     has_linked_domain: boolean | null;
+    admin_url: string | null;
+    admin_user: string | null;
+    admin_password: string | null;
 }
 
 interface Customer {
@@ -366,6 +372,37 @@ function PaymentForm({
                 </Button>
             </div>
         </form>
+    );
+}
+
+function PasswordField({ password }: { password: string }) {
+    const [visible, setVisible] = useState(false);
+
+    return (
+        <div className="flex items-center justify-between py-1">
+            <span className="text-sm text-muted-foreground">Heslo</span>
+            <div className="flex items-center gap-1.5">
+                <span className="text-sm font-mono text-foreground">
+                    {visible ? password : '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'}
+                </span>
+                <button
+                    onClick={() => setVisible(!visible)}
+                    className="rounded p-1 text-muted-foreground hover:text-foreground"
+                    title={visible ? 'Skr\u00fdt' : 'Zobrazit'}
+                >
+                    {visible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                </button>
+                <button
+                    onClick={() => {
+                        navigator.clipboard.writeText(password);
+                    }}
+                    className="rounded p-1 text-muted-foreground hover:text-foreground"
+                    title="Kop\u00edrovat"
+                >
+                    <Copy className="h-3.5 w-3.5" />
+                </button>
+            </div>
+        </div>
     );
 }
 
@@ -865,6 +902,38 @@ export default function NeniwebShow({ subscription, paymentStats }: Props) {
                                                 {format(new Date(subscription.synced_at), 'd. M. yyyy HH:mm', { locale: cs })}
                                             </span>
                                         </div>
+                                    </>
+                                )}
+
+                                {/* Admin přístupy */}
+                                {(subscription.admin_url || subscription.admin_user) && (
+                                    <>
+                                        <Separator className="bg-border" />
+                                        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                            Přístupy do webu
+                                        </h4>
+                                        {subscription.admin_url && (
+                                            <div className="flex items-center justify-between py-1">
+                                                <span className="text-sm text-muted-foreground">Admin URL</span>
+                                                <a
+                                                    href={subscription.admin_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-sm text-primary hover:underline"
+                                                >
+                                                    Otevřít →
+                                                </a>
+                                            </div>
+                                        )}
+                                        {subscription.admin_user && (
+                                            <div className="flex items-center justify-between py-1">
+                                                <span className="text-sm text-muted-foreground">Login</span>
+                                                <span className="text-sm text-foreground">{subscription.admin_user}</span>
+                                            </div>
+                                        )}
+                                        {subscription.admin_password && (
+                                            <PasswordField password={subscription.admin_password} />
+                                        )}
                                     </>
                                 )}
                             </div>

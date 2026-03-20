@@ -44,6 +44,9 @@ export interface NeniwebFormData {
     is_external: boolean;
     status: string;
     notes: string;
+    admin_url: string;
+    admin_user: string;
+    admin_password: string;
 }
 
 export const defaultNeniwebData: NeniwebFormData = {
@@ -67,6 +70,9 @@ export const defaultNeniwebData: NeniwebFormData = {
     is_external: false,
     status: 'aktivni',
     notes: '',
+    admin_url: '',
+    admin_user: '',
+    admin_password: '',
 };
 
 const PLAN_OPTIONS = [
@@ -566,6 +572,41 @@ export default function NeniwebForm({
                     rows={3}
                     className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground resize-none"
                 />
+            </div>
+
+            {/* Přístupy do webu */}
+            <div className="border-t border-border pt-4 mt-2">
+                <h3 className="mb-3 text-sm font-semibold text-foreground/70">Přístupy do webu</h3>
+                <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="sm:col-span-2">
+                        <Label className="text-muted-foreground">Admin URL</Label>
+                        <Input
+                            value={data.admin_url}
+                            onChange={(e) => setData('admin_url', e.target.value)}
+                            placeholder="https://example.cz/wp-admin"
+                            className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
+                        />
+                    </div>
+                    <div>
+                        <Label className="text-muted-foreground">Login</Label>
+                        <Input
+                            value={data.admin_user}
+                            onChange={(e) => setData('admin_user', e.target.value)}
+                            placeholder="admin"
+                            className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
+                        />
+                    </div>
+                    <div>
+                        <Label className="text-muted-foreground">Heslo</Label>
+                        <Input
+                            type="text"
+                            value={data.admin_password}
+                            onChange={(e) => setData('admin_password', e.target.value)}
+                            placeholder="heslo"
+                            className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
+                        />
+                    </div>
+                </div>
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-2">
