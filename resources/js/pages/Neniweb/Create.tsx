@@ -36,7 +36,7 @@ export default function NeniwebCreate({ customers, type: initialType }: Props) {
         <AuthenticatedLayout
             title={isDomain ? 'Nová doména' : 'Nový hosting'}
             breadcrumbs={[
-                { label: 'Neniweb', href: '/neniweb' },
+                { label: 'Webové služby', href: '/neniweb' },
                 { label: isDomain ? 'Nová doména' : 'Nový hosting' },
             ]}
         >

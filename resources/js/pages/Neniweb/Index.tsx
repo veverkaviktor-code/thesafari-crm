@@ -1227,8 +1227,8 @@ export default function NeniwebIndex({
 
     return (
         <AuthenticatedLayout
-            title="Neniweb"
-            breadcrumbs={[{ label: 'Neniweb' }]}
+            title="Webové služby"
+            breadcrumbs={[{ label: 'Webové služby' }]}
         >
             <div className="p-6 space-y-6">
                 {/* Stats bar */}

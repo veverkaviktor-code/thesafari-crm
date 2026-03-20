@@ -465,7 +465,7 @@ export default function NeniwebShow({ subscription, paymentStats }: Props) {
         <AuthenticatedLayout
             title={subscription.name}
             breadcrumbs={[
-                { label: 'Neniweb', href: '/neniweb' },
+                { label: 'Webové služby', href: '/neniweb' },
                 { label: subscription.name },
             ]}
         >

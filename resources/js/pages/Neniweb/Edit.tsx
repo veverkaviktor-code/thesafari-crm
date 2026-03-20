@@ -89,7 +89,7 @@ export default function NeniwebEdit({ subscription, customers }: Props) {
         <AuthenticatedLayout
             title={`Upravit: ${subscription.name}`}
             breadcrumbs={[
-                { label: 'Neniweb', href: '/neniweb' },
+                { label: 'Webové služby', href: '/neniweb' },
                 { label: subscription.name, href: `/neniweb/${subscription.id}` },
                 { label: 'Upravit' },
             ]}
