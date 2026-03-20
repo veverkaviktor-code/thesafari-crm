@@ -86,8 +86,6 @@ class SubscriptionController extends Controller
         } else {
             $baseQuery->orderByRaw('expires_at IS NULL, expires_at ASC');
         }
-        // Within same sort position, group children right after parent
-        $baseQuery->orderByRaw('parent_subscription_id IS NOT NULL');
 
         // Get all hosting names for quick lookup (domain ↔ hosting linking)
         $hostingNames = Subscription::where('type', 'hosting')->pluck('name')->flip();
