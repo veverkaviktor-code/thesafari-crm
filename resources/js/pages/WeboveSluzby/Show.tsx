@@ -563,7 +563,7 @@ export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
                                 {website.hosting_expires_at ? (
                                     <ExpirationBadge expiresAt={website.hosting_expires_at} />
                                 ) : (
-                                    <span className="text-muted-foreground/50">\u2014</span>
+                                    <span className="text-muted-foreground/50">—</span>
                                 )}
                             </InfoRow>
                             {website.storage_quota_mb > 0 && (
@@ -602,10 +602,10 @@ export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
                         </div>
                         <div className="px-5 py-4 space-y-1">
                             <InfoRow label="Rocni cena">
-                                <span className="font-semibold">{website.sell_yearly ? formatCurrency(website.sell_yearly) : '\u2014'}</span>
+                                <span className="font-semibold">{website.sell_yearly ? formatCurrency(website.sell_yearly) : '—'}</span>
                             </InfoRow>
                             <InfoRow label="Rocni naklad">
-                                <span>{website.cost_yearly ? formatCurrency(website.cost_yearly) : '\u2014'}</span>
+                                <span>{website.cost_yearly ? formatCurrency(website.cost_yearly) : '—'}</span>
                             </InfoRow>
                             <InfoRow label="Marze">
                                 <span className={website.yearly_margin > 0 ? 'text-emerald-400 font-medium' : website.yearly_margin < 0 ? 'text-red-400 font-medium' : ''}>
@@ -628,7 +628,7 @@ export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
                                     </InfoRow>
                                     {website.management_cycle && (
                                         <InfoRow label="Cyklus spravy">
-                                            {managementCycleLabels[website.management_cycle] ?? '\u2014'}
+                                            {managementCycleLabels[website.management_cycle] ?? '—'}
                                         </InfoRow>
                                     )}
                                     <InfoRow label="Auto-fakt. sprava">

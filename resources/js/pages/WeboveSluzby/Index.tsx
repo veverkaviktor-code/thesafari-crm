@@ -533,7 +533,7 @@ export default function NeniwebIndex({
             filterOptions: customerFilterOpts,
             render: (w: Website) => (
                 <span className="text-muted-foreground">
-                    {w.customer ? w.customer.company || w.customer.name : '\u2014'}
+                    {w.customer ? w.customer.company || w.customer.name : '—'}
                 </span>
             ),
         },
@@ -560,7 +560,7 @@ export default function NeniwebIndex({
                     {format(new Date(w.domain_expires_at), 'd. M. yyyy', { locale: cs })}
                 </span>
             ) : (
-                <span className="text-xs text-muted-foreground/50">\u2014</span>
+                <span className="text-xs text-muted-foreground/50">—</span>
             ),
         },
         {
@@ -573,7 +573,7 @@ export default function NeniwebIndex({
                 return serverName ? (
                     <span className="text-muted-foreground text-xs font-mono">{serverName}</span>
                 ) : (
-                    <span className="text-xs text-muted-foreground/50">\u2014</span>
+                    <span className="text-xs text-muted-foreground/50">—</span>
                 );
             },
         },
@@ -586,7 +586,7 @@ export default function NeniwebIndex({
                     {format(new Date(w.hosting_expires_at), 'd. M. yyyy', { locale: cs })}
                 </span>
             ) : (
-                <span className="text-xs text-muted-foreground/50">\u2014</span>
+                <span className="text-xs text-muted-foreground/50">—</span>
             ),
         },
         {
@@ -594,7 +594,7 @@ export default function NeniwebIndex({
             label: 'Uloziste',
             sortable: true,
             render: (w: Website) => {
-                if (!w.storage_quota_mb && !w.storage_used_mb) return <span className="text-muted-foreground/50 text-xs">\u2014</span>;
+                if (!w.storage_quota_mb && !w.storage_used_mb) return <span className="text-muted-foreground/50 text-xs">—</span>;
                 if (!w.storage_quota_mb && w.storage_used_mb) {
                     const usedGb = w.storage_used_mb >= 1024;
                     const label = usedGb ? `${(w.storage_used_mb / 1024).toFixed(1)} GB` : `${w.storage_used_mb} MB`;
@@ -621,7 +621,7 @@ export default function NeniwebIndex({
             sortable: true,
             render: (w: Website) => (
                 <span className="text-sm text-muted-foreground">
-                    {w.sell_yearly ? formatCurrency(w.sell_yearly) : '\u2014'}
+                    {w.sell_yearly ? formatCurrency(w.sell_yearly) : '—'}
                 </span>
             ),
         },
@@ -633,7 +633,7 @@ export default function NeniwebIndex({
             render: (w: Website) => w.management_plan ? (
                 <span className="text-xs text-foreground">{w.management_plan.name}</span>
             ) : (
-                <span className="text-xs text-muted-foreground/50">\u2014</span>
+                <span className="text-xs text-muted-foreground/50">—</span>
             ),
         },
         {
@@ -705,14 +705,14 @@ export default function NeniwebIndex({
             key: 'customer' as const,
             label: 'Zakaznik',
             render: (vps: VpsServer) => (
-                <span className="text-muted-foreground">{vps.customer ? vps.customer.company || vps.customer.name : '\u2014'}</span>
+                <span className="text-muted-foreground">{vps.customer ? vps.customer.company || vps.customer.name : '—'}</span>
             ),
         },
         {
             key: 'price_yearly' as const,
             label: 'Cena/rok',
             render: (vps: VpsServer) => (
-                <span className="text-sm text-muted-foreground">{vps.price_yearly ? formatCurrency(vps.price_yearly) : '\u2014'}</span>
+                <span className="text-sm text-muted-foreground">{vps.price_yearly ? formatCurrency(vps.price_yearly) : '—'}</span>
             ),
         },
         {
@@ -724,7 +724,7 @@ export default function NeniwebIndex({
             key: 'storage_used_mb' as const,
             label: 'Uloziste',
             render: (vps: VpsServer) => {
-                if (!vps.storage_total_gb) return <span className="text-muted-foreground/50 text-sm">\u2014</span>;
+                if (!vps.storage_total_gb) return <span className="text-muted-foreground/50 text-sm">—</span>;
                 const totalMb = vps.storage_total_gb * 1024;
                 const usedMb = vps.storage_used_mb;
                 const pct = totalMb > 0 ? Math.min(100, Math.round((usedMb / totalMb) * 100)) : 0;
@@ -787,7 +787,7 @@ export default function NeniwebIndex({
             key: 'customer' as const,
             label: 'Zakaznik',
             render: (p: Payment) => (
-                <span className="text-muted-foreground">{p.website.customer ? p.website.customer.company || p.website.customer.name : '\u2014'}</span>
+                <span className="text-muted-foreground">{p.website.customer ? p.website.customer.company || p.website.customer.name : '—'}</span>
             ),
         },
         {
@@ -826,7 +826,7 @@ export default function NeniwebIndex({
                     </Button>
                 ) : (
                     <span className="text-xs text-muted-foreground">
-                        {p.paid_at ? format(new Date(p.paid_at), 'd. M. yyyy', { locale: cs }) : '\u2014'}
+                        {p.paid_at ? format(new Date(p.paid_at), 'd. M. yyyy', { locale: cs }) : '—'}
                     </span>
                 ),
         },
@@ -1135,7 +1135,7 @@ export default function NeniwebIndex({
             <GlassModal
                 open={showVpsCreate || !!editVps}
                 onClose={() => { setShowVpsCreate(false); setEditVps(null); vpsForm.reset(); }}
-                title={editVps ? `Upravit VPS \u2014 ${editVps.name}` : 'Novy VPS server'}
+                title={editVps ? `Upravit VPS — ${editVps.name}` : 'Novy VPS server'}
                 maxWidth="max-w-lg"
             >
                 <form onSubmit={handleVpsSubmit} className="space-y-5">
