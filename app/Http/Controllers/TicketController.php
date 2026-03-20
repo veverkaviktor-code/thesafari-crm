@@ -147,7 +147,11 @@ class TicketController extends Controller
         // Send email to customer if they have source_email — from podpora@
         if ($ticket->source_email) {
             try {
-                Mail::raw($validated['content'], function ($message) use ($ticket) {
+                $mailer = config('mail.mailers.support.username')
+                    ? Mail::mailer('support')
+                    : Mail::mailer();
+
+                $mailer->raw($validated['content'], function ($message) use ($ticket) {
                     $message->from(
                             config('mail.support.address', config('mail.from.address')),
                             config('mail.support.name', 'TheSafari.cz | Podpora')
