@@ -12,7 +12,7 @@ import RevenueChart from '@/components/dashboard/RevenueChart';
 import ActivityTimeline, { type Activity } from '@/components/dashboard/ActivityTimeline';
 import RecentTickets from '@/components/dashboard/RecentTickets';
 import DivisionChart from '@/components/dashboard/DivisionChart';
-import NeniwebOverview from '@/components/dashboard/NeniwebOverview';
+import WebsiteOverview from '@/components/dashboard/WebsiteOverview';
 import AttentionAlerts from '@/components/dashboard/AttentionAlerts';
 import Receivables from '@/components/dashboard/Receivables';
 
@@ -57,16 +57,16 @@ interface Props {
         title: string;
         subtitle: string;
         link: string;
-        subscription_id?: number;
+        website_id?: number;
     }[];
     ignoredAlerts?: {
-        subscription_id: number;
+        website_id: number;
         name: string;
         type: string;
         ignored_at: string;
         link: string;
     }[];
-    neniwebStats?: {
+    websiteStats?: {
         active_domains: number;
         active_hostings: number;
         expiring_soon: number;
@@ -106,14 +106,14 @@ interface Props {
         total_profit: number;
         paid: number;
         unpaid_invoices: number;
-        unpaid_subscriptions: number;
+        unpaid_websites: number;
         not_invoiced: number;
     };
     receivables?: {
         id: number;
         customer_id: number;
         customer_name: string;
-        type: 'invoice' | 'order' | 'subscription';
+        type: 'invoice' | 'order' | 'website';
         label: string;
         amount: number;
         status: string;
@@ -123,7 +123,7 @@ interface Props {
     }[];
 }
 
-export default function Dashboard({ stats, mrr, revenueByDivision, revenueData, recentTickets, alerts, ignoredAlerts, recentActivity, neniwebStats, taskStats, financialSummary, receivables }: Props) {
+export default function Dashboard({ stats, mrr, revenueByDivision, revenueData, recentTickets, alerts, ignoredAlerts, recentActivity, websiteStats, taskStats, financialSummary, receivables }: Props) {
     const s = stats ?? { active_orders: 0, unpaid_amount: 0, open_tickets: 0, upcoming_deadlines: 0 };
     const mrrData = mrr ?? { total: 0, hosting: 0, domain: 0, service: 0, vps: 0, count: 0, costs_monthly: 0, margin_monthly: 0, arr_total: 0, costs_annual: 0, margin_annual: 0 };
 
@@ -202,7 +202,7 @@ export default function Dashboard({ stats, mrr, revenueByDivision, revenueData, 
 
                 {/* Row 3: Neniweb + Attention alerts */}
                 <div className="grid gap-6 lg:grid-cols-2">
-                    {neniwebStats && <NeniwebOverview stats={neniwebStats} />}
+                    {websiteStats && <WebsiteOverview stats={websiteStats} />}
                     <AttentionAlerts alerts={alerts} ignoredAlerts={ignoredAlerts} />
                 </div>
 

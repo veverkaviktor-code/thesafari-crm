@@ -14,10 +14,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withSchedule(function (Schedule $schedule): void {
-        $schedule->command('subscriptions:auto-invoice')->dailyAt('07:00');
+        $schedule->command('websites:auto-invoice')->dailyAt('07:00');
         $schedule->command('fio:sync')->hourly()->between('8:00', '20:00');
         $schedule->command('invoices:check-overdue')->dailyAt('08:00');
-        $schedule->command('subscriptions:check-expiring')->dailyAt('08:30');
+        $schedule->command('websites:check-expiring')->dailyAt('08:30');
         $schedule->command('notifications:generate')->dailyAt('09:00');
         $schedule->command('invoices:send-reminders')->dailyAt('09:30');
         $schedule->command('model:prune')->dailyAt('03:00');

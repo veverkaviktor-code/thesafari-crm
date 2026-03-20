@@ -109,10 +109,11 @@ class Invoice extends Model
         });
     }
 
-    public function subscriptions(): BelongsToMany
+    public function websites(): BelongsToMany
     {
-        return $this->belongsToMany(Subscription::class, 'invoice_subscription')
-            ->withPivot('created_at');
+        return $this->belongsToMany(Website::class, 'invoice_website', 'invoice_id', 'website_id')
+            ->withPivot('invoice_type')
+            ->withTimestamps();
     }
 
     public function bankTransaction(): BelongsTo
@@ -148,26 +149,28 @@ class Invoice extends Model
             $this->order->update(['status' => 'fakturovano']);
         }
 
-        // Subscriptions: create payment records + extend expires_at
-        $this->load('subscriptions');
-        foreach ($this->subscriptions as $subscription) {
-            $expiresAt = $subscription->expires_at ?? now();
+        // Websites: create payment records + extend expiry dates
+        $this->load('websites');
+        foreach ($this->websites as $website) {
+            $pivotType = $website->pivot->invoice_type ?? 'hosting';
+            $amount = (float) $website->sell_yearly ?: (float) $website->cost_yearly;
 
-            $subscription->payments()->create([
-                'amount'         => (float) $subscription->sell_yearly ?: (float) $subscription->price_yearly,
-                'period_start'   => $expiresAt,
-                'period_end'     => $expiresAt->copy()->addYear(),
+            $website->payments()->create([
+                'amount'         => $amount,
+                'period_start'   => $website->hosting_expires_at ?? now(),
+                'period_end'     => ($website->hosting_expires_at ?? now())->copy()->addYear(),
                 'status'         => 'zaplaceno',
                 'paid_at'        => now(),
                 'invoice_id'     => $this->id,
                 'payment_method' => $paymentMethod,
             ]);
 
-            // Hosting: extend by 1 year. Domain: DON'T — wait for registrar sync.
-            if ($subscription->type !== 'domena') {
-                $subscription->update([
-                    'expires_at' => $expiresAt->copy()->addYear(),
-                ]);
+            if ($pivotType === 'hosting') {
+                $website->hosting_expires_at = $website->hosting_expires_at?->addYear() ?? now()->addYear();
+                if ($website->is_registered_by_us) {
+                    $website->domain_expires_at = $website->domain_expires_at?->addYear() ?? now()->addYear();
+                }
+                $website->save();
             }
         }
     }

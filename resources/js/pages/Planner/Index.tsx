@@ -38,7 +38,7 @@ interface CalendarEvent {
     id: number;
     title: string;
     date: string;
-    type: 'task' | 'subscription' | 'invoice';
+    type: 'task' | 'website' | 'invoice';
     priority?: string;
     subtype?: string;
     total?: number;
@@ -56,7 +56,7 @@ interface Props {
     };
     calendarEvents: {
         tasks: CalendarEvent[];
-        subscriptions: CalendarEvent[];
+        websites: CalendarEvent[];
         invoices: CalendarEvent[];
     };
     filters: {
@@ -75,10 +75,10 @@ interface Props {
         title: string;
         subtitle: string;
         link: string;
-        subscription_id?: number;
+        website_id?: number;
     }[];
     ignoredAlerts?: {
-        subscription_id: number;
+        website_id: number;
         name: string;
         type: string;
         ignored_at: string;
@@ -117,7 +117,7 @@ export default function PlannerIndex({ tasks, calendarEvents, filters, customers
 
     const allCalendarEvents: CalendarEvent[] = [
         ...calendarEvents.tasks,
-        ...calendarEvents.subscriptions,
+        ...calendarEvents.websites,
         ...calendarEvents.invoices,
     ];
 

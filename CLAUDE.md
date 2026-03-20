@@ -26,22 +26,22 @@ ssh root@sss06.vas-server.cz "cd /var/www/hq.thesafari.cz && php artisan migrate
 
 ## Konvence
 - **Jazyk UI**: čeština s diakritikou (VŽDY)
-- **Routes**: české URL (`/zakazky`, `/zakaznici`, `/faktury`, `/neniweb`, `/tikety`)
-- **Modely**: anglické názvy (Order, Customer, Invoice, TimeEntry, OrderItem, OrderCost)
+- **Routes**: české URL (`/zakazky`, `/zakaznici`, `/faktury`, `/webove-sluzby`, `/tikety`)
+- **Modely**: anglické názvy (Order, Customer, Invoice, Website, WebsitePayment, WebsiteCredential, TimeEntry, OrderItem, OrderCost)
 - **Nový model**: vždy přidat `use LogsActivity` + `$logFillable = true` + `$logOnlyDirty = true`
 - **Finance**: ceny v CZK, neplátce DPH, auto-sum z child items
-- **Soft deletes**: na Customer, Order, Invoice, Subscription
+- **Soft deletes**: na Customer, Order, Invoice, Website
 - **DB**: VARCHAR+CHECK místo ENUM, JSONB pro adresy/tagy/settings
 
 ## Architektura
 - **Inertia shared props**: `auth.user`, `flash`, `runningTimer` (HandleInertiaRequests.php)
 - **Running timer**: amber sticky bar pod navbarem (RunningTimerBar.tsx)
 - **Dashboard**: StatCards, RevenueChart, DivisionChart (donut), ActivityTimeline (reálná data z activity_log), RecentTickets
-- **Glass Modal**: GlassModal.tsx pro Create/Edit dialogy (Zákazníci, Zakázky, Neniweb)
+- **Glass Modal**: GlassModal.tsx pro Create/Edit dialogy (Zákazníci, Zakázky, Webové služby)
 - **OrderItems**: inline CRUD s auto-přepočtem order.price
 - **Invoice**: auto-numbering s lockForUpdate(), SPD QR kódy
 
 ## Divize
 - thesafari (tisk, reklama, polepy, montáže)
-- neniweb (weby, domény, hosting)
+- webové služby (weby, domény, hosting, správa)
 - thajskydotek (masáže — budoucí integrace)

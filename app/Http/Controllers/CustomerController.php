@@ -38,23 +38,16 @@ class CustomerController extends Controller
     public function show(Customer $zakaznici)
     {
         $customer = $zakaznici;
-        $customer->load(['subscriptions']);
+        $customer->load(['websites']);
 
         $orderCosts = (float) \App\Models\OrderCost::whereHas('order', fn ($q) =>
             $q->where('customer_id', $customer->id)
         )->sum('amount');
-        // Subscription costs = what WE pay for hosting/domains we manage
-        $subscriptionCosts = (float) $customer->subscriptions()
+        // Website costs = what WE pay for hosting/domains we manage
+        $websiteCosts = (float) $customer->websites()
             ->where('status', 'aktivni')
-            ->where(function ($q) {
-                $q->where('type', 'hosting')
-                  ->orWhere(function ($q2) {
-                      $q2->where('type', 'domena')
-                         ->where('is_registered_by_us', true);
-                  });
-            })
             ->sum('cost_yearly');
-        $totalCosts = $orderCosts + $subscriptionCosts;
+        $totalCosts = $orderCosts + $websiteCosts;
 
         $invoiced = (float) $customer->invoices()->sum('total');
         $paid = (float) $customer->invoices()->where('status', 'zaplacena')->sum('total');
@@ -69,7 +62,7 @@ class CustomerController extends Controller
             'invoiced' => $invoiced,
             'paid' => $paid,
             'uninvoiced' => round($invoiced - $paid, 2),
-            'active_subscriptions' => $customer->subscriptions()->where('status', 'aktivni')->count(),
+            'active_websites' => $customer->websites()->where('status', 'aktivni')->count(),
             'vps_yearly' => $vpsYearly,
         ];
 
@@ -178,13 +171,13 @@ class CustomerController extends Controller
         $activeOrders = $customer->orders()->withTrashed()->whereNull('deleted_at')->count();
         $unpaidInvoices = $customer->invoices()->withTrashed()->whereNull('deleted_at')
             ->where('status', '!=', 'zaplacena')->count();
-        $activeSubscriptions = $customer->subscriptions()->where('status', 'aktivni')->count();
+        $activeWebsites = $customer->websites()->where('status', 'aktivni')->count();
 
-        if ($activeOrders > 0 || $unpaidInvoices > 0 || $activeSubscriptions > 0) {
+        if ($activeOrders > 0 || $unpaidInvoices > 0 || $activeWebsites > 0) {
             $reasons = [];
             if ($activeOrders > 0) $reasons[] = "{$activeOrders} aktivních zakázek";
             if ($unpaidInvoices > 0) $reasons[] = "{$unpaidInvoices} nezaplacených faktur";
-            if ($activeSubscriptions > 0) $reasons[] = "{$activeSubscriptions} aktivních služeb";
+            if ($activeWebsites > 0) $reasons[] = "{$activeWebsites} aktivních webů";
 
             return back()->with('error', 'Zákazníka nelze trvale smazat — má: ' . implode(', ', $reasons) . '.');
         }
@@ -271,9 +264,9 @@ class CustomerController extends Controller
         $customer->orders()->update(['customer_id' => null]);
         $customer->invoices()->update(['customer_id' => null]);
 
-        // Subscriptions — smazat neaktivní, nullify zbytek
-        $customer->subscriptions()->where('status', '!=', 'aktivni')->delete();
-        $customer->subscriptions()->update(['customer_id' => null]);
+        // Websites — smazat neaktivní, nullify zbytek
+        $customer->websites()->where('status', '!=', 'aktivni')->delete();
+        $customer->websites()->update(['customer_id' => null]);
     }
 
     private function prepareData(array $validated): array

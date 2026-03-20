@@ -3,7 +3,7 @@ import { router, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import GlassModal from '@/components/ui/GlassModal';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
-import ExpirationBadge from '@/components/neniweb/ExpirationBadge';
+import ExpirationBadge from '@/components/webove-sluzby/ExpirationBadge';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,11 +23,10 @@ import {
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Separator } from '@/components/ui/separator';
-import { format, addYears, addMonths } from 'date-fns';
+import { format, addYears } from 'date-fns';
 import { cs } from 'date-fns/locale';
 import {
     Globe,
-    Server,
     ArrowLeft,
     Pencil,
     Trash2,
@@ -43,6 +42,8 @@ import {
     Copy,
     Check,
     Mail,
+    Shield,
+    Link2,
 } from 'lucide-react';
 
 const czk = (amount: number) =>
@@ -52,9 +53,26 @@ const czk = (amount: number) =>
         maximumFractionDigits: 0,
     }).format(amount);
 
+interface WebsiteCredential {
+    id: number;
+    label: string;
+    login: string;
+    password: string | null;
+    notes: string | null;
+    sort_order: number;
+}
+
+interface EmailAccount {
+    id: number;
+    email: string;
+    password: string | null;
+    quota_mb: number;
+    notes: string | null;
+}
+
 interface Payment {
     id: number;
-    subscription_id: number;
+    website_id: number;
     amount: number;
     period_start: string;
     period_end: string;
@@ -62,6 +80,7 @@ interface Payment {
     paid_at: string | null;
     payment_method: string | null;
     notes: string | null;
+    invoice?: { id: number; invoice_number: string } | null;
 }
 
 interface Invoice {
@@ -73,55 +92,53 @@ interface Invoice {
     total: number;
 }
 
-interface Subscription {
+interface ManagementPlan {
     id: number;
-    type: 'hosting' | 'domena';
     name: string;
-    provider: string | null;
+    price_monthly: number | string;
+}
+
+interface AliasWebsite {
+    id: number;
+    name: string;
+}
+
+interface Website {
+    id: number;
+    name: string;
     server: string | null;
-    price_yearly: number;
-    cost_yearly: number;
-    sell_yearly: number;
-    billing_cycle: string;
-    monthly_price: number;
-    monthly_plan: string | null;
-    starts_at: string | null;
-    expires_at: string | null;
-    managed_since: string | null;
-    auto_renew: boolean;
-    is_free: boolean;
     status: string;
     notes: string | null;
-    payments: Payment[];
-    invoices: Invoice[];
+    starts_at: string | null;
+    is_registered_by_us: boolean;
+    auto_renew: boolean;
+    auto_invoice: boolean;
+    auto_invoice_management: boolean;
+    is_free: boolean;
+    is_external: boolean;
+    sell_yearly: number;
+    cost_yearly: number;
+    admin_url: string | null;
+    domain_expires_at: string | null;
+    hosting_expires_at: string | null;
+    ip_address: string | null;
+    storage_quota_mb: number;
+    storage_used_mb: number;
+    synced_at: string | null;
     days_until_expiry: number | null;
     urgency: string;
     yearly_margin: number;
     monthly_revenue: number;
     total_annual_revenue: number;
     customer: { id: number; name: string; company: string | null } | null;
-    is_registered_by_us: boolean;
-    ip_address: string | null;
-    storage_quota_mb: number;
-    storage_used_mb: number;
-    tariff: string | null;
-    synced_at: string | null;
-    has_linked_hosting: boolean | null;
-    has_linked_domain: boolean | null;
-    admin_url: string | null;
-    admin_user: string | null;
-    admin_password: string | null;
-    client_user: string | null;
-    client_password: string | null;
+    hosting_server: { id: number; name: string } | null;
+    alias_of: { id: number; name: string } | null;
+    aliases: AliasWebsite[];
+    management_plan: ManagementPlan | null;
+    credentials: WebsiteCredential[];
     email_accounts: EmailAccount[];
-}
-
-interface EmailAccount {
-    id: number;
-    email: string;
-    password: string | null;
-    quota_mb: number;
-    notes: string | null;
+    payments: Payment[];
+    invoices: Invoice[];
 }
 
 interface Customer {
@@ -131,7 +148,7 @@ interface Customer {
 }
 
 interface Props {
-    subscription: Subscription;
+    website: Website;
     paymentStats: {
         total_paid: number;
         total_unpaid: number;
@@ -178,6 +195,12 @@ const paymentStatusConfig: Record<string, { label: string; className: string }> 
     },
 };
 
+const managementCycleLabels: Record<string, string> = {
+    quarterly: 'Čtvrtletně',
+    semi_annual: 'Pololetně',
+    annual: 'Ročně',
+};
+
 function PaymentStatusBadge({ status }: { status: string }) {
     const config = paymentStatusConfig[status] ?? paymentStatusConfig.nezaplaceno;
     return (
@@ -187,34 +210,16 @@ function PaymentStatusBadge({ status }: { status: string }) {
     );
 }
 
-const billingCycleLabels: Record<string, string> = {
-    yearly: 'Roční',
-    monthly: 'Měsíční',
-    once: 'Jednorázově',
-};
-
-const monthlyPlanLabels: Record<string, string> = {
-    'klidny-spanek': 'Klidný spánek',
-    vlastni: 'Vlastní',
-    zadny: 'Žádný',
-};
-
 function PaymentForm({
-    subscription,
+    website,
     onClose,
 }: {
-    subscription: Subscription;
+    website: Website;
     onClose: () => void;
 }) {
-    const isMonthly = subscription.billing_cycle === 'monthly';
-    const defaultAmount = isMonthly
-        ? String(subscription.monthly_price || '')
-        : String(subscription.sell_yearly || subscription.price_yearly || '');
-
+    const defaultAmount = String(website.sell_yearly || '');
     const defaultPeriodStart = format(new Date(), 'yyyy-MM-dd');
-    const defaultPeriodEnd = isMonthly
-        ? format(addMonths(new Date(), 1), 'yyyy-MM-dd')
-        : format(addYears(new Date(), 1), 'yyyy-MM-dd');
+    const defaultPeriodEnd = format(addYears(new Date(), 1), 'yyyy-MM-dd');
 
     const { data, setData, post, processing, errors } = useForm<PaymentFormData>({
         amount: defaultAmount,
@@ -227,7 +232,7 @@ function PaymentForm({
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
-        post(`/neniweb/${subscription.id}/platby`, {
+        post(`/webove-sluzby/${website.id}/platby`, {
             onSuccess: () => onClose(),
         });
     };
@@ -236,7 +241,6 @@ function PaymentForm({
 
     return (
         <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Amount */}
             <div>
                 <Label className="text-muted-foreground">Částka (Kč)</Label>
                 <Input
@@ -251,7 +255,6 @@ function PaymentForm({
                 )}
             </div>
 
-            {/* Period */}
             <div className="grid grid-cols-2 gap-4">
                 <div>
                     <Label className="text-muted-foreground">Období od</Label>
@@ -274,9 +277,7 @@ function PaymentForm({
                                 onSelect={(d) => {
                                     if (!d) return;
                                     const startStr = format(d, 'yyyy-MM-dd');
-                                    const endStr = isMonthly
-                                        ? format(addMonths(d, 1), 'yyyy-MM-dd')
-                                        : format(addYears(d, 1), 'yyyy-MM-dd');
+                                    const endStr = format(addYears(d, 1), 'yyyy-MM-dd');
                                     setData('period_start', startStr);
                                     setData('period_end', endStr);
                                 }}
@@ -319,13 +320,9 @@ function PaymentForm({
                 </div>
             </div>
 
-            {/* Status */}
             <div>
                 <Label className="text-muted-foreground">Stav</Label>
-                <Select
-                    value={data.status}
-                    onValueChange={(v) => setData('status', v)}
-                >
+                <Select value={data.status} onValueChange={(v) => setData('status', v)}>
                     <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
                         <SelectValue />
                     </SelectTrigger>
@@ -336,14 +333,10 @@ function PaymentForm({
                 </Select>
             </div>
 
-            {/* Payment method — only when paid */}
             {isPaid && (
                 <div>
                     <Label className="text-muted-foreground">Způsob platby</Label>
-                    <Select
-                        value={data.payment_method}
-                        onValueChange={(v) => setData('payment_method', v)}
-                    >
+                    <Select value={data.payment_method} onValueChange={(v) => setData('payment_method', v)}>
                         <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
                             <SelectValue />
                         </SelectTrigger>
@@ -356,7 +349,6 @@ function PaymentForm({
                 </div>
             )}
 
-            {/* Notes */}
             <div>
                 <Label className="text-muted-foreground">Poznámka</Label>
                 <Textarea
@@ -368,20 +360,11 @@ function PaymentForm({
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-2">
-                <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={onClose}
-                    className="text-muted-foreground hover:text-foreground"
-                >
+                <Button type="button" variant="ghost" onClick={onClose} className="text-muted-foreground hover:text-foreground">
                     Zrušit
                 </Button>
                 <Separator orientation="vertical" className="h-6 bg-border" />
-                <Button
-                    type="submit"
-                    disabled={processing}
-                    className="bg-primary hover:bg-primary/80 text-white"
-                >
+                <Button type="submit" disabled={processing} className="bg-primary hover:bg-primary/80 text-white">
                     {processing ? 'Ukládám...' : 'Uložit platbu'}
                 </Button>
             </div>
@@ -400,42 +383,38 @@ function PasswordField({ password }: { password: string }) {
     }
 
     return (
-        <div className="flex items-center justify-between py-1">
-            <span className="text-sm text-muted-foreground">Heslo</span>
-            <div className="flex items-center gap-1.5">
-                <span className="text-sm font-mono text-foreground">
-                    {visible ? password : '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'}
-                </span>
-                <button
-                    onClick={() => setVisible(!visible)}
-                    className="rounded p-1 text-muted-foreground hover:text-foreground"
-                    title={visible ? 'Skr\u00fdt' : 'Zobrazit'}
-                >
-                    {visible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                </button>
-                <button
-                    onClick={handleCopy}
-                    className={`rounded p-1 transition-colors ${copied ? 'text-emerald-500' : 'text-muted-foreground hover:text-foreground'}`}
-                    title={copied ? 'Zkop\u00edrov\u00e1no!' : 'Kop\u00edrovat'}
-                >
-                    {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                </button>
-            </div>
+        <div className="flex items-center gap-1.5">
+            <span className="text-sm font-mono text-foreground">
+                {visible ? password : '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'}
+            </span>
+            <button
+                onClick={() => setVisible(!visible)}
+                className="rounded p-1 text-muted-foreground hover:text-foreground"
+                title={visible ? 'Skrýt' : 'Zobrazit'}
+            >
+                {visible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+            </button>
+            <button
+                onClick={handleCopy}
+                className={`rounded p-1 transition-colors ${copied ? 'text-emerald-500' : 'text-muted-foreground hover:text-foreground'}`}
+                title={copied ? 'Zkopírováno!' : 'Kopírovat'}
+            >
+                {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            </button>
         </div>
     );
 }
 
-export default function NeniwebShow({ subscription, paymentStats }: Props) {
+export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-    const isDomain = subscription.type === 'domena';
-    const statusInfo = statusMap[subscription.status];
+    const statusInfo = statusMap[website.status];
 
     const handleDelete = () => setShowDeleteConfirm(true);
 
     const handleMarkPaid = (paymentId: number) => {
-        router.put(`/neniweb/${subscription.id}/platby/${paymentId}/zaplaceno`, {});
+        router.put(`/webove-sluzby/${website.id}/platby/${paymentId}/zaplaceno`, {});
     };
 
     const [activatingHosting, setActivatingHosting] = useState(false);
@@ -445,20 +424,19 @@ export default function NeniwebShow({ subscription, paymentStats }: Props) {
         setActivatingHosting(true);
         setActivateHostingResult(null);
         try {
-            const response = await fetch('/neniweb/activate-domain', {
+            const response = await fetch('/webove-sluzby/activate-domain', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-XSRF-TOKEN': decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? ''),
                     'Accept': 'application/json',
                 },
-                body: JSON.stringify({ domain_name: subscription.name }),
+                body: JSON.stringify({ domain_name: website.name }),
             });
             const data = await response.json();
             if (response.ok) {
                 setActivateHostingResult({ success: true, message: data.message ?? 'Hosting aktivován.' });
-                // Spustí sync aby se hosting objevil v CRM
-                setTimeout(() => router.post('/neniweb/sync', {}, { preserveState: false }), 1500);
+                setTimeout(() => router.post('/webove-sluzby/sync', {}, { preserveState: false }), 1500);
             } else {
                 setActivateHostingResult({ success: false, message: data.message ?? 'Aktivace selhala.' });
             }
@@ -477,10 +455,10 @@ export default function NeniwebShow({ subscription, paymentStats }: Props) {
 
     return (
         <AuthenticatedLayout
-            title={subscription.name}
+            title={website.name}
             breadcrumbs={[
-                { label: 'Webové služby', href: '/neniweb' },
-                { label: subscription.name },
+                { label: 'Webové služby', href: '/webove-sluzby' },
+                { label: website.name },
             ]}
         >
             <div className="p-6 space-y-6 max-w-5xl mx-auto">
@@ -490,48 +468,49 @@ export default function NeniwebShow({ subscription, paymentStats }: Props) {
                         <div className="flex items-start gap-4 min-w-0">
                             <Button
                                 variant="ghost"
-                                onClick={() => router.visit('/neniweb')}
+                                onClick={() => router.visit('/webove-sluzby')}
                                 className="text-muted-foreground hover:text-foreground mt-0.5 shrink-0"
                             >
                                 <ArrowLeft className="h-4 w-4" />
                             </Button>
                             <div className="min-w-0">
                                 <div className="flex items-center gap-3 mb-1 flex-wrap">
-                                    {isDomain ? (
-                                        <Globe className="h-6 w-6 text-amber-500 shrink-0" />
-                                    ) : (
-                                        <Server className="h-6 w-6 text-blue-400 shrink-0" />
-                                    )}
+                                    <Globe className="h-6 w-6 text-amber-500 shrink-0" />
                                     <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-                                        {subscription.name}
+                                        {website.name}
                                     </h1>
                                     {statusInfo && (
                                         <StatusBadge status={statusInfo.variant}>
                                             {statusInfo.label}
                                         </StatusBadge>
                                     )}
-                                    <ExpirationBadge expiresAt={subscription.expires_at} />
-                                    {subscription.is_free && (
+                                    <ExpirationBadge expiresAt={website.hosting_expires_at} />
+                                    {website.is_free && (
                                         <span className="inline-flex items-center rounded-full bg-emerald-500/15 border border-emerald-500/25 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
                                             ZDARMA
                                         </span>
                                     )}
+                                    {website.alias_of && (
+                                        <span className="inline-flex items-center rounded-full bg-violet-500/15 border border-violet-500/25 px-2 py-0.5 text-[10px] font-semibold text-violet-400">
+                                            ALIAS &rarr; {website.alias_of.name}
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                                    {subscription.customer && (
+                                    {website.customer && (
                                         <a
-                                            href={`/zakaznici/${subscription.customer.id}`}
+                                            href={`/zakaznici/${website.customer.id}`}
                                             className="hover:text-primary transition-colors"
                                         >
-                                            {subscription.customer.company || subscription.customer.name}
+                                            {website.customer.company || website.customer.name}
                                         </a>
                                     )}
-                                    {subscription.customer && subscription.managed_since && (
+                                    {website.customer && website.starts_at && (
                                         <span className="text-muted-foreground/40">·</span>
                                     )}
-                                    {subscription.managed_since && (
+                                    {website.starts_at && (
                                         <span className="text-muted-foreground/70 text-xs">
-                                            Spravujeme od {format(new Date(subscription.managed_since), 'MMMM yyyy', { locale: cs })}
+                                            Od {format(new Date(website.starts_at), 'MMMM yyyy', { locale: cs })}
                                         </span>
                                     )}
                                 </div>
@@ -540,24 +519,22 @@ export default function NeniwebShow({ subscription, paymentStats }: Props) {
                     </div>
 
                     <div className="flex items-center gap-2 flex-wrap justify-end">
-                        {isDomain && !subscription.has_linked_hosting && (
+                        <Button
+                            variant="ghost"
+                            onClick={handleActivateHosting}
+                            disabled={activatingHosting}
+                            className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 border border-emerald-500/25"
+                        >
+                            {activatingHosting ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                                <Play className="h-4 w-4 mr-2" />
+                            )}
+                            Aktivovat hosting
+                        </Button>
+                        {!website.is_free && website.customer && (
                             <Button
-                                variant="ghost"
-                                onClick={handleActivateHosting}
-                                disabled={activatingHosting}
-                                className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 border border-emerald-500/25"
-                            >
-                                {activatingHosting ? (
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                ) : (
-                                    <Play className="h-4 w-4 mr-2" />
-                                )}
-                                Aktivovat hosting
-                            </Button>
-                        )}
-                        {!subscription.is_free && subscription.customer && (
-                            <Button
-                                onClick={() => router.post(`/neniweb/${subscription.id}/faktura`)}
+                                onClick={() => router.post(`/webove-sluzby/${website.id}/faktura`)}
                                 className="bg-[#ad9d8e] text-white hover:bg-[#ad9d8e]/90 border-0"
                             >
                                 <FileText className="h-4 w-4 mr-2" />
@@ -565,7 +542,7 @@ export default function NeniwebShow({ subscription, paymentStats }: Props) {
                             </Button>
                         )}
                         <Button
-                            onClick={() => router.visit(`/neniweb/${subscription.id}/edit`)}
+                            onClick={() => router.visit(`/webove-sluzby/${website.id}/edit`)}
                             className="bg-[#ad9d8e]/15 text-[#ad9d8e] hover:bg-[#ad9d8e]/25 border border-[#ad9d8e]/25"
                         >
                             <Pencil className="h-4 w-4 mr-2" />
@@ -587,25 +564,36 @@ export default function NeniwebShow({ subscription, paymentStats }: Props) {
                 </div>
 
                 {/* Stats cards */}
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     <div className="bg-card border border-border rounded-xl px-4 py-4">
                         <p className="text-xs text-muted-foreground mb-1">Roční náklad</p>
                         <p className="text-xl font-semibold text-foreground">
-                            {subscription.cost_yearly ? czk(subscription.cost_yearly) : '—'}
+                            {website.cost_yearly ? czk(website.cost_yearly) : '—'}
                         </p>
                     </div>
                     <div className="bg-card border border-border rounded-xl px-4 py-4">
                         <p className="text-xs text-muted-foreground mb-1">Prodejní cena</p>
                         <p className="text-xl font-semibold text-foreground">
-                            {subscription.sell_yearly ? czk(subscription.sell_yearly) : czk(subscription.price_yearly)}
+                            {website.sell_yearly ? czk(website.sell_yearly) : '—'}
                         </p>
                     </div>
                     <div className="bg-card border border-border rounded-xl px-4 py-4">
                         <p className="text-xs text-muted-foreground mb-1">Marže</p>
-                        <p className={`text-xl font-semibold ${subscription.yearly_margin > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                            {subscription.yearly_margin != null ? czk(subscription.yearly_margin) : '—'}
+                        <p className={`text-xl font-semibold ${website.yearly_margin > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {website.yearly_margin != null ? czk(website.yearly_margin) : '—'}
                         </p>
                     </div>
+                    {website.management_plan && (
+                        <div className="bg-card border border-border rounded-xl px-4 py-4">
+                            <p className="text-xs text-muted-foreground mb-1">Správa</p>
+                            <p className="text-lg font-semibold text-foreground">
+                                {website.management_plan.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                {Number(website.management_plan.price_monthly).toLocaleString('cs-CZ')} Kč/měs
+                            </p>
+                        </div>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -630,13 +618,13 @@ export default function NeniwebShow({ subscription, paymentStats }: Props) {
                                 </Button>
                             </div>
 
-                            {subscription.payments.length === 0 ? (
+                            {website.payments.length === 0 ? (
                                 <div className="px-5 py-8 text-center text-sm text-muted-foreground">
                                     Žádné platby
                                 </div>
                             ) : (
                                 <div className="divide-y divide-border">
-                                    {subscription.payments.map((payment) => (
+                                    {website.payments.map((payment) => (
                                         <div
                                             key={payment.id}
                                             className="flex items-center justify-between px-5 py-3 hover:bg-muted/30 transition-colors"
@@ -687,7 +675,6 @@ export default function NeniwebShow({ subscription, paymentStats }: Props) {
                                 </div>
                             )}
 
-                            {/* Payment stats footer */}
                             {paymentStats.payments_count > 0 && (
                                 <div className="flex items-center gap-6 px-5 py-3 border-t border-border bg-muted/30">
                                     <div>
@@ -703,18 +690,17 @@ export default function NeniwebShow({ subscription, paymentStats }: Props) {
                                 </div>
                             )}
                         </div>
+
                         {/* Linked invoices */}
-                        {subscription.invoices && subscription.invoices.length > 0 && (
+                        {website.invoices && website.invoices.length > 0 && (
                             <div className="bg-card border border-border rounded-xl overflow-hidden mt-4">
                                 <div className="flex items-center gap-2 px-5 py-4 border-b border-border">
                                     <FileText className="h-4 w-4 text-muted-foreground" />
                                     <h2 className="text-sm font-semibold text-foreground">Faktury</h2>
-                                    <span className="text-xs text-muted-foreground">
-                                        ({subscription.invoices.length})
-                                    </span>
+                                    <span className="text-xs text-muted-foreground">({website.invoices.length})</span>
                                 </div>
                                 <div className="divide-y divide-border">
-                                    {subscription.invoices.map((inv) => {
+                                    {website.invoices.map((inv) => {
                                         const invStatus = invoiceStatusConfig[inv.status] ?? invoiceStatusConfig.vystavena;
                                         return (
                                             <a
@@ -723,17 +709,13 @@ export default function NeniwebShow({ subscription, paymentStats }: Props) {
                                                 className="flex items-center justify-between px-5 py-3 hover:bg-muted/30 transition-colors"
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <span className="text-sm font-medium text-foreground">
-                                                        {inv.invoice_number}
-                                                    </span>
+                                                    <span className="text-sm font-medium text-foreground">{inv.invoice_number}</span>
                                                     <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${invStatus.className}`}>
                                                         {invStatus.label}
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center gap-4">
-                                                    <span className="text-sm font-medium text-foreground">
-                                                        {czk(Number(inv.total))}
-                                                    </span>
+                                                    <span className="text-sm font-medium text-foreground">{czk(Number(inv.total))}</span>
                                                     <span className="text-xs text-muted-foreground">
                                                         {format(new Date(inv.issue_date), 'd. M. yyyy', { locale: cs })}
                                                     </span>
@@ -752,131 +734,105 @@ export default function NeniwebShow({ subscription, paymentStats }: Props) {
                             <h2 className="text-sm font-semibold text-foreground mb-3">Informace</h2>
 
                             <div className="space-y-2.5 text-sm">
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Typ</span>
-                                    <span className="text-foreground">
-                                        {isDomain ? 'Doména' : 'Hosting'}
-                                    </span>
+                                {/* TWO expirations side by side */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <span className="text-muted-foreground text-xs block mb-0.5">Doména exp.</span>
+                                        <span className="text-foreground font-medium">
+                                            {website.domain_expires_at
+                                                ? format(new Date(website.domain_expires_at), 'd. M. yyyy', { locale: cs })
+                                                : <span className="text-muted-foreground/50">—</span>}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span className="text-muted-foreground text-xs block mb-0.5">Hosting exp.</span>
+                                        <span className="text-foreground font-medium">
+                                            {website.hosting_expires_at
+                                                ? format(new Date(website.hosting_expires_at), 'd. M. yyyy', { locale: cs })
+                                                : <span className="text-muted-foreground/50">—</span>}
+                                        </span>
+                                    </div>
                                 </div>
 
-                                {isDomain && subscription.has_linked_hosting !== null && (
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Hosting</span>
-                                        {subscription.has_linked_hosting ? (
-                                            <span className="inline-flex items-center gap-1.5">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                                <span className="text-emerald-400 font-medium">Ano</span>
-                                            </span>
-                                        ) : (
-                                            <span className="inline-flex items-center gap-1.5">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
-                                                <span className="text-muted-foreground/60">Ne</span>
-                                            </span>
-                                        )}
-                                    </div>
-                                )}
+                                <Separator className="bg-border" />
 
-                                {!isDomain && subscription.has_linked_domain !== null && (
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Doména</span>
-                                        {subscription.has_linked_domain ? (
-                                            <span className="inline-flex items-center gap-1.5">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                                <span className="text-emerald-400 font-medium">Ano</span>
-                                            </span>
-                                        ) : (
-                                            <span className="inline-flex items-center gap-1.5">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
-                                                <span className="text-muted-foreground/60">Ne</span>
-                                            </span>
-                                        )}
-                                    </div>
-                                )}
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Registrátor</span>
+                                    {website.is_registered_by_us ? (
+                                        <span className="inline-flex items-center gap-1.5">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                            <span className="text-emerald-400 font-medium">Váš-Hosting</span>
+                                        </span>
+                                    ) : (
+                                        <span className="text-muted-foreground/60">Externí</span>
+                                    )}
+                                </div>
 
-                                {isDomain && (
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Registrátor</span>
-                                        {subscription.is_registered_by_us ? (
-                                            <span className="inline-flex items-center gap-1.5">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                                <span className="text-emerald-400 font-medium">Váš-Hosting</span>
-                                            </span>
-                                        ) : (
-                                            <span className="text-muted-foreground/60">Externí</span>
-                                        )}
-                                    </div>
-                                )}
-
-                                {subscription.ip_address && (
+                                {website.ip_address && (
                                     <div className="flex justify-between">
                                         <span className="text-muted-foreground">IP adresa</span>
-                                        <span className="text-foreground font-mono text-xs">
-                                            {subscription.ip_address}
-                                        </span>
+                                        <span className="text-foreground font-mono text-xs">{website.ip_address}</span>
                                     </div>
                                 )}
 
-                                {subscription.tariff && (
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Tarif</span>
-                                        <span className="text-foreground">{subscription.tariff}</span>
-                                    </div>
-                                )}
-
-                                {subscription.server && (
+                                {website.server && (
                                     <div className="flex justify-between">
                                         <span className="text-muted-foreground">Server</span>
-                                        <span className="text-foreground font-mono text-xs">
-                                            {subscription.server}
-                                        </span>
+                                        <span className="text-foreground font-mono text-xs">{website.server}</span>
                                     </div>
                                 )}
 
-                                {subscription.storage_quota_mb > 0 && (
+                                {website.hosting_server && (
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">VPS server</span>
+                                        <span className="text-foreground">{website.hosting_server.name}</span>
+                                    </div>
+                                )}
+
+                                {website.storage_quota_mb > 0 && (
                                     <div>
                                         <div className="flex justify-between mb-1">
                                             <span className="text-muted-foreground">Úložiště</span>
                                             <span className="text-foreground text-xs">
-                                                {subscription.storage_used_mb} / {subscription.storage_quota_mb} MB
+                                                {website.storage_used_mb} / {website.storage_quota_mb} MB
                                             </span>
                                         </div>
                                         <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                                             <div
                                                 className={`h-full rounded-full ${
-                                                    (subscription.storage_used_mb / subscription.storage_quota_mb) > 0.9
+                                                    (website.storage_used_mb / website.storage_quota_mb) > 0.9
                                                         ? 'bg-red-400'
-                                                        : (subscription.storage_used_mb / subscription.storage_quota_mb) > 0.7
+                                                        : (website.storage_used_mb / website.storage_quota_mb) > 0.7
                                                             ? 'bg-amber-400'
                                                             : 'bg-emerald-400'
                                                 }`}
-                                                style={{ width: `${Math.min(100, Math.round((subscription.storage_used_mb / subscription.storage_quota_mb) * 100))}%` }}
+                                                style={{ width: `${Math.min(100, Math.round((website.storage_used_mb / website.storage_quota_mb) * 100))}%` }}
                                             />
                                         </div>
                                     </div>
                                 )}
 
-                                {!isDomain && (
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Fakturační cyklus</span>
-                                        <span className="text-foreground">
-                                            {billingCycleLabels[subscription.billing_cycle] ?? subscription.billing_cycle}
-                                        </span>
-                                    </div>
-                                )}
-
-                                {!isDomain && subscription.monthly_plan && (
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Plán</span>
-                                        <span className="text-foreground">
-                                            {monthlyPlanLabels[subscription.monthly_plan] ?? subscription.monthly_plan}
-                                        </span>
-                                    </div>
+                                {website.management_plan && (
+                                    <>
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Správa</span>
+                                            <span className="text-foreground">{website.management_plan.name}</span>
+                                        </div>
+                                        {website.management_plan && (
+                                            <div className="flex justify-between">
+                                                <span className="text-muted-foreground">Fakturace správy</span>
+                                                <span className="text-foreground">
+                                                    {managementCycleLabels[(website as Record<string, unknown>).management_cycle as string] ?? '—'}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </>
                                 )}
 
                                 <div className="flex justify-between">
                                     <span className="text-muted-foreground">Auto-renew</span>
-                                    <span className={subscription.auto_renew ? 'text-emerald-400' : 'text-muted-foreground'}>
-                                        {subscription.auto_renew ? 'Ano' : 'Ne'}
+                                    <span className={website.auto_renew ? 'text-emerald-400' : 'text-muted-foreground'}>
+                                        {website.auto_renew ? 'Ano' : 'Ne'}
                                     </span>
                                 </div>
 
@@ -885,102 +841,120 @@ export default function NeniwebShow({ subscription, paymentStats }: Props) {
                                 <div className="flex justify-between">
                                     <span className="text-muted-foreground">Začátek</span>
                                     <span className="text-foreground">
-                                        {subscription.starts_at
-                                            ? format(new Date(subscription.starts_at), 'd. M. yyyy', { locale: cs })
+                                        {website.starts_at
+                                            ? format(new Date(website.starts_at), 'd. M. yyyy', { locale: cs })
                                             : <span className="text-muted-foreground/50">Nenastaveno</span>}
                                     </span>
                                 </div>
 
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Expirace</span>
-                                    <span className="text-foreground">
-                                        {subscription.expires_at
-                                            ? format(new Date(subscription.expires_at), 'd. M. yyyy', { locale: cs })
-                                            : <span className="text-muted-foreground/50">Nenastaveno</span>}
-                                    </span>
-                                </div>
-
-                                {subscription.managed_since && (
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Ve správě od</span>
-                                        <span className="text-foreground">
-                                            {format(new Date(subscription.managed_since), 'd. M. yyyy', { locale: cs })}
-                                        </span>
-                                    </div>
-                                )}
-
-                                {subscription.synced_at && (
+                                {website.synced_at && (
                                     <>
                                         <Separator className="bg-border" />
                                         <div className="flex justify-between">
                                             <span className="text-muted-foreground">Poslední sync</span>
                                             <span className="text-muted-foreground/70 text-xs">
-                                                {format(new Date(subscription.synced_at), 'd. M. yyyy HH:mm', { locale: cs })}
+                                                {format(new Date(website.synced_at), 'd. M. yyyy HH:mm', { locale: cs })}
                                             </span>
                                         </div>
                                     </>
                                 )}
 
-                                {/* Přístupy do webu */}
-                                {(subscription.admin_url || subscription.admin_user || subscription.client_user) && (
+                                {/* Aliases */}
+                                {website.aliases && website.aliases.length > 0 && (
                                     <>
                                         <Separator className="bg-border" />
                                         <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                            Přístupy do webu
+                                            Aliasy
                                         </h4>
-                                        {subscription.admin_url && (
+                                        {website.aliases.map((alias) => (
+                                            <div key={alias.id} className="flex items-center justify-between py-0.5">
+                                                <a
+                                                    href={`/webove-sluzby/${alias.id}`}
+                                                    className="text-sm text-primary hover:underline flex items-center gap-1.5"
+                                                >
+                                                    <Link2 className="h-3 w-3" />
+                                                    {alias.name}
+                                                </a>
+                                            </div>
+                                        ))}
+                                    </>
+                                )}
+
+                                {/* Credentials */}
+                                {website.credentials && website.credentials.length > 0 && (
+                                    <>
+                                        <Separator className="bg-border" />
+                                        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                            Přístupy
+                                        </h4>
+                                        {website.admin_url && (
                                             <div className="flex items-center justify-between py-1">
                                                 <span className="text-sm text-muted-foreground">Admin URL</span>
                                                 <a
-                                                    href={subscription.admin_url}
+                                                    href={website.admin_url}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="text-sm text-primary hover:underline"
                                                 >
-                                                    Otevřít →
+                                                    Otevřít &rarr;
                                                 </a>
                                             </div>
                                         )}
-                                        {subscription.admin_user && (
-                                            <>
-                                                <p className="mt-2 text-xs font-medium text-muted-foreground/70">Můj přístup</p>
-                                                <div className="flex items-center justify-between py-1">
-                                                    <span className="text-sm text-muted-foreground">Login</span>
-                                                    <span className="text-sm text-foreground">{subscription.admin_user}</span>
+                                        {website.credentials.map((cred) => (
+                                            <div key={cred.id} className="rounded-lg bg-accent px-3 py-2.5 mb-1">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <Shield className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                                    <span className="text-xs font-medium text-foreground">{cred.label}</span>
                                                 </div>
-                                                {subscription.admin_password && (
-                                                    <PasswordField password={subscription.admin_password} />
-                                                )}
-                                            </>
-                                        )}
-                                        {subscription.client_user && (
-                                            <>
-                                                <p className="mt-2 text-xs font-medium text-muted-foreground/70">Zákazník</p>
-                                                <div className="flex items-center justify-between py-1">
-                                                    <span className="text-sm text-muted-foreground">Login</span>
-                                                    <span className="text-sm text-foreground">{subscription.client_user}</span>
+                                                <div className="flex items-center justify-between py-0.5">
+                                                    <span className="text-xs text-muted-foreground">Login</span>
+                                                    <span className="text-sm text-foreground">{cred.login}</span>
                                                 </div>
-                                                {subscription.client_password && (
-                                                    <PasswordField password={subscription.client_password} />
+                                                {cred.password && (
+                                                    <div className="flex items-center justify-between py-0.5">
+                                                        <span className="text-xs text-muted-foreground">Heslo</span>
+                                                        <PasswordField password={cred.password} />
+                                                    </div>
                                                 )}
-                                            </>
-                                        )}
+                                                {cred.notes && (
+                                                    <p className="text-xs text-muted-foreground/70 mt-1">{cred.notes}</p>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </>
+                                )}
+
+                                {/* Admin URL without credentials */}
+                                {website.admin_url && (!website.credentials || website.credentials.length === 0) && (
+                                    <>
+                                        <Separator className="bg-border" />
+                                        <div className="flex items-center justify-between py-1">
+                                            <span className="text-sm text-muted-foreground">Admin URL</span>
+                                            <a
+                                                href={website.admin_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-sm text-primary hover:underline"
+                                            >
+                                                Otevřít &rarr;
+                                            </a>
+                                        </div>
                                     </>
                                 )}
                             </div>
                         </div>
 
-                        {subscription.notes && (
+                        {website.notes && (
                             <div className="bg-card border border-border rounded-xl px-5 py-4">
                                 <h2 className="text-sm font-semibold text-foreground mb-2">Poznámky</h2>
                                 <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                                    {subscription.notes}
+                                    {website.notes}
                                 </p>
                             </div>
                         )}
 
-                        {/* E-mail účty */}
-                        <EmailAccountsSection subscriptionId={subscription.id} emailAccounts={subscription.email_accounts ?? []} />
+                        {/* E-mail accounts */}
+                        <EmailAccountsSection websiteId={website.id} emailAccounts={website.email_accounts ?? []} />
                     </div>
                 </div>
             </div>
@@ -992,7 +966,7 @@ export default function NeniwebShow({ subscription, paymentStats }: Props) {
                 maxWidth="max-w-lg"
             >
                 <PaymentForm
-                    subscription={subscription}
+                    website={website}
                     onClose={() => setShowPaymentModal(false)}
                 />
             </GlassModal>
@@ -1000,17 +974,17 @@ export default function NeniwebShow({ subscription, paymentStats }: Props) {
             <ConfirmDialog
                 open={showDeleteConfirm}
                 onClose={() => setShowDeleteConfirm(false)}
-                onConfirm={() => router.delete(`/neniweb/${subscription.id}`)}
-                title="Smazat službu"
-                message={`Opravdu chcete smazat "${subscription.name}"?`}
+                onConfirm={() => router.delete(`/webove-sluzby/${website.id}`)}
+                title="Smazat web"
+                message={`Opravdu chcete smazat "${website.name}"?`}
             />
         </AuthenticatedLayout>
     );
 }
 
-/* ───── Email Accounts Section ───── */
+/* ---- Email Accounts Section ---- */
 
-function EmailAccountsSection({ subscriptionId, emailAccounts }: { subscriptionId: number; emailAccounts: EmailAccount[] }) {
+function EmailAccountsSection({ websiteId, emailAccounts }: { websiteId: number; emailAccounts: EmailAccount[] }) {
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -1038,7 +1012,7 @@ function EmailAccountsSection({ subscriptionId, emailAccounts }: { subscriptionI
 
             {showForm && (
                 <EmailAccountForm
-                    subscriptionId={subscriptionId}
+                    websiteId={websiteId}
                     onCancel={() => setShowForm(false)}
                     onSuccess={() => setShowForm(false)}
                 />
@@ -1053,7 +1027,7 @@ function EmailAccountsSection({ subscriptionId, emailAccounts }: { subscriptionI
                     editingId === ea.id ? (
                         <EmailAccountForm
                             key={ea.id}
-                            subscriptionId={subscriptionId}
+                            websiteId={websiteId}
                             emailAccount={ea}
                             onCancel={() => setEditingId(null)}
                             onSuccess={() => setEditingId(null)}
@@ -1107,12 +1081,12 @@ function EmailAccountsSection({ subscriptionId, emailAccounts }: { subscriptionI
 }
 
 function EmailAccountForm({
-    subscriptionId,
+    websiteId,
     emailAccount,
     onCancel,
     onSuccess,
 }: {
-    subscriptionId: number;
+    websiteId: number;
     emailAccount?: EmailAccount;
     onCancel: () => void;
     onSuccess: () => void;
@@ -1133,7 +1107,7 @@ function EmailAccountForm({
                 onSuccess,
             });
         } else {
-            form.post(`/neniweb/${subscriptionId}/emaily`, {
+            form.post(`/webove-sluzby/${websiteId}/emaily`, {
                 preserveScroll: true,
                 onSuccess: () => { form.reset(); onSuccess(); },
             });

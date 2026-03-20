@@ -4,19 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Spatie\Activitylog\LogOptions;
-use Spatie\Activitylog\Traits\LogsActivity;
 
-class EmailAccount extends Model
+class WebsiteCredential extends Model
 {
-    use LogsActivity;
-
     protected $fillable = [
         'website_id',
-        'email',
+        'label',
+        'login',
         'password',
-        'quota_mb',
         'notes',
+        'sort_order',
     ];
 
     protected $hidden = ['password'];
@@ -26,13 +23,6 @@ class EmailAccount extends Model
         return [
             'password' => 'encrypted',
         ];
-    }
-
-    public function getActivitylogOptions(): LogOptions
-    {
-        return LogOptions::defaults()
-            ->logFillable()
-            ->logOnlyDirty();
     }
 
     public function website(): BelongsTo

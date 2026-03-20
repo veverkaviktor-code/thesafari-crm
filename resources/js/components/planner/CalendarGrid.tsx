@@ -23,7 +23,7 @@ interface CalendarEvent {
     id: number;
     title: string;
     date: string;
-    type: 'task' | 'subscription' | 'invoice';
+    type: 'task' | 'website' | 'invoice';
     priority?: string;
     subtype?: string;
     total?: number;
@@ -37,13 +37,13 @@ interface CalendarGridProps {
 const DOT_COLORS: Record<CalendarEvent['type'], string> = {
     task: 'bg-amber-500',
     invoice: 'bg-blue-500',
-    subscription: 'bg-emerald-500',
+    website: 'bg-emerald-500',
 };
 
 const EVENT_TYPE_LABELS: Record<CalendarEvent['type'], string> = {
     task: 'Úkol',
     invoice: 'Faktura',
-    subscription: 'Předplatné',
+    website: 'Webová služba',
 };
 
 const DAY_HEADERS = ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne'];
@@ -186,8 +186,8 @@ export default function CalendarGrid({ events, onTaskClick }: CalendarGridProps)
                                                     onTaskClick(ev.id);
                                                 } else if (ev.type === 'invoice') {
                                                     router.visit(`/faktury/${ev.id}`);
-                                                } else if (ev.type === 'subscription') {
-                                                    router.visit(`/neniweb/${ev.id}`);
+                                                } else if (ev.type === 'website') {
+                                                    router.visit(`/webove-sluzby/${ev.id}`);
                                                 }
                                             }}
                                             className="flex w-full items-start gap-2 rounded-md p-1.5 text-left text-sm transition-colors hover:bg-accent cursor-pointer"

@@ -10,7 +10,6 @@ use App\Http\Controllers\CompanySettingsController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmailAccountController;
-use App\Http\Controllers\SubscriptionFolderController;
 use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\NotificationController;
@@ -18,11 +17,12 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SettingsController;
-use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\SupportController;
 use App\Http\Controllers\LogsController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\VpsServerController;
+use App\Http\Controllers\WebsiteController;
+use App\Http\Controllers\WebsiteCredentialController;
 use App\Http\Controllers\OrderCostController;
 use App\Http\Controllers\OrderItemController;
 use App\Http\Controllers\TaskController;
@@ -101,34 +101,52 @@ Route::middleware('auth')->group(function () {
 
     // Legacy pozadavky routes removed — use /zpravy instead (redirect below)
 
-    // Složky webových služeb
-    Route::post('neniweb/slozky', [SubscriptionFolderController::class, 'store'])->name('folders.store');
-    Route::put('neniweb/slozky/{folder}', [SubscriptionFolderController::class, 'update'])->name('folders.update');
-    Route::post('neniweb/slozky/{folder}/toggle', [SubscriptionFolderController::class, 'toggleCollapse'])->name('folders.toggle');
-    Route::delete('neniweb/slozky/{folder}', [SubscriptionFolderController::class, 'destroy'])->name('folders.destroy');
-    Route::put('neniweb/{neniweb}/folder', [SubscriptionController::class, 'updateFolder'])->name('neniweb.updateFolder');
+    // ===== Webové služby (websites) =====
 
-    // Pevné neniweb routy PŘED resource (bez {neniweb} parametru — jinak by Laravel bral za ID)
-    Route::post('neniweb/activate-domain', [SubscriptionController::class, 'activateDomain'])->name('neniweb.activate-domain');
-    Route::post('neniweb/sync', [SubscriptionController::class, 'sync'])->name('neniweb.sync');
-    Route::post('neniweb/bulk-update', [SubscriptionController::class, 'bulkUpdate'])->name('neniweb.bulk-update');
-    Route::resource('neniweb', SubscriptionController::class);
-    Route::get('neniweb/{neniweb}/upravit', [SubscriptionController::class, 'edit']);
-    Route::post('neniweb/{neniweb}/platby', [SubscriptionController::class, 'storePayment'])->name('neniweb.payments.store');
-    Route::put('neniweb/{neniweb}/platby/{payment}/zaplaceno', [SubscriptionController::class, 'markPaymentPaid'])->name('neniweb.payments.paid');
-    Route::post('neniweb/{neniweb}/faktura', [SubscriptionController::class, 'createInvoice'])->name('neniweb.invoice.create');
-    Route::post('neniweb/{neniweb}/toggle-ignore-alerts', [SubscriptionController::class, 'toggleIgnoreAlerts'])->name('neniweb.toggleIgnoreAlerts');
+    // Static routes FIRST (before {website} parameter)
+    Route::post('webove-sluzby/sync', [WebsiteController::class, 'sync'])->name('websites.sync');
+    Route::post('webove-sluzby/bulk-update', [WebsiteController::class, 'bulkUpdate'])->name('websites.bulk-update');
+    Route::post('webove-sluzby/activate-domain', [WebsiteController::class, 'activateDomain'])->name('websites.activate-domain');
+    Route::get('webove-sluzby/vytvorit', [WebsiteController::class, 'create'])->name('websites.create');
+    Route::post('webove-sluzby/faktura-zakaznik/{customer}', [WebsiteController::class, 'createCustomerInvoice'])->name('websites.invoice.createCustomer');
 
-    // Email účty na hostingách
-    Route::post('neniweb/{subscription}/emaily', [EmailAccountController::class, 'store'])->name('email-accounts.store');
-    Route::put('emaily/{emailAccount}', [EmailAccountController::class, 'update'])->name('email-accounts.update');
-    Route::delete('emaily/{emailAccount}', [EmailAccountController::class, 'destroy'])->name('email-accounts.destroy');
+    // Ke schválení
+    Route::get('webove-sluzby/ke-schvaleni', [WebsiteController::class, 'pending'])->name('websites.pending');
+    Route::post('webove-sluzby/ke-schvaleni/approve', [WebsiteController::class, 'approvePending'])->name('websites.pending.approve');
+    Route::post('webove-sluzby/ke-schvaleni/ignore', [WebsiteController::class, 'ignorePending'])->name('websites.pending.ignore');
 
     // VPS servery — sync route musí být PŘED {vp} aby nebyl "sync" brán jako ID
-    Route::post('neniweb/vps/sync', [VpsServerController::class, 'syncFromHostings'])->name('vps.sync');
-    Route::post('neniweb/vps', [VpsServerController::class, 'store'])->name('vps.store');
-    Route::put('neniweb/vps/{vp}', [VpsServerController::class, 'update'])->name('vps.update');
-    Route::delete('neniweb/vps/{vp}', [VpsServerController::class, 'destroy'])->name('vps.destroy');
+    Route::post('webove-sluzby/vps/sync', [VpsServerController::class, 'syncFromHostings'])->name('vps.sync');
+    Route::post('webove-sluzby/vps', [VpsServerController::class, 'store'])->name('vps.store');
+    Route::put('webove-sluzby/vps/{vp}', [VpsServerController::class, 'update'])->name('vps.update');
+    Route::delete('webove-sluzby/vps/{vp}', [VpsServerController::class, 'destroy'])->name('vps.destroy');
+
+    // Resource routes (parameterized — AFTER static)
+    Route::resource('webove-sluzby', WebsiteController::class)->parameters(['webove-sluzby' => 'website'])->names([
+        'index' => 'websites.index',
+        'store' => 'websites.store',
+        'show' => 'websites.show',
+        'edit' => 'websites.edit',
+        'update' => 'websites.update',
+        'destroy' => 'websites.destroy',
+    ]);
+    Route::get('webove-sluzby/{website}/upravit', [WebsiteController::class, 'edit']);
+
+    // Website sub-resources (need {website} parameter)
+    Route::post('webove-sluzby/{website}/platby', [WebsiteController::class, 'storePayment'])->name('websites.payments.store');
+    Route::put('webove-sluzby/{website}/platby/{payment}/zaplaceno', [WebsiteController::class, 'markPaymentPaid'])->name('websites.payments.paid');
+    Route::post('webove-sluzby/{website}/faktura', [WebsiteController::class, 'createInvoice'])->name('websites.invoice.create');
+    Route::post('webove-sluzby/{website}/toggle-ignore', [WebsiteController::class, 'toggleIgnoreAlerts'])->name('websites.toggleIgnore');
+
+    // Credentials
+    Route::post('webove-sluzby/{website}/credentials', [WebsiteCredentialController::class, 'store'])->name('credentials.store');
+    Route::put('webove-sluzby/credentials/{credential}', [WebsiteCredentialController::class, 'update'])->name('credentials.update');
+    Route::delete('webove-sluzby/credentials/{credential}', [WebsiteCredentialController::class, 'destroy'])->name('credentials.destroy');
+
+    // Email účty na webech
+    Route::post('webove-sluzby/{website}/emaily', [EmailAccountController::class, 'store'])->name('email-accounts.store');
+    Route::put('emaily/{emailAccount}', [EmailAccountController::class, 'update'])->name('email-accounts.update');
+    Route::delete('emaily/{emailAccount}', [EmailAccountController::class, 'destroy'])->name('email-accounts.destroy');
 
     // Planner (úkoly) — bulk PŘED resource
     Route::post('planovac/bulk-delete', [TaskController::class, 'bulkDelete'])->name('planovac.bulkDelete');
@@ -192,12 +210,12 @@ Route::middleware('auth')->group(function () {
     Route::post('zpravy/{id}/restore', [TicketController::class, 'restore'])->name('zpravy.restore');
     Route::delete('zpravy/{id}/force-delete', [TicketController::class, 'forceDelete'])->name('zpravy.forceDelete');
 
-    // Souhrnná fakturace
-    Route::post('neniweb/faktura-zakaznik/{customer}', [SubscriptionController::class, 'createCustomerInvoice'])->name('neniweb.invoice.createCustomer');
-
     // Global search
     Route::get('search', SearchController::class)->name('search');
 
     // ARES lookup
     Route::get('api/ares/{ico}', [AresController::class, 'lookup'])->name('ares.lookup');
 });
+
+// Legacy redirects (outside auth middleware — catch-all)
+Route::get('/neniweb/{any?}', fn($any = '') => redirect("/webove-sluzby/{$any}", 301))->where('any', '.*');

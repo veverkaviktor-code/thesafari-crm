@@ -4,17 +4,17 @@ namespace App\Console\Commands;
 
 use App\Models\Estimate;
 use App\Models\Invoice;
-use App\Models\Subscription;
 use App\Models\User;
+use App\Models\Website;
 use App\Notifications\EstimateInactive;
 use App\Notifications\InvoiceOverdue;
-use App\Notifications\SubscriptionExpiring;
+use App\Notifications\WebsiteExpiring;
 use Illuminate\Console\Command;
 
 class GenerateNotifications extends Command
 {
     protected $signature = 'notifications:generate';
-    protected $description = 'Generate notifications for overdue invoices and expiring subscriptions';
+    protected $description = 'Generate notifications for overdue invoices and expiring websites';
 
     public function handle(): int
     {
@@ -45,45 +45,45 @@ class GenerateNotifications extends Command
             }
         }
 
-        // 2. Expiring subscriptions (within 14 days)
-        $expiringSubscriptions = Subscription::with('customer')
+        // 2. Expiring websites (within 14 days)
+        $expiringWebsites = Website::with('customer')
             ->where('status', 'aktivni')
-            ->whereNotNull('expires_at')
-            ->where('expires_at', '<=', now()->addDays(14))
-            ->where('expires_at', '>=', now()->startOfDay())
+            ->whereNotNull('hosting_expires_at')
+            ->where('hosting_expires_at', '<=', now()->addDays(14))
+            ->where('hosting_expires_at', '>=', now()->startOfDay())
             ->get();
 
-        foreach ($expiringSubscriptions as $sub) {
+        foreach ($expiringWebsites as $website) {
             $exists = $admin->notifications()
-                ->where('type', SubscriptionExpiring::class)
+                ->where('type', WebsiteExpiring::class)
                 ->whereNull('read_at')
-                ->whereRaw("data::jsonb->>'subscription_id' = ?", [(string) $sub->id])
+                ->whereRaw("data::jsonb->>'website_id' = ?", [(string) $website->id])
                 ->exists();
 
             if (!$exists) {
-                $daysLeft = (int) now()->diffInDays($sub->expires_at, false);
-                $admin->notify(new SubscriptionExpiring($sub, max(0, $daysLeft)));
+                $daysLeft = (int) now()->diffInDays($website->hosting_expires_at, false);
+                $admin->notify(new WebsiteExpiring($website, max(0, $daysLeft)));
                 $generated++;
             }
         }
 
-        // 3. Expired subscriptions (past due)
-        $expiredSubscriptions = Subscription::with('customer')
+        // 3. Expired websites (past due)
+        $expiredWebsites = Website::with('customer')
             ->where('status', 'aktivni')
-            ->whereNotNull('expires_at')
-            ->where('expires_at', '<', now()->startOfDay())
+            ->whereNotNull('hosting_expires_at')
+            ->where('hosting_expires_at', '<', now()->startOfDay())
             ->get();
 
-        foreach ($expiredSubscriptions as $sub) {
+        foreach ($expiredWebsites as $website) {
             $exists = $admin->notifications()
-                ->where('type', SubscriptionExpiring::class)
+                ->where('type', WebsiteExpiring::class)
                 ->whereNull('read_at')
-                ->whereRaw("data::jsonb->>'subscription_id' = ?", [(string) $sub->id])
+                ->whereRaw("data::jsonb->>'website_id' = ?", [(string) $website->id])
                 ->exists();
 
             if (!$exists) {
-                $daysLeft = (int) now()->diffInDays($sub->expires_at, false);
-                $admin->notify(new SubscriptionExpiring($sub, $daysLeft));
+                $daysLeft = (int) now()->diffInDays($website->hosting_expires_at, false);
+                $admin->notify(new WebsiteExpiring($website, $daysLeft));
                 $generated++;
             }
         }

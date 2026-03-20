@@ -6,7 +6,7 @@ use App\Models\Customer;
 use App\Models\Estimate;
 use App\Models\Invoice;
 use App\Models\Order;
-use App\Models\Subscription;
+use App\Models\Website;
 use App\Models\Task;
 use App\Models\Ticket;
 use Illuminate\Http\JsonResponse;
@@ -73,20 +73,20 @@ class SearchController extends Controller
                 'type' => 'invoice',
             ]);
 
-        $subscriptions = Subscription::where(function ($q) use ($term) {
+        $websites = Website::where(function ($q) use ($term) {
                 $q->where('name', 'ilike', $term)
                   ->orWhereHas('customer', fn ($cq) => $cq->where('name', 'ilike', $term)->orWhere('company', 'ilike', $term));
             })
             ->with('customer:id,name')
-            ->select('id', 'name', 'type', 'status', 'customer_id')
+            ->select('id', 'name', 'status', 'customer_id')
             ->limit(5)
             ->get()
-            ->map(fn ($s) => [
-                'id' => $s->id,
-                'title' => $s->name,
-                'subtitle' => ($s->customer?->name ?? '') . ' · ' . ucfirst($s->type),
-                'link' => "/neniweb/{$s->id}",
-                'type' => 'subscription',
+            ->map(fn ($w) => [
+                'id' => $w->id,
+                'title' => $w->name,
+                'subtitle' => $w->customer?->name ?? '',
+                'link' => "/webove-sluzby/{$w->id}",
+                'type' => 'website',
             ]);
 
         $estimates = Estimate::where(function ($q) use ($term) {
@@ -140,7 +140,7 @@ class SearchController extends Controller
         return response()->json([
             'results' => [
                 'customers'     => $customers,
-                'subscriptions' => $subscriptions,
+                'websites'      => $websites,
                 'orders'        => $orders,
                 'invoices'      => $invoices,
                 'estimates'     => $estimates,

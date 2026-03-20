@@ -28,12 +28,13 @@ interface Props {
         notes: string | null;
         tags: string[];
         created_at: string;
-        subscriptions: {
+        websites: {
             id: number;
-            type: 'hosting' | 'domena' | 'sluzba';
             name: string;
             status: string;
-            expires_at: string | null;
+            is_registered_by_us: boolean;
+            hosting_expires_at: string | null;
+            domain_expires_at: string | null;
         }[];
     };
     stats: {
@@ -44,7 +45,7 @@ interface Props {
         invoiced: number;
         paid: number;
         uninvoiced: number;
-        active_subscriptions: number;
+        active_websites: number;
         vps_yearly: number;
     };
     vpsServers: {
@@ -113,7 +114,7 @@ export default function Show({
                 <CustomerTabs
                     orders={orders ?? []}
                     invoices={invoices ?? []}
-                    subscriptions={customer.subscriptions ?? []}
+                    websites={customer.websites ?? []}
                     vpsServers={vpsServers ?? []}
                     orderAttachments={orderAttachments ?? []}
                 />

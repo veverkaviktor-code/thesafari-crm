@@ -15,7 +15,7 @@ interface ReceivableItem {
     id: number;
     customer_id: number;
     customer_name: string;
-    type: 'invoice' | 'order' | 'subscription';
+    type: 'invoice' | 'order' | 'website';
     label: string;
     amount: number;
     status: string;
@@ -30,7 +30,7 @@ interface FinancialSummary {
     total_profit: number;
     paid: number;
     unpaid_invoices: number;
-    unpaid_subscriptions: number;
+    unpaid_websites: number;
     not_invoiced: number;
 }
 
@@ -42,7 +42,7 @@ const fmt = (v: number) =>
     }).format(v);
 
 function StatusBadge({ item }: { item: ReceivableItem }) {
-    if (item.type === 'subscription') {
+    if (item.type === 'website') {
         return (
             <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
                 {item.days_overdue ? `${item.days_overdue} dní po expiraci` : 'Nezaplaceno'}
@@ -88,11 +88,11 @@ export default function Receivables({
         total_profit: 0,
         paid: 0,
         unpaid_invoices: 0,
-        unpaid_subscriptions: 0,
+        unpaid_websites: 0,
         not_invoiced: 0,
     };
 
-    const totalOwed = s.unpaid_invoices + s.unpaid_subscriptions + s.not_invoiced;
+    const totalOwed = s.unpaid_invoices + s.unpaid_websites + s.not_invoiced;
     const visibleItems = expanded ? list : list.slice(0, defaultVisible);
     const hasMore = list.length > defaultVisible;
 
@@ -132,10 +132,10 @@ export default function Receivables({
                         <span className="font-medium text-red-400">{fmt(s.unpaid_invoices)}</span>
                     </div>
                 )}
-                {s.unpaid_subscriptions > 0 && (
+                {s.unpaid_websites > 0 && (
                     <div className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground">Nezaplacené služby</span>
-                        <span className="font-medium text-red-400">{fmt(s.unpaid_subscriptions)}</span>
+                        <span className="font-medium text-red-400">{fmt(s.unpaid_websites)}</span>
                     </div>
                 )}
                 {s.not_invoiced > 0 && (
@@ -164,11 +164,11 @@ export default function Receivables({
                             >
                                 <div className={cn(
                                     'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
-                                    item.type === 'invoice' ? 'bg-red-500/10' : item.type === 'subscription' ? 'bg-primary/10' : 'bg-amber-500/10',
+                                    item.type === 'invoice' ? 'bg-red-500/10' : item.type === 'website' ? 'bg-primary/10' : 'bg-amber-500/10',
                                 )}>
                                     {item.type === 'invoice'
                                         ? <FileText className="h-4 w-4 text-red-400" />
-                                        : item.type === 'subscription'
+                                        : item.type === 'website'
                                         ? <Globe className="h-4 w-4 text-primary" />
                                         : <Hammer className="h-4 w-4 text-amber-500" />
                                     }

@@ -3,12 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\EmailAccount;
-use App\Models\Subscription;
+use App\Models\Website;
 use Illuminate\Http\Request;
 
 class EmailAccountController extends Controller
 {
-    public function store(Request $request, Subscription $subscription)
+    public function store(Request $request, Website $website)
     {
         $validated = $request->validate([
             'email' => ['required', 'email', 'max:255'],
@@ -17,7 +17,7 @@ class EmailAccountController extends Controller
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $subscription->emailAccounts()->create($validated);
+        $website->emailAccounts()->create($validated);
 
         return back()->with('success', 'E-mail přidán.');
     }

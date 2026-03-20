@@ -2,12 +2,13 @@ import { Link } from '@inertiajs/react';
 import { Server } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
-interface Subscription {
+interface Website {
     id: number;
-    type: 'hosting' | 'domena' | 'sluzba';
     name: string;
     status: string;
-    expires_at: string | null;
+    is_registered_by_us: boolean;
+    hosting_expires_at: string | null;
+    domain_expires_at: string | null;
 }
 
 interface VpsServer {
@@ -19,7 +20,7 @@ interface VpsServer {
 }
 
 interface Props {
-    subscriptions: Subscription[];
+    websites: Website[];
     vpsServers?: VpsServer[];
 }
 
@@ -29,15 +30,13 @@ const statusMap: Record<string, { label: string; className: string }> = {
     zruseno: { label: 'Zrušeno', className: 'bg-red-500/15 text-red-400 border-red-500/25' },
 };
 
-const typeLabels: Record<string, string> = {
-    hosting: 'Hosting',
-    domena: 'Doména',
-    sluzba: 'Služba',
-};
+function getWebsiteLabel(w: Website): string {
+    return w.is_registered_by_us ? 'Hosting + doména' : 'Hosting';
+}
 
-export default function CustomerServices({ subscriptions, vpsServers = [] }: Props) {
-    const hasItems = subscriptions.length > 0 || vpsServers.length > 0;
-    const totalCount = subscriptions.length + vpsServers.length;
+export default function CustomerServices({ websites, vpsServers = [] }: Props) {
+    const hasItems = websites.length > 0 || vpsServers.length > 0;
+    const totalCount = websites.length + vpsServers.length;
 
     return (
         <div className="rounded-xl border border-border bg-card p-5">
@@ -73,12 +72,12 @@ export default function CustomerServices({ subscriptions, vpsServers = [] }: Pro
                             </span>
                         </div>
                     ))}
-                    {subscriptions.map((sub) => {
+                    {websites.map((sub) => {
                         const statusInfo = statusMap[sub.status];
                         return (
                             <Link
                                 key={sub.id}
-                                href={`/neniweb/${sub.id}`}
+                                href={`/webove-sluzby/${sub.id}`}
                                 className="flex items-center justify-between rounded-lg bg-accent p-3 transition-colors hover:bg-accent/80"
                             >
                                 <div>
@@ -86,13 +85,13 @@ export default function CustomerServices({ subscriptions, vpsServers = [] }: Pro
                                         {sub.name}
                                     </p>
                                     <p className="text-xs text-muted-foreground">
-                                        {typeLabels[sub.type] ?? sub.type}
-                                        {sub.expires_at && (
+                                        {getWebsiteLabel(sub)}
+                                        {sub.hosting_expires_at && (
                                             <>
                                                 {' '}
                                                 &middot; do{' '}
                                                 {new Date(
-                                                    sub.expires_at,
+                                                    sub.hosting_expires_at,
                                                 ).toLocaleDateString('cs-CZ')}
                                             </>
                                         )}

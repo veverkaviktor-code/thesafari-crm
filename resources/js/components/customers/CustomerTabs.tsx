@@ -22,12 +22,13 @@ interface Invoice {
     due_date: string;
 }
 
-interface Subscription {
+interface Website {
     id: number;
-    type: 'hosting' | 'domena' | 'sluzba';
     name: string;
     status: string;
-    expires_at: string | null;
+    is_registered_by_us: boolean;
+    hosting_expires_at: string | null;
+    domain_expires_at: string | null;
 }
 
 interface VpsServer {
@@ -43,7 +44,7 @@ type OrderAttachment = AttachmentData & { order_id: number; order_title: string 
 interface Props {
     orders: Order[];
     invoices: Invoice[];
-    subscriptions: Subscription[];
+    websites: Website[];
     vpsServers: VpsServer[];
     orderAttachments: OrderAttachment[];
 }
@@ -74,17 +75,15 @@ const invoiceStatusConfig: Record<string, { label: string; className: string }> 
     storno: { label: 'Storno', className: 'bg-gray-500/15 text-muted-foreground border-gray-500/25' },
 };
 
-const subscriptionStatusConfig: Record<string, { label: string; className: string }> = {
+const websiteStatusConfig: Record<string, { label: string; className: string }> = {
     aktivni: { label: 'Aktivní', className: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' },
     pozastaveno: { label: 'Pozastaveno', className: 'bg-amber-500/15 text-amber-400 border-amber-500/25' },
     zruseno: { label: 'Zrušeno', className: 'bg-red-500/15 text-red-400 border-red-500/25' },
 };
 
-const typeLabels: Record<string, string> = {
-    hosting: 'Hosting',
-    domena: 'Doména',
-    sluzba: 'Služba',
-};
+function getWebsiteLabel(w: Website): string {
+    return w.is_registered_by_us ? 'Hosting + doména' : 'Hosting';
+}
 
 function Badge({ label, className }: { label: string; className: string }) {
     return (
@@ -114,8 +113,8 @@ function EmptyState({ icon: Icon, message }: { icon: React.ElementType; message:
     );
 }
 
-export default function CustomerTabs({ orders, invoices, subscriptions, vpsServers, orderAttachments }: Props) {
-    const totalServices = subscriptions.length + vpsServers.length;
+export default function CustomerTabs({ orders, invoices, websites, vpsServers, orderAttachments }: Props) {
+    const totalServices = websites.length + vpsServers.length;
 
     return (
         <div className="grid gap-4 lg:grid-cols-4">
@@ -252,12 +251,12 @@ export default function CustomerTabs({ orders, invoices, subscriptions, vpsServe
                                     />
                                 </div>
                             ))}
-                            {subscriptions.map((sub) => {
-                                const statusInfo = subscriptionStatusConfig[sub.status];
+                            {websites.map((sub) => {
+                                const statusInfo = websiteStatusConfig[sub.status];
                                 return (
                                     <Link
                                         key={sub.id}
-                                        href={`/neniweb/${sub.id}`}
+                                        href={`/webove-sluzby/${sub.id}`}
                                         className="group flex items-center justify-between rounded-lg border border-border bg-accent/50 p-3 transition-colors hover:bg-accent"
                                     >
                                         <div>
@@ -265,11 +264,11 @@ export default function CustomerTabs({ orders, invoices, subscriptions, vpsServe
                                                 {sub.name}
                                             </p>
                                             <p className="text-xs text-muted-foreground">
-                                                {typeLabels[sub.type] ?? sub.type}
-                                                {sub.expires_at && (
+                                                {getWebsiteLabel(sub)}
+                                                {sub.hosting_expires_at && (
                                                     <>
                                                         {' '}&middot; do{' '}
-                                                        {new Date(sub.expires_at).toLocaleDateString('cs-CZ')}
+                                                        {new Date(sub.hosting_expires_at).toLocaleDateString('cs-CZ')}
                                                     </>
                                                 )}
                                             </p>

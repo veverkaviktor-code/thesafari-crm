@@ -2,7 +2,7 @@ import { Link } from '@inertiajs/react';
 import { Globe, Server, AlertTriangle, Clock, HardDrive, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface ExpiringSubscription {
+interface ExpiringWebsite {
     id: number;
     name: string;
     type: string;
@@ -18,7 +18,7 @@ interface StorageByServer {
     total_mb: number;
 }
 
-interface NeniwebStats {
+interface WebsiteStats {
     active_domains: number;
     active_hostings: number;
     expiring_soon: number;
@@ -26,11 +26,11 @@ interface NeniwebStats {
     unpaid_payments: number;
     total_storage_mb: number;
     storage_by_server: StorageByServer[];
-    expiring: ExpiringSubscription[];
+    expiring: ExpiringWebsite[];
 }
 
 interface Props {
-    stats: NeniwebStats;
+    stats: WebsiteStats;
 }
 
 function formatStorage(mb: number): string {
@@ -44,18 +44,18 @@ const urgencyConfig: Record<string, { className: string }> = {
     ok: { className: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' },
 };
 
-export default function NeniwebOverview({ stats }: Props) {
+export default function WebsiteOverview({ stats }: Props) {
     return (
         <div className="rounded-xl border border-border bg-card p-5">
             <div className="mb-4 flex items-center justify-between">
                 <div>
-                    <h3 className="text-sm font-semibold text-foreground/90">Neniweb — Domény & Hostingy</h3>
+                    <h3 className="text-sm font-semibold text-foreground/90">Webové služby — Domény & Hostingy</h3>
                     <p className="mt-0.5 text-xs text-muted-foreground">
                         {stats.active_domains + stats.active_hostings} aktivních služeb
                     </p>
                 </div>
                 <Link
-                    href="/neniweb"
+                    href="/webove-sluzby"
                     className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
                 >
                     Správa
@@ -127,7 +127,7 @@ export default function NeniwebOverview({ stats }: Props) {
                             return (
                                 <Link
                                     key={sub.id}
-                                    href={`/neniweb/${sub.id}`}
+                                    href={`/webove-sluzby/${sub.id}`}
                                     className="flex items-center gap-2 rounded-lg bg-accent/40 px-3 py-2 transition-colors hover:bg-accent"
                                 >
                                     {sub.type === 'domena' ? (

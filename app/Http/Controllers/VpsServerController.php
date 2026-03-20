@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Subscription;
+use App\Models\Website;
 use App\Models\VpsServer;
 use Illuminate\Http\Request;
 
@@ -52,25 +52,24 @@ class VpsServerController extends Controller
 
     public function destroy(VpsServer $vp)
     {
-        // Unlink all subscriptions from this VPS before soft-deleting
-        Subscription::where('vps_server_id', $vp->id)->update(['vps_server_id' => null]);
+        // Unlink all websites from this VPS before soft-deleting
+        Website::where('hosting_server_id', $vp->id)->update(['hosting_server_id' => null]);
         $vp->delete();
 
         return back()->with('success', 'VPS server smazán.');
     }
 
     /**
-     * Semi-auto sync: Create VPS records from unique 'server' values on hostings,
-     * then assign hostings to their VPS by matching the server field.
+     * Semi-auto sync: Create VPS records from unique 'server' values on websites,
+     * then assign websites to their VPS by matching the server field.
      */
     public function syncFromHostings()
     {
         $created  = 0;
         $assigned = 0;
 
-        // Get unique server hostnames from active hostings
-        $serverNames = Subscription::where('type', 'hosting')
-            ->where('status', '!=', 'zruseno')
+        // Get unique server hostnames from active websites
+        $serverNames = Website::where('status', '!=', 'zruseno')
             ->whereNotNull('server')
             ->where('server', '!=', '')
             ->distinct()
@@ -92,16 +91,15 @@ class VpsServerController extends Controller
                 $created++;
             }
 
-            // Assign all hostings with this server name to this VPS
-            $count = Subscription::where('type', 'hosting')
-                ->where('server', $serverName)
-                ->whereNull('vps_server_id')
-                ->update(['vps_server_id' => $vps->id]);
+            // Assign all websites with this server name to this VPS
+            $count = Website::where('server', $serverName)
+                ->whereNull('hosting_server_id')
+                ->update(['hosting_server_id' => $vps->id]);
 
             $assigned += $count;
         }
 
-        $msg = "VPS sync dokončen: {$created} nových serverů, {$assigned} hostingů přiřazeno.";
+        $msg = "VPS sync dokončen: {$created} nových serverů, {$assigned} webů přiřazeno.";
 
         return back()->with('success', $msg);
     }
