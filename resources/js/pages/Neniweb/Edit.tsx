@@ -1,8 +1,9 @@
-import { type FormEvent } from 'react';
+import { type FormEvent, useState } from 'react';
 import { useForm, router } from '@inertiajs/react';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import { Button } from '@/components/ui/button';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import NeniwebForm, { type NeniwebFormData } from '@/components/neniweb/NeniwebForm';
 
 interface Customer {
@@ -46,6 +47,7 @@ interface Props {
 }
 
 export default function NeniwebEdit({ subscription, customers }: Props) {
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const form = useForm<NeniwebFormData>({
         type: subscription.type,
         customer_id: subscription.customer_id ? String(subscription.customer_id) : '',
@@ -79,11 +81,7 @@ export default function NeniwebEdit({ subscription, customers }: Props) {
         form.put(`/neniweb/${subscription.id}`);
     };
 
-    const handleDelete = () => {
-        if (confirm('Opravdu chcete smazat tuto položku?')) {
-            router.delete(`/neniweb/${subscription.id}`);
-        }
-    };
+    const handleDelete = () => setShowDeleteConfirm(true);
 
     return (
         <AuthenticatedLayout
@@ -124,6 +122,13 @@ export default function NeniwebEdit({ subscription, customers }: Props) {
                     />
                 </div>
             </div>
+            <ConfirmDialog
+                open={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={() => router.delete(`/neniweb/${subscription.id}`)}
+                title="Smazat službu"
+                message={`Opravdu chcete smazat "${subscription.name}"?`}
+            />
         </AuthenticatedLayout>
     );
 }

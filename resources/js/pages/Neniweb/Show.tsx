@@ -2,6 +2,7 @@ import { type FormEvent, useState } from 'react';
 import { router, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import GlassModal from '@/components/ui/GlassModal';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import ExpirationBadge from '@/components/neniweb/ExpirationBadge';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/button';
@@ -416,15 +417,12 @@ function PasswordField({ password }: { password: string }) {
 
 export default function NeniwebShow({ subscription, paymentStats }: Props) {
     const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     const isDomain = subscription.type === 'domena';
     const statusInfo = statusMap[subscription.status];
 
-    const handleDelete = () => {
-        if (confirm(`Opravdu chcete smazat "${subscription.name}"?`)) {
-            router.delete(`/neniweb/${subscription.id}`);
-        }
-    };
+    const handleDelete = () => setShowDeleteConfirm(true);
 
     const handleMarkPaid = (paymentId: number) => {
         router.put(`/neniweb/${subscription.id}/platby/${paymentId}/zaplaceno`, {});
@@ -985,6 +983,14 @@ export default function NeniwebShow({ subscription, paymentStats }: Props) {
                     onClose={() => setShowPaymentModal(false)}
                 />
             </GlassModal>
+
+            <ConfirmDialog
+                open={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={() => router.delete(`/neniweb/${subscription.id}`)}
+                title="Smazat službu"
+                message={`Opravdu chcete smazat "${subscription.name}"?`}
+            />
         </AuthenticatedLayout>
     );
 }

@@ -44,6 +44,16 @@ class TicketController extends Controller
         $ticket = $zpravy;
         $ticket->load(['customer', 'messages']);
 
+        // Backward compat: old /podpora tickets stored content on ticket, not as message
+        if ($ticket->content && $ticket->messages->isEmpty()) {
+            $ticket->messages()->create([
+                'direction'  => 'inbound',
+                'from_email' => $ticket->source_email,
+                'content'    => $ticket->content,
+            ]);
+            $ticket->load('messages');
+        }
+
         return Inertia::render('Tickets/Show', [
             'ticket' => $ticket,
         ]);

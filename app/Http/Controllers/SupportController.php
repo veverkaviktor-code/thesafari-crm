@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\Ticket;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Inertia\Inertia;
 
 class SupportController extends Controller
@@ -23,12 +24,27 @@ class SupportController extends Controller
             'phone'      => ['nullable', 'string', 'max:50'],
             'website'    => ['nullable', 'string', 'max:255'],
             'content'    => ['required', 'string', 'max:5000'],
+            'cf-turnstile-response' => ['nullable', 'string'],
         ]);
+
+        // Verify Turnstile if configured
+        if ($secret = config('services.turnstile.secret')) {
+            $token = $validated['cf-turnstile-response'] ?? '';
+            $response = Http::asForm()->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', [
+                'secret' => $secret,
+                'response' => $token,
+                'remoteip' => $request->ip(),
+            ]);
+
+            if (!$response->json('success')) {
+                return back()->withErrors(['content' => 'Ověření proti spamu selhalo. Zkuste to prosím znovu.']);
+            }
+        }
 
         // Auto-match zákazníka podle e-mailu
         $customer = Customer::where('email', $validated['email'])->first();
 
-        Ticket::create([
+        $ticket = Ticket::create([
             'customer_id' => $customer?->id,
             'subject'     => 'Zpráva z formuláře — ' . $validated['first_name'] . ' ' . $validated['last_name'],
             'status'      => 'novy',
@@ -40,6 +56,13 @@ class SupportController extends Controller
             'phone'       => $validated['phone'],
             'website'     => $validated['website'],
             'content'     => $validated['content'],
+        ]);
+
+        // Create initial message so content appears in conversation thread
+        $ticket->messages()->create([
+            'direction'  => 'inbound',
+            'from_email' => $validated['email'],
+            'content'    => $validated['content'],
         ]);
 
         return back()->with('flash', [
@@ -74,6 +97,13 @@ class SupportController extends Controller
             'phone'       => $validated['phone'],
             'website'     => $validated['website'],
             'content'     => $validated['content'],
+        ]);
+
+        // Create initial message so content appears in conversation thread
+        $ticket->messages()->create([
+            'direction'  => 'inbound',
+            'from_email' => $validated['email'],
+            'content'    => $validated['content'],
         ]);
 
         return response()->json(['success' => true, 'ticket_id' => $ticket->id], 201);

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
-import { ArrowLeft, User, Clock, Mail } from 'lucide-react';
+import { ArrowLeft, User, Clock, Mail, Phone, Globe, Tag } from 'lucide-react';
 
 interface TicketMessage {
     id: number;
@@ -26,6 +26,11 @@ interface Ticket {
     status: string;
     priority: string;
     source_email: string;
+    source: string | null;
+    first_name: string | null;
+    last_name: string | null;
+    phone: string | null;
+    website: string | null;
     created_at: string;
     resolved_at: string | null;
     messages: TicketMessage[];
@@ -97,7 +102,7 @@ export default function TicketShow({ ticket }: Props) {
                     <div className="bg-card rounded-xl border border-border p-4">
                         <div className="flex items-center gap-2 text-muted-foreground mb-1">
                             <User className="h-4 w-4" />
-                            <span className="text-xs font-medium uppercase tracking-wider">Zákazník</span>
+                            <span className="text-xs font-medium uppercase tracking-wider">Kontakt</span>
                         </div>
                         {ticket.customer ? (
                             <button
@@ -106,6 +111,10 @@ export default function TicketShow({ ticket }: Props) {
                             >
                                 {ticket.customer.company || ticket.customer.name}
                             </button>
+                        ) : ticket.first_name ? (
+                            <span className="text-sm text-foreground font-medium">
+                                {ticket.first_name} {ticket.last_name}
+                            </span>
                         ) : (
                             <span className="text-sm text-muted-foreground">Nepřiřazen</span>
                         )}
@@ -116,6 +125,20 @@ export default function TicketShow({ ticket }: Props) {
                             <span className="text-xs font-medium uppercase tracking-wider">E-mail</span>
                         </div>
                         <span className="text-sm text-muted-foreground">{ticket.source_email}</span>
+                        {ticket.phone && (
+                            <div className="flex items-center gap-1.5 mt-1.5">
+                                <Phone className="h-3 w-3 text-muted-foreground" />
+                                <a href={`tel:${ticket.phone}`} className="text-sm text-muted-foreground hover:text-foreground">
+                                    {ticket.phone}
+                                </a>
+                            </div>
+                        )}
+                        {ticket.website && (
+                            <div className="flex items-center gap-1.5 mt-1">
+                                <Globe className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-sm text-muted-foreground">{ticket.website}</span>
+                            </div>
+                        )}
                     </div>
                     <div className="bg-card rounded-xl border border-border p-4">
                         <div className="flex items-center gap-2 text-muted-foreground mb-1">
@@ -125,6 +148,14 @@ export default function TicketShow({ ticket }: Props) {
                         <span className="text-sm text-muted-foreground">
                             {format(new Date(ticket.created_at), 'd. MMMM yyyy HH:mm', { locale: cs })}
                         </span>
+                        {ticket.source && (
+                            <div className="flex items-center gap-1.5 mt-1.5">
+                                <Tag className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">
+                                    {{ web: 'Formulář', email: 'E-mail', api: 'API', manual: 'Manuální' }[ticket.source] ?? ticket.source}
+                                </span>
+                            </div>
+                        )}
                         {ticket.resolved_at && (
                             <p className="text-xs text-green-400 mt-1">
                                 Vyřešeno {format(new Date(ticket.resolved_at), 'd. M. yyyy', { locale: cs })}

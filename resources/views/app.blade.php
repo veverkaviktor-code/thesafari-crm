@@ -8,6 +8,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/favicon.png" />
+    @if(config('services.turnstile.site_key'))
+        <meta name="turnstile-site-key" content="{{ config('services.turnstile.site_key') }}" />
+    @endif
     @viteReactRefresh
     @vite(['resources/js/app.tsx'])
     @inertiaHead

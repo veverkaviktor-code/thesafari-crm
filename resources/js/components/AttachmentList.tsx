@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { router } from '@inertiajs/react';
 import { Download, Trash2, FileText, FileSpreadsheet, Archive, File as FileIcon, ExternalLink, Image as ImageIcon } from 'lucide-react';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { formatFileSize, formatDate } from '@/lib/utils';
 
 export interface AttachmentData {
@@ -25,12 +27,8 @@ function getFileIcon(mime: string | null) {
     return FileIcon;
 }
 
-function handleDelete(id: number) {
-    if (!confirm('Opravdu smazat tento soubor?')) return;
-    router.delete(`/attachments/${id}`, { preserveScroll: true });
-}
-
 export default function AttachmentList({ attachments, readOnly = false }: Props) {
+    const [deleteId, setDeleteId] = useState<number | null>(null);
     if (attachments.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
@@ -88,7 +86,7 @@ export default function AttachmentList({ attachments, readOnly = false }: Props)
                             </a>
                             {!readOnly && (
                                 <button
-                                    onClick={() => handleDelete(att.id)}
+                                    onClick={() => setDeleteId(att.id)}
                                     className="rounded p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                                     title="Smazat"
                                 >
@@ -99,6 +97,19 @@ export default function AttachmentList({ attachments, readOnly = false }: Props)
                     </div>
                 );
             })}
+
+            <ConfirmDialog
+                open={deleteId !== null}
+                onClose={() => setDeleteId(null)}
+                onConfirm={() => {
+                    if (deleteId !== null) {
+                        router.delete(`/attachments/${deleteId}`, { preserveScroll: true });
+                        setDeleteId(null);
+                    }
+                }}
+                title="Smazat soubor"
+                message="Opravdu chcete smazat tento soubor? Tato akce je nevratná."
+            />
         </div>
     );
 }

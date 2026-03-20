@@ -60,4 +60,9 @@ return [
         'base_url' => env('FIO_API_URL', 'https://fioapi.fio.cz/v1/rest'),
     ],
 
+    'turnstile' => [
+        'site_key' => env('TURNSTILE_SITE_KEY'),
+        'secret' => env('TURNSTILE_SECRET'),
+    ],
+
 ];

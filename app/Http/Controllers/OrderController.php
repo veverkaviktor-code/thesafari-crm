@@ -12,20 +12,28 @@ class OrderController extends Controller
 {
     public function index(Request $request)
     {
-        $orders = Order::query()
-            ->with('customer:id,name,company')
-            ->search($request->input('search'))
-            ->byStatus($request->input('status'))
-            ->byDivision($request->input('division'))
+        $trashed = $request->boolean('trashed');
+
+        $query = $trashed
+            ? Order::onlyTrashed()->with('customer:id,name,company')
+            : Order::query()->with('customer:id,name,company');
+
+        $query->search($request->input('search'))
+            ->when(!$trashed, fn ($q) => $q
+                ->byStatus($request->input('status'))
+                ->byDivision($request->input('division'))
+            )
             ->when($request->input('customer_id'), fn ($q, $id) => $q->where('customer_id', $id))
-            ->latest()
-            ->paginate(25)
-            ->withQueryString();
+            ->latest();
+
+        $orders = $query->paginate(25)->withQueryString();
+        $trashedCount = Order::onlyTrashed()->count();
 
         return Inertia::render('Orders/Index', [
             'orders' => $orders,
             'customers' => Customer::select('id', 'name', 'company')->orderBy('name')->get(),
-            'filters' => $request->only(['search', 'status', 'division', 'customer_id']),
+            'filters' => $request->only(['search', 'status', 'division', 'customer_id', 'trashed']),
+            'trashedCount' => $trashedCount,
         ]);
     }
 
@@ -98,6 +106,70 @@ class OrderController extends Controller
         $zakazky->delete();
 
         return redirect()->route('zakazky.index')
-            ->with('success', 'Zakázka smazána.');
+            ->with('success', 'Zakázka přesunuta do koše.');
+    }
+
+    public function restore(int $id)
+    {
+        $order = Order::onlyTrashed()->findOrFail($id);
+        $order->restore();
+
+        return redirect()->route('zakazky.index')
+            ->with('success', "Zakázka \"{$order->title}\" obnovena.");
+    }
+
+    public function forceDelete(int $id)
+    {
+        $order = Order::onlyTrashed()->findOrFail($id);
+        // Delete attachments from disk
+        foreach ($order->attachments as $attachment) {
+            \Storage::disk('local')->delete($attachment->path);
+            $attachment->delete();
+        }
+        $order->forceDelete();
+
+        return redirect()->route('zakazky.index', ['trashed' => 1])
+            ->with('success', 'Zakázka trvale smazána.');
+    }
+
+    public function bulkDelete(Request $request)
+    {
+        $request->validate(['ids' => 'required|array', 'ids.*' => 'integer']);
+        Order::whereIn('id', $request->ids)->each(fn ($o) => $o->delete());
+        return back()->with('success', count($request->ids) . ' zakázek přesunuto do koše.');
+    }
+
+    public function bulkRestore(Request $request)
+    {
+        $request->validate(['ids' => 'required|array', 'ids.*' => 'integer']);
+        Order::onlyTrashed()->whereIn('id', $request->ids)->each(fn ($o) => $o->restore());
+        return back()->with('success', count($request->ids) . ' zakázek obnoveno.');
+    }
+
+    public function bulkForceDelete(Request $request)
+    {
+        $request->validate(['ids' => 'required|array', 'ids.*' => 'integer']);
+        $orders = Order::onlyTrashed()->whereIn('id', $request->ids)->get();
+        foreach ($orders as $order) {
+            foreach ($order->attachments as $attachment) {
+                \Storage::disk('local')->delete($attachment->path);
+                $attachment->delete();
+            }
+            $order->forceDelete();
+        }
+        return back()->with('success', $orders->count() . ' zakázek trvale smazáno.');
+    }
+
+    public function emptyTrash()
+    {
+        $count = Order::onlyTrashed()->count();
+        Order::onlyTrashed()->each(function ($order) {
+            foreach ($order->attachments as $attachment) {
+                \Storage::disk('local')->delete($attachment->path);
+                $attachment->delete();
+            }
+            $order->forceDelete();
+        });
+        return back()->with('success', "Koš vysypán ($count zakázek trvale smazáno).");
     }
 }

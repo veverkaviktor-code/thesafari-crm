@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Plus, Pencil, Trash2, Eye, EyeOff, Copy, Check, ExternalLink, X, KeyRound } from 'lucide-react';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
 interface VaultEntry {
     id: number;
@@ -123,10 +124,16 @@ function VaultForm({ entry, onCancel }: { entry?: VaultEntry; onCancel: () => vo
 export default function Vault({ vault }: Props) {
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
+    const [deleteId, setDeleteId] = useState<number | null>(null);
 
     function handleDelete(id: number) {
-        if (!confirm('Opravdu smazat tento záznam?')) return;
-        router.delete(`/nastaveni/hesla/${id}`, { preserveScroll: true });
+        setDeleteId(id);
+    }
+
+    function confirmDelete() {
+        if (deleteId === null) return;
+        router.delete(`/nastaveni/hesla/${deleteId}`, { preserveScroll: true });
+        setDeleteId(null);
     }
 
     return (
@@ -203,6 +210,14 @@ export default function Vault({ vault }: Props) {
                     ))}
                 </div>
             )}
+
+            <ConfirmDialog
+                open={deleteId !== null}
+                onClose={() => setDeleteId(null)}
+                onConfirm={confirmDelete}
+                title="Smazat heslo"
+                message="Opravdu chcete smazat tento záznam z trezoru? Tato akce je nevratná."
+            />
         </div>
     );
 }

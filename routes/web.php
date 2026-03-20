@@ -54,8 +54,15 @@ Route::middleware('auth')->group(function () {
     Route::post('zakaznici/{id}/restore', [CustomerController::class, 'restore'])->name('zakaznici.restore');
     Route::delete('zakaznici/{id}/force-delete', [CustomerController::class, 'forceDelete'])->name('zakaznici.forceDelete');
 
+    // Zakázky bulk — MUSÍ být PŘED resource
+    Route::post('zakazky/bulk-delete', [OrderController::class, 'bulkDelete'])->name('zakazky.bulkDelete');
+    Route::post('zakazky/bulk-restore', [OrderController::class, 'bulkRestore'])->name('zakazky.bulkRestore');
+    Route::delete('zakazky/bulk-force-delete', [OrderController::class, 'bulkForceDelete'])->name('zakazky.bulkForceDelete');
+    Route::delete('zakazky/empty-trash', [OrderController::class, 'emptyTrash'])->name('zakazky.emptyTrash');
     Route::resource('zakazky', OrderController::class);
     Route::get('zakazky/{zakazky}/upravit', [OrderController::class, 'edit']);
+    Route::post('zakazky/{id}/restore', [OrderController::class, 'restore'])->name('zakazky.restore');
+    Route::delete('zakazky/{id}/force-delete', [OrderController::class, 'forceDelete'])->name('zakazky.forceDelete');
 
     Route::post('zakazky/{order}/time-entries', [TimeEntryController::class, 'store'])->name('time-entries.store');
     Route::put('zakazky/{order}/time-entries/{timeEntry}', [TimeEntryController::class, 'update'])->name('time-entries.update');

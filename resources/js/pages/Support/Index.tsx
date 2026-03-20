@@ -1,11 +1,26 @@
 import { useForm, Head, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { CheckCircle, Send, Mail, Phone } from 'lucide-react';
+
+declare global {
+    interface Window {
+        turnstile?: {
+            render: (container: string | HTMLElement, options: Record<string, unknown>) => string;
+            reset: (widgetId: string) => void;
+            remove: (widgetId: string) => void;
+        };
+    }
+}
+
+const TURNSTILE_SITE_KEY = document.querySelector<HTMLMetaElement>('meta[name="turnstile-site-key"]')?.content ?? '';
 
 export default function SupportIndex() {
     const { flash } = usePage<{ flash: { success?: string } }>().props;
     const [submitted, setSubmitted] = useState(false);
     const [emailRevealed, setEmailRevealed] = useState(false);
+    const turnstileRef = useRef<HTMLDivElement>(null);
+    const widgetIdRef = useRef<string | null>(null);
+    const tokenRef = useRef<string>('');
 
     const { data, setData, post, processing, errors, reset } = useForm({
         first_name: '',
@@ -14,14 +29,74 @@ export default function SupportIndex() {
         phone: '',
         website: '',
         content: '',
+        'cf-turnstile-response': '',
     });
+
+    // Load Turnstile script
+    useEffect(() => {
+        if (!TURNSTILE_SITE_KEY || document.getElementById('turnstile-script')) return;
+
+        const script = document.createElement('script');
+        script.id = 'turnstile-script';
+        script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+        script.async = true;
+        script.onload = () => renderWidget();
+        document.head.appendChild(script);
+
+        return () => {
+            if (widgetIdRef.current && window.turnstile) {
+                window.turnstile.remove(widgetIdRef.current);
+            }
+        };
+    }, []);
+
+    const renderWidget = useCallback(() => {
+        if (!window.turnstile || !turnstileRef.current || !TURNSTILE_SITE_KEY) return;
+        if (widgetIdRef.current) return;
+
+        widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
+            sitekey: TURNSTILE_SITE_KEY,
+            theme: 'light',
+            size: 'invisible',
+            callback: (token: string) => {
+                tokenRef.current = token;
+            },
+        });
+    }, []);
+
+    // Re-render widget after form reset
+    useEffect(() => {
+        if (submitted && window.turnstile && turnstileRef.current) {
+            // Widget removed on submit, re-render when form shows again
+        }
+    }, [submitted]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        // If no Turnstile configured, submit without token
+        if (!TURNSTILE_SITE_KEY) {
+            post('/podpora', {
+                onSuccess: () => { setSubmitted(true); reset(); },
+            });
+            return;
+        }
+
+        // Submit with Turnstile token
         post('/podpora', {
+            data: { ...data, 'cf-turnstile-response': tokenRef.current },
             onSuccess: () => {
                 setSubmitted(true);
                 reset();
+                tokenRef.current = '';
+                if (widgetIdRef.current && window.turnstile) {
+                    window.turnstile.reset(widgetIdRef.current);
+                }
+            },
+            onError: () => {
+                if (widgetIdRef.current && window.turnstile) {
+                    window.turnstile.reset(widgetIdRef.current);
+                }
             },
         });
     };
@@ -205,6 +280,9 @@ export default function SupportIndex() {
                                         />
                                         {errors.content && <p className="text-xs mt-1" style={{ color: '#ef4444' }}>{errors.content}</p>}
                                     </div>
+
+                                    {/* Turnstile (invisible) */}
+                                    <div ref={turnstileRef} />
 
                                     {/* Submit */}
                                     <button

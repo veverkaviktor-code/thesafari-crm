@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, router } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
@@ -22,6 +23,7 @@ import CostsList from '@/components/orders/CostsList';
 import OrderItems from '@/components/orders/OrderItems';
 import FileUploader from '@/components/FileUploader';
 import AttachmentList, { type AttachmentData } from '@/components/AttachmentList';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { cn, formatCurrency, formatHoursMinutes } from '@/lib/utils';
 
 interface TimeEntry {
@@ -104,6 +106,7 @@ function deadlineInfo(deadline: string | null) {
 }
 
 export default function Show({ order, stats }: Props) {
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const deadline = deadlineInfo(order.deadline);
     const itemsPrice = Number(order.price) || 0;
     const timeCost = Number(stats.total_time_cost) || 0;
@@ -126,11 +129,7 @@ export default function Show({ order, stats }: Props) {
         );
     };
 
-    const handleDelete = () => {
-        if (confirm('Opravdu chcete smazat tuto zakázku?')) {
-            router.delete(`/zakazky/${order.id}`);
-        }
-    };
+    const handleDelete = () => setShowDeleteConfirm(true);
 
     // Completed entries only (not running)
     const completedEntries = order.time_entries.filter(
@@ -328,6 +327,13 @@ export default function Show({ order, stats }: Props) {
                     </div>
                 </div>
             </div>
+            <ConfirmDialog
+                open={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={() => router.delete(`/zakazky/${order.id}`)}
+                title="Smazat zakázku"
+                message={`Opravdu chcete smazat zakázku "${order.title}"? Zakázka bude přesunuta do koše.`}
+            />
         </AuthenticatedLayout>
     );
 }

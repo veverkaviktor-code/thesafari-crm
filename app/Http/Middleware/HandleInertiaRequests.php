@@ -29,6 +29,9 @@ class HandleInertiaRequests extends Middleware
             ],
             'notifications' => fn () => [
                 'unread_count' => $request->user()?->unreadNotifications()->count() ?? 0,
+                'new_tickets_count' => $request->user()
+                    ? \App\Models\Ticket::where('status', 'novy')->count()
+                    : 0,
                 'recent' => $request->user()
                     ? $request->user()->notifications()->latest()->take(5)->get()->map(fn ($n) => [
                         'id' => $n->id,

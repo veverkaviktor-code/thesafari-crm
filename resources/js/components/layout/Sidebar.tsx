@@ -53,8 +53,9 @@ const bottomNav: NavItem[] = [
 
 export default function Sidebar() {
     const [collapsed, setCollapsed] = useState(false);
-    const { url, props: pageProps } = usePage<{ notifications?: { unread_count: number } }>();
+    const { url, props: pageProps } = usePage<{ notifications?: { unread_count: number; new_tickets_count: number } }>();
     const unreadCount = pageProps.notifications?.unread_count ?? 0;
+    const newTicketsCount = pageProps.notifications?.new_tickets_count ?? 0;
 
     const isActive = (href: string) => {
         if (href === '/dashboard') return url === '/dashboard' || url === '/';
@@ -106,7 +107,7 @@ export default function Sidebar() {
                             item={item}
                             active={isActive(item.href)}
                             collapsed={collapsed}
-                            badge={item.href === '/notifikace' ? unreadCount : 0}
+                            badge={item.href === '/notifikace' ? unreadCount : item.href === '/zpravy' ? newTicketsCount : 0}
                         />
                     ))}
                 </nav>

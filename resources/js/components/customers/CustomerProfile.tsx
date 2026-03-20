@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, router } from '@inertiajs/react';
 import {
     Building2,
@@ -11,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { cn, formatPhone } from '@/lib/utils';
 
 interface Customer {
@@ -45,6 +47,8 @@ interface Props {
 }
 
 export default function CustomerProfile({ customer }: Props) {
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
     const initials = customer.name
         .split(' ')
         .map((n) => n[0])
@@ -52,11 +56,7 @@ export default function CustomerProfile({ customer }: Props) {
         .toUpperCase()
         .slice(0, 2);
 
-    const handleDelete = () => {
-        if (confirm('Opravdu chcete smazat tohoto zákazníka?')) {
-            router.delete(`/zakaznici/${customer.id}`);
-        }
-    };
+    const handleDelete = () => setShowDeleteConfirm(true);
 
     const ba = customer.billing_address;
     const da = customer.delivery_address;
@@ -216,6 +216,14 @@ export default function CustomerProfile({ customer }: Props) {
                     </>
                 )}
             </div>
+
+            <ConfirmDialog
+                open={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={() => router.delete(`/zakaznici/${customer.id}`)}
+                title="Smazat zákazníka"
+                message={`Opravdu chcete smazat zákazníka "${customer.company || customer.name}"? Zákazník bude přesunut do koše.`}
+            />
         </div>
     );
 }
