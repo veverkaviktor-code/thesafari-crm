@@ -225,6 +225,7 @@ class SubscriptionController extends Controller
             'customer',
             'payments' => fn ($q) => $q->orderBy('period_end', 'desc'),
             'invoices' => fn ($q) => $q->orderBy('issue_date', 'desc'),
+            'emailAccounts',
         ]);
 
         $paymentStats = [
@@ -240,6 +241,7 @@ class SubscriptionController extends Controller
             ->exists();
 
         $neniweb->makeVisible(['admin_password', 'client_password']);
+        $neniweb->emailAccounts->each(fn ($e) => $e->makeVisible('password'));
 
         return Inertia::render('Neniweb/Show', [
             'subscription' => array_merge($neniweb->toArray(), [

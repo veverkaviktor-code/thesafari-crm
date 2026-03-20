@@ -42,6 +42,7 @@ import {
     EyeOff,
     Copy,
     Check,
+    Mail,
 } from 'lucide-react';
 
 const czk = (amount: number) =>
@@ -112,6 +113,15 @@ interface Subscription {
     admin_password: string | null;
     client_user: string | null;
     client_password: string | null;
+    email_accounts: EmailAccount[];
+}
+
+interface EmailAccount {
+    id: number;
+    email: string;
+    password: string | null;
+    quota_mb: number;
+    notes: string | null;
 }
 
 interface Customer {
@@ -968,6 +978,9 @@ export default function NeniwebShow({ subscription, paymentStats }: Props) {
                                 </p>
                             </div>
                         )}
+
+                        {/* E-mail účty */}
+                        <EmailAccountsSection subscriptionId={subscription.id} emailAccounts={subscription.email_accounts ?? []} />
                     </div>
                 </div>
             </div>
@@ -992,5 +1005,205 @@ export default function NeniwebShow({ subscription, paymentStats }: Props) {
                 message={`Opravdu chcete smazat "${subscription.name}"?`}
             />
         </AuthenticatedLayout>
+    );
+}
+
+/* ───── Email Accounts Section ───── */
+
+function EmailAccountsSection({ subscriptionId, emailAccounts }: { subscriptionId: number; emailAccounts: EmailAccount[] }) {
+    const [showForm, setShowForm] = useState(false);
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const [deleteId, setDeleteId] = useState<number | null>(null);
+
+    return (
+        <div className="bg-card border border-border rounded-xl px-5 py-4">
+            <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <h2 className="text-sm font-semibold text-foreground">E-mailové schránky</h2>
+                    {emailAccounts.length > 0 && (
+                        <span className="text-xs text-muted-foreground">({emailAccounts.length})</span>
+                    )}
+                </div>
+                {!showForm && !editingId && (
+                    <button
+                        onClick={() => setShowForm(true)}
+                        className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
+                    >
+                        <Plus className="h-3.5 w-3.5" />
+                        Přidat
+                    </button>
+                )}
+            </div>
+
+            {showForm && (
+                <EmailAccountForm
+                    subscriptionId={subscriptionId}
+                    onCancel={() => setShowForm(false)}
+                    onSuccess={() => setShowForm(false)}
+                />
+            )}
+
+            {emailAccounts.length === 0 && !showForm && (
+                <p className="text-sm text-muted-foreground py-2">Žádné e-mailové schránky</p>
+            )}
+
+            <div className="space-y-2">
+                {emailAccounts.map((ea) =>
+                    editingId === ea.id ? (
+                        <EmailAccountForm
+                            key={ea.id}
+                            subscriptionId={subscriptionId}
+                            emailAccount={ea}
+                            onCancel={() => setEditingId(null)}
+                            onSuccess={() => setEditingId(null)}
+                        />
+                    ) : (
+                        <div key={ea.id} className="flex items-center gap-3 rounded-lg bg-accent px-3 py-2.5">
+                            <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
+                            <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium text-foreground">{ea.email}</p>
+                                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                    <span>{ea.quota_mb >= 1024 ? `${(ea.quota_mb / 1024).toFixed(0)} GB` : `${ea.quota_mb} MB`}</span>
+                                    {ea.notes && <span>· {ea.notes}</span>}
+                                </div>
+                            </div>
+                            {ea.password && <PasswordField password={ea.password} />}
+                            <div className="flex shrink-0 gap-0.5">
+                                <button
+                                    onClick={() => setEditingId(ea.id)}
+                                    className="rounded p-1.5 text-muted-foreground hover:bg-background hover:text-foreground"
+                                    title="Upravit"
+                                >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                    onClick={() => setDeleteId(ea.id)}
+                                    className="rounded p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                                    title="Smazat"
+                                >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                            </div>
+                        </div>
+                    ),
+                )}
+            </div>
+
+            <ConfirmDialog
+                open={deleteId !== null}
+                onClose={() => setDeleteId(null)}
+                onConfirm={() => {
+                    if (deleteId !== null) {
+                        router.delete(`/emaily/${deleteId}`, { preserveScroll: true });
+                        setDeleteId(null);
+                    }
+                }}
+                title="Smazat e-mail"
+                message="Opravdu chcete smazat tento e-mailový účet z evidence?"
+            />
+        </div>
+    );
+}
+
+function EmailAccountForm({
+    subscriptionId,
+    emailAccount,
+    onCancel,
+    onSuccess,
+}: {
+    subscriptionId: number;
+    emailAccount?: EmailAccount;
+    onCancel: () => void;
+    onSuccess: () => void;
+}) {
+    const isEdit = !!emailAccount;
+    const form = useForm({
+        email: emailAccount?.email ?? '',
+        password: '',
+        quota_mb: emailAccount?.quota_mb ?? 3072,
+        notes: emailAccount?.notes ?? '',
+    });
+
+    const handleSubmit = (e: FormEvent) => {
+        e.preventDefault();
+        if (isEdit) {
+            form.put(`/emaily/${emailAccount!.id}`, {
+                preserveScroll: true,
+                onSuccess,
+            });
+        } else {
+            form.post(`/neniweb/${subscriptionId}/emaily`, {
+                preserveScroll: true,
+                onSuccess: () => { form.reset(); onSuccess(); },
+            });
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="rounded-lg border border-border bg-accent p-3 mb-2 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+                <div>
+                    <Label className="text-xs text-muted-foreground">E-mail *</Label>
+                    <Input
+                        type="email"
+                        value={form.data.email}
+                        onChange={(e) => form.setData('email', e.target.value)}
+                        placeholder="info@domena.cz"
+                        className="h-8 text-sm bg-background"
+                    />
+                    {form.errors.email && <p className="text-xs text-red-400 mt-0.5">{form.errors.email}</p>}
+                </div>
+                <div>
+                    <Label className="text-xs text-muted-foreground">
+                        Heslo {isEdit && <span className="text-muted-foreground/50">(prázdné = beze změny)</span>}
+                    </Label>
+                    <Input
+                        type="text"
+                        value={form.data.password}
+                        onChange={(e) => form.setData('password', e.target.value)}
+                        placeholder={isEdit ? '••••••••' : 'heslo'}
+                        className="h-8 text-sm bg-background"
+                    />
+                </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+                <div>
+                    <Label className="text-xs text-muted-foreground">Kvóta (MB)</Label>
+                    <Input
+                        type="number"
+                        value={form.data.quota_mb}
+                        onChange={(e) => form.setData('quota_mb', parseInt(e.target.value) || 3072)}
+                        className="h-8 text-sm bg-background"
+                    />
+                </div>
+                <div>
+                    <Label className="text-xs text-muted-foreground">Poznámka</Label>
+                    <Input
+                        type="text"
+                        value={form.data.notes}
+                        onChange={(e) => form.setData('notes', e.target.value)}
+                        placeholder="např. hlavní schránka"
+                        className="h-8 text-sm bg-background"
+                    />
+                </div>
+            </div>
+            <div className="flex justify-end gap-2">
+                <button
+                    type="button"
+                    onClick={onCancel}
+                    className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+                >
+                    Zrušit
+                </button>
+                <button
+                    type="submit"
+                    disabled={form.processing}
+                    className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/80 disabled:opacity-50"
+                >
+                    {form.processing ? 'Ukládám...' : isEdit ? 'Uložit' : 'Přidat'}
+                </button>
+            </div>
+        </form>
     );
 }

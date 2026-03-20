@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\CompanySettingsController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EmailAccountController;
 use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\NotificationController;
@@ -109,6 +110,11 @@ Route::middleware('auth')->group(function () {
     Route::put('neniweb/{neniweb}/platby/{payment}/zaplaceno', [SubscriptionController::class, 'markPaymentPaid'])->name('neniweb.payments.paid');
     Route::post('neniweb/{neniweb}/faktura', [SubscriptionController::class, 'createInvoice'])->name('neniweb.invoice.create');
     Route::post('neniweb/{neniweb}/toggle-ignore-alerts', [SubscriptionController::class, 'toggleIgnoreAlerts'])->name('neniweb.toggleIgnoreAlerts');
+
+    // Email účty na hostingách
+    Route::post('neniweb/{subscription}/emaily', [EmailAccountController::class, 'store'])->name('email-accounts.store');
+    Route::put('emaily/{emailAccount}', [EmailAccountController::class, 'update'])->name('email-accounts.update');
+    Route::delete('emaily/{emailAccount}', [EmailAccountController::class, 'destroy'])->name('email-accounts.destroy');
 
     // VPS servery — sync route musí být PŘED {vp} aby nebyl "sync" brán jako ID
     Route::post('neniweb/vps/sync', [VpsServerController::class, 'syncFromHostings'])->name('vps.sync');

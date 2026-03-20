@@ -96,6 +96,11 @@ class Subscription extends Model
         return $this->hasMany(SubscriptionPayment::class);
     }
 
+    public function emailAccounts(): HasMany
+    {
+        return $this->hasMany(EmailAccount::class);
+    }
+
     public function vpsServer(): BelongsTo
     {
         return $this->belongsTo(VpsServer::class);
