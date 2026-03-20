@@ -140,7 +140,7 @@ class TicketController extends Controller
 
         $ticket->messages()->create([
             'direction' => 'outbound',
-            'from_email' => config('mail.from.address'),
+            'from_email' => config('mail.support.address', config('mail.from.address')),
             'content' => $validated['content'],
         ]);
 
