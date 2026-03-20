@@ -81,8 +81,16 @@ class SubscriptionController extends Controller
         $sortBy = $request->input('sort_by');
         $sortDir = $request->input('sort_dir') === 'desc' ? 'desc' : 'asc';
 
+        // Always group children with their parent
+        $baseQuery->orderByRaw('COALESCE(parent_subscription_id, id)')
+            ->orderByRaw('parent_subscription_id IS NOT NULL'); // parent first, then children
+
         if ($sortBy && in_array($sortBy, $allowedSorts)) {
-            $baseQuery->orderBy($sortBy, $sortDir);
+            // Re-apply: group by parent, then sort within groups
+            $baseQuery->reorder()
+                ->orderByRaw('COALESCE(parent_subscription_id, id)')
+                ->orderByRaw('parent_subscription_id IS NOT NULL')
+                ->orderBy($sortBy, $sortDir);
         } else {
             $baseQuery->orderByRaw('expires_at IS NULL, expires_at ASC');
         }
