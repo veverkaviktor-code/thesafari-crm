@@ -155,7 +155,7 @@ CREATE TABLE sync_blacklist (
 );
 ```
 
-**Seed:** 35 domén (33 Lukášových + synwase.cz + dtftransferytisk.cz), reason: lukas.
+**Seed:** 33 domén (Lukášovy + synwase.cz + dtftransferytisk.cz + alfabrno.eu), reason: lukas.
 
 ### Tabulka `sync_pending` (nová)
 
@@ -413,7 +413,7 @@ DELETE /webove-sluzby/vps/{vp}                vps.destroy
 Jedna atomická migrace v 6 krocích:
 
 ### Krok 1: Nové tabulky
-- management_plans + seed (6 balíčků)
+- management_plans + seed (5 balíčků)
 - sync_blacklist + seed (35 Lukášových domén)
 - sync_pending
 - website_credentials
@@ -505,7 +505,7 @@ rsync ... && ssh ... "php artisan config:cache && php artisan route:cache && php
 16 s mojí registrací + hostingem, 11 s cizím registrátorem + hostingem, 14 jen domény, 5 pod thaimassage VPS.
 
 ### Blacklist (35)
-33 Lukášových + synwase.cz + dtftransferytisk.cz
+33 unikátních domén (Lukášovy + synwase.cz + dtftransferytisk.cz + alfabrno.eu)
 
 ### Kompletní blacklist seed
 ```
