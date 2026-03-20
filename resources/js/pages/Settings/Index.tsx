@@ -1,10 +1,12 @@
 import { useState } from "react";
 import AuthenticatedLayout from "@/layouts/AuthenticatedLayout";
-import { User, Building2, KeyRound } from "lucide-react";
+import { User, Building2, KeyRound, Package, ShieldOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Profile from "./Profile";
 import Company from "./Company";
 import Vault from "./Vault";
+import ManagementPlans from "./ManagementPlans";
+import SyncBlacklistTab from "./SyncBlacklist";
 
 interface VaultEntry {
     id: number;
@@ -13,6 +15,21 @@ interface VaultEntry {
     password: string | null;
     url: string | null;
     notes: string | null;
+}
+
+interface ManagementPlan {
+    id: number;
+    name: string;
+    price_monthly: number;
+    is_active: boolean;
+    sort_order: number;
+}
+
+interface SyncBlacklistEntry {
+    id: number;
+    domain_name: string;
+    reason: string;
+    created_at: string | null;
 }
 
 interface Props {
@@ -39,6 +56,8 @@ interface Props {
         email_from: string | null;
     };
     vault: VaultEntry[];
+    managementPlans: ManagementPlan[];
+    syncBlacklist: SyncBlacklistEntry[];
     tab?: string;
 }
 
@@ -46,9 +65,11 @@ const tabs = [
     { value: "profile", label: "Profil", icon: User, description: "Jméno, email a avatar" },
     { value: "company", label: "Firma", icon: Building2, description: "Firemní údaje a fakturace" },
     { value: "vault", label: "Hesla", icon: KeyRound, description: "Trezor hesel a přístupů" },
+    { value: "plans", label: "Balíčky správy", icon: Package, description: "Tarify správy webů" },
+    { value: "blacklist", label: "Výjimky syncu", icon: ShieldOff, description: "Ignorované domény" },
 ];
 
-export default function SettingsIndex({ user, company, vault, tab }: Props) {
+export default function SettingsIndex({ user, company, vault, managementPlans, syncBlacklist, tab }: Props) {
     const [activeTab, setActiveTab] = useState(tab || "profile");
 
     return (
@@ -89,6 +110,8 @@ export default function SettingsIndex({ user, company, vault, tab }: Props) {
                         {activeTab === "profile" && <Profile user={user} />}
                         {activeTab === "company" && <Company company={company} />}
                         {activeTab === "vault" && <Vault vault={vault} />}
+                        {activeTab === "plans" && <ManagementPlans plans={managementPlans} />}
+                        {activeTab === "blacklist" && <SyncBlacklistTab blacklist={syncBlacklist} />}
                     </div>
                 </div>
             </div>

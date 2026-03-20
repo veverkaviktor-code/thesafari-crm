@@ -212,7 +212,7 @@ class CustomerController extends Controller
         foreach ($customers as $customer) {
             $hasActive = $customer->orders()->withTrashed()->whereNull('deleted_at')->exists()
                 || $customer->invoices()->withTrashed()->whereNull('deleted_at')->where('status', '!=', 'zaplacena')->exists()
-                || $customer->subscriptions()->where('status', 'aktivni')->exists();
+                || $customer->websites()->where('status', 'aktivni')->exists();
             if ($hasActive) {
                 $blocked[] = $customer->name;
             } else {
@@ -236,7 +236,7 @@ class CustomerController extends Controller
         foreach ($customers as $customer) {
             $hasActive = $customer->orders()->withTrashed()->whereNull('deleted_at')->exists()
                 || $customer->invoices()->withTrashed()->whereNull('deleted_at')->where('status', '!=', 'zaplacena')->exists()
-                || $customer->subscriptions()->where('status', 'aktivni')->exists();
+                || $customer->websites()->where('status', 'aktivni')->exists();
             if ($hasActive) {
                 $blocked++;
             } else {

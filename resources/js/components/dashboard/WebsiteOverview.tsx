@@ -5,8 +5,7 @@ import { cn } from '@/lib/utils';
 interface ExpiringWebsite {
     id: number;
     name: string;
-    type: string;
-    expires_at: string;
+    hosting_expires_at: string;
     days: number;
     urgency: string;
     customer_name: string | null;
@@ -19,8 +18,8 @@ interface StorageByServer {
 }
 
 interface WebsiteStats {
-    active_domains: number;
-    active_hostings: number;
+    active_websites: number;
+    total_aliases: number;
     expiring_soon: number;
     expired: number;
     unpaid_payments: number;
@@ -51,7 +50,7 @@ export default function WebsiteOverview({ stats }: Props) {
                 <div>
                     <h3 className="text-sm font-semibold text-foreground/90">Webové služby — Domény & Hostingy</h3>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                        {stats.active_domains + stats.active_hostings} aktivních služeb
+                        {stats.active_websites} aktivních webů{stats.total_aliases > 0 ? ` · ${stats.total_aliases} aliasů` : ''}
                     </p>
                 </div>
                 <Link
@@ -65,8 +64,8 @@ export default function WebsiteOverview({ stats }: Props) {
 
             {/* Mini stat pills */}
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <MiniStat icon={Globe} label="Domény" value={stats.active_domains} color="text-blue-400" />
-                <MiniStat icon={Server} label="Hostingy" value={stats.active_hostings} color="text-emerald-400" />
+                <MiniStat icon={Globe} label="Weby" value={stats.active_websites} color="text-blue-400" />
+                <MiniStat icon={Server} label="Aliasy" value={stats.total_aliases} color="text-emerald-400" />
                 <MiniStat
                     icon={Clock}
                     label="Expiruje brzy"
@@ -130,11 +129,7 @@ export default function WebsiteOverview({ stats }: Props) {
                                     href={`/webove-sluzby/${sub.id}`}
                                     className="flex items-center gap-2 rounded-lg bg-accent/40 px-3 py-2 transition-colors hover:bg-accent"
                                 >
-                                    {sub.type === 'domena' ? (
-                                        <Globe className="h-3.5 w-3.5 text-blue-400 shrink-0" />
-                                    ) : (
-                                        <Server className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                                    )}
+                                    <Globe className="h-3.5 w-3.5 text-blue-400 shrink-0" />
                                     <div className="min-w-0 flex-1">
                                         <p className="truncate text-xs font-medium text-foreground/80">
                                             {sub.name}

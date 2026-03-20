@@ -494,7 +494,8 @@ class DashboardController extends Controller
 
     private function getWebsiteStats(): array
     {
-        $activeWebsites = Website::where('status', 'aktivni')->count();
+        $activeWebsites = Website::where('status', 'aktivni')->whereNull('alias_of_id')->count();
+        $totalAliases = Website::where('status', 'aktivni')->whereNotNull('alias_of_id')->count();
 
         $expiringSoon = Website::where('status', 'aktivni')
             ->whereNotNull('hosting_expires_at')
@@ -547,6 +548,7 @@ class DashboardController extends Controller
 
         return [
             'active_websites' => $activeWebsites,
+            'total_aliases' => $totalAliases,
             'expiring_soon' => $expiringSoon,
             'expired' => $expired,
             'unpaid_payments' => $unpaidPayments,

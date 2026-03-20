@@ -16,7 +16,9 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\ManagementPlanController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\SyncBlacklistController;
 use App\Http\Controllers\SupportController;
 use App\Http\Controllers\LogsController;
 use App\Http\Controllers\TicketController;
@@ -180,6 +182,10 @@ Route::middleware('auth')->group(function () {
         Route::post('hesla', [\App\Http\Controllers\VaultController::class, 'store'])->name('settings.vault.store');
         Route::put('hesla/{vault}', [\App\Http\Controllers\VaultController::class, 'update'])->name('settings.vault.update');
         Route::delete('hesla/{vault}', [\App\Http\Controllers\VaultController::class, 'destroy'])->name('settings.vault.destroy');
+        Route::post('balicky', [ManagementPlanController::class, 'store'])->name('management-plans.store');
+        Route::put('balicky/{plan}', [ManagementPlanController::class, 'update'])->name('management-plans.update');
+        Route::delete('balicky/{plan}', [ManagementPlanController::class, 'destroy'])->name('management-plans.destroy');
+        Route::delete('blacklist/{blacklist}', [SyncBlacklistController::class, 'destroy'])->name('sync-blacklist.destroy');
     });
 
     // Kalkulator (Estimates) — bulk PŘED resource
