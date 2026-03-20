@@ -55,14 +55,12 @@ export default function FileUploader({ attachableType, attachableId }: Props) {
 
         setUploading(true);
         router.post('/attachments', formData, {
-            forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
                 setFiles([]);
                 setDescription('');
-                setUploading(false);
             },
-            onError: () => setUploading(false),
+            onFinish: () => setUploading(false),
         });
     }
 
@@ -76,15 +74,15 @@ export default function FileUploader({ attachableType, attachableId }: Props) {
                 onClick={() => inputRef.current?.click()}
                 className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-4 py-6 transition-colors ${
                     dragOver
-                        ? 'border-amber-500 bg-amber-500/10'
-                        : 'border-white/20 hover:border-white/40'
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border hover:border-primary/50'
                 }`}
             >
-                <Upload className="mb-2 h-6 w-6 text-white/40" />
-                <p className="text-sm text-white/60">
+                <Upload className="mb-2 h-6 w-6 text-muted-foreground" />
+                <p className="text-sm text-foreground/70">
                     Přetáhněte soubory sem nebo klikněte
                 </p>
-                <p className="mt-1 text-xs text-white/30">
+                <p className="mt-1 text-xs text-muted-foreground">
                     Max 5 souborů, 10 MB každý
                 </p>
                 <input
@@ -101,13 +99,13 @@ export default function FileUploader({ attachableType, attachableId }: Props) {
             {files.length > 0 && (
                 <div className="space-y-1.5">
                     {files.map((file, i) => (
-                        <div key={i} className="flex items-center gap-2 rounded-md bg-white/5 px-3 py-1.5 text-sm">
-                            <FileIcon className="h-4 w-4 shrink-0 text-white/40" />
-                            <span className="min-w-0 flex-1 truncate text-white/80">{file.name}</span>
-                            <span className="shrink-0 text-xs text-white/40">{formatFileSize(file.size)}</span>
+                        <div key={i} className="flex items-center gap-2 rounded-md bg-accent px-3 py-1.5 text-sm">
+                            <FileIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                            <span className="min-w-0 flex-1 truncate text-foreground">{file.name}</span>
+                            <span className="shrink-0 text-xs text-muted-foreground">{formatFileSize(file.size)}</span>
                             <button
-                                onClick={() => removeFile(i)}
-                                className="shrink-0 rounded p-0.5 text-white/40 hover:bg-white/10 hover:text-white"
+                                onClick={(e) => { e.stopPropagation(); removeFile(i); }}
+                                className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                             >
                                 <X className="h-3.5 w-3.5" />
                             </button>
@@ -124,12 +122,12 @@ export default function FileUploader({ attachableType, attachableId }: Props) {
                         value={description}
                         onChange={e => setDescription(e.target.value)}
                         placeholder="Popis příloh (volitelné)"
-                        className="flex-1 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white placeholder:text-white/30 focus:border-amber-500/50 focus:outline-none"
+                        className="flex-1 rounded-md border border-border bg-accent px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none"
                     />
                     <button
                         onClick={upload}
                         disabled={uploading}
-                        className="shrink-0 rounded-md bg-amber-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-amber-500 disabled:opacity-50"
+                        className="shrink-0 rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-primary/80 disabled:opacity-50"
                     >
                         {uploading ? 'Nahrávám...' : 'Nahrát'}
                     </button>

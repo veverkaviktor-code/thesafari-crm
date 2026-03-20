@@ -41,7 +41,7 @@ function handleDelete(id: number) {
 export default function AttachmentList({ attachments, readOnly = false }: Props) {
     if (attachments.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center py-8 text-white/30">
+            <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
                 <FileIcon className="mb-2 h-8 w-8" />
                 <p className="text-sm">Žádné soubory</p>
             </div>
@@ -55,7 +55,7 @@ export default function AttachmentList({ attachments, readOnly = false }: Props)
                 const previewUrl = `/attachments/${att.id}/preview`;
 
                 return (
-                    <div key={att.id} className="overflow-hidden rounded-lg border border-white/10 bg-white/5">
+                    <div key={att.id} className="overflow-hidden rounded-lg border border-border bg-accent">
                         {/* Preview area */}
                         <a
                             href={previewUrl}
@@ -73,7 +73,7 @@ export default function AttachmentList({ attachments, readOnly = false }: Props)
                                     <div className="absolute inset-0" />
                                 </div>
                             ) : isImage(att.mime_type) ? (
-                                <div className="flex h-48 items-center justify-center bg-white/5 p-2">
+                                <div className="flex h-48 items-center justify-center bg-accent p-2">
                                     <img
                                         src={previewUrl}
                                         alt={att.filename}
@@ -81,22 +81,22 @@ export default function AttachmentList({ attachments, readOnly = false }: Props)
                                     />
                                 </div>
                             ) : (
-                                <div className="flex h-24 items-center justify-center bg-white/5">
-                                    <Icon className="h-10 w-10 text-white/20" />
+                                <div className="flex h-24 items-center justify-center bg-accent">
+                                    <Icon className="h-10 w-10 text-muted-foreground" />
                                 </div>
                             )}
                         </a>
 
                         {/* Info + actions */}
                         <div className="px-3 py-2">
-                            <p className="truncate text-sm font-medium text-white/80" title={att.filename}>
+                            <p className="truncate text-sm font-medium text-foreground" title={att.filename}>
                                 {att.filename}
                             </p>
                             {att.description && (
-                                <p className="mt-0.5 truncate text-xs text-white/40">{att.description}</p>
+                                <p className="mt-0.5 truncate text-xs text-muted-foreground">{att.description}</p>
                             )}
                             <div className="mt-1 flex items-center justify-between">
-                                <span className="text-xs text-white/30">
+                                <span className="text-xs text-muted-foreground">
                                     {formatFileSize(att.size)} · {formatDate(att.created_at)}
                                 </span>
                                 <div className="flex gap-1">
@@ -104,14 +104,14 @@ export default function AttachmentList({ attachments, readOnly = false }: Props)
                                         href={previewUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="rounded p-1 text-white/40 hover:bg-white/10 hover:text-white"
+                                        className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
                                         title="Otevřít"
                                     >
                                         <ExternalLink className="h-3.5 w-3.5" />
                                     </a>
                                     <a
                                         href={`/attachments/${att.id}/download`}
-                                        className="rounded p-1 text-white/40 hover:bg-white/10 hover:text-white"
+                                        className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
                                         title="Stáhnout"
                                     >
                                         <Download className="h-3.5 w-3.5" />
@@ -119,7 +119,7 @@ export default function AttachmentList({ attachments, readOnly = false }: Props)
                                     {!readOnly && (
                                         <button
                                             onClick={() => handleDelete(att.id)}
-                                            className="rounded p-1 text-white/40 hover:bg-red-500/20 hover:text-red-400"
+                                            className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                                             title="Smazat"
                                         >
                                             <Trash2 className="h-3.5 w-3.5" />
