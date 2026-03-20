@@ -45,6 +45,7 @@ import {
     Pause,
     CircleStop,
     Bell,
+    TrendingUp,
 } from 'lucide-react';
 
 /* ─────── Interfaces ─────── */
@@ -173,9 +174,9 @@ interface Props {
 /* ─────── Helpers ─────── */
 
 const statusIconMap: Record<string, { icon: typeof Play; className: string; title: string }> = {
-    aktivni: { icon: Play, className: 'text-emerald-400', title: 'Aktivní' },
+    aktivni: { icon: Play, className: 'text-emerald-400', title: 'Aktivni' },
     pozastaveno: { icon: Pause, className: 'text-amber-400', title: 'Pozastaveno' },
-    zruseno: { icon: CircleStop, className: 'text-red-400', title: 'Zrušeno' },
+    zruseno: { icon: CircleStop, className: 'text-red-400', title: 'Zruseno' },
 };
 
 function expirationStyle(expiresAt: string | null): string {
@@ -289,7 +290,7 @@ function ColumnConfigDropdown({
                 </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-64 p-2 border-border bg-card">
-                <p className="text-xs font-medium text-muted-foreground px-2 pb-2">Zobrazené sloupce</p>
+                <p className="text-xs font-medium text-muted-foreground px-2 pb-2">Zobrazene sloupce</p>
                 {ordered.map((col, idx) => {
                     const isHidden = config.hidden.includes(col.key);
                     return (
@@ -461,8 +462,8 @@ export default function NeniwebIndex({
     };
 
     const expiryFilters = [
-        { value: '', label: 'Vše' },
-        { value: 'active', label: 'Aktivní' },
+        { value: '', label: 'Vse' },
+        { value: 'active', label: 'Aktivni' },
         { value: 'expiring_soon', label: 'Brzy expiruje' },
         { value: 'expired', label: 'Po expiraci' },
         { value: 'no_expiry', label: 'Bez expirace' },
@@ -472,17 +473,13 @@ export default function NeniwebIndex({
     // Column filter options
     const customerFilterOpts = customers.map((c) => ({ value: String(c.id), label: c.company || c.name }));
     const statusFilterOpts = [
-        { value: 'aktivni', label: 'Aktivní' },
+        { value: 'aktivni', label: 'Aktivni' },
         { value: 'pozastaveno', label: 'Pozastaveno' },
-        { value: 'zruseno', label: 'Zrušeno' },
-    ];
-    const boolYesNo = [
-        { value: '1', label: 'Ano' },
-        { value: '0', label: 'Ne' },
+        { value: 'zruseno', label: 'Zruseno' },
     ];
     const registrarFilterOpts = [
-        { value: '1', label: 'Naše' },
-        { value: '0', label: 'Externí' },
+        { value: '1', label: 'Vlastni' },
+        { value: '0', label: 'Externi' },
     ];
     const serverFilterOpts = (filterOptions?.servers ?? []).map((s) => ({ value: s, label: s }));
     const managementFilterOpts = managementPlans.map((p) => ({ value: String(p.id), label: p.name }));
@@ -492,18 +489,21 @@ export default function NeniwebIndex({
         if (k.startsWith('filter_') && v) columnFilters[k] = v;
     }
 
-    /* ─────── Website columns (single table) ─────── */
+    // MRR calculation
+    const mrr = stats.arr_hosting / 12;
+
+    /* ─────── Website columns ─────── */
 
     const websiteColumns = [
         {
             key: 'name' as const,
-            label: 'Název',
+            label: 'Nazev',
             sortable: true,
             render: (w: Website) => (
                 <div className={`flex items-center gap-2 ${w.alias_of_id ? 'pl-5' : ''}`}>
                     {w.has_unpaid && <span className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0" />}
                     {w.alias_of_id ? (
-                        <span className="text-muted-foreground/40 text-xs shrink-0">└</span>
+                        <span className="text-muted-foreground/40 text-xs shrink-0">&lsub;</span>
                     ) : (
                         <Globe className="h-4 w-4 text-amber-500 shrink-0" />
                     )}
@@ -520,7 +520,7 @@ export default function NeniwebIndex({
                     )}
                     {w.is_external && (
                         <span className="ml-1 inline-flex items-center rounded-full bg-zinc-500/15 px-1.5 py-0.5 text-[10px] font-medium text-zinc-400 border border-zinc-500/25">
-                            Externí
+                            Externi
                         </span>
                     )}
                 </div>
@@ -528,13 +528,39 @@ export default function NeniwebIndex({
         },
         {
             key: 'customer' as const,
-            label: 'Zákazník',
+            label: 'Zakaznik',
             filterKey: 'filter_customer',
             filterOptions: customerFilterOpts,
             render: (w: Website) => (
                 <span className="text-muted-foreground">
-                    {w.customer ? w.customer.company || w.customer.name : '—'}
+                    {w.customer ? w.customer.company || w.customer.name : '\u2014'}
                 </span>
+            ),
+        },
+        {
+            key: 'registered' as const,
+            label: 'Registrator',
+            filterKey: 'filter_registered',
+            filterOptions: registrarFilterOpts,
+            render: (w: Website) => w.is_registered_by_us ? (
+                <span className="inline-flex items-center gap-1.5 text-xs">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                    <span className="text-emerald-400 font-medium">Vlastni</span>
+                </span>
+            ) : (
+                <span className="text-muted-foreground/60 text-xs">Externi</span>
+            ),
+        },
+        {
+            key: 'domain_expires_at' as const,
+            label: 'Domena exp.',
+            sortable: true,
+            render: (w: Website) => w.domain_expires_at ? (
+                <span className={`text-xs font-medium ${expirationStyle(w.domain_expires_at)}`}>
+                    {format(new Date(w.domain_expires_at), 'd. M. yyyy', { locale: cs })}
+                </span>
+            ) : (
+                <span className="text-xs text-muted-foreground/50">\u2014</span>
             ),
         },
         {
@@ -542,40 +568,33 @@ export default function NeniwebIndex({
             label: 'Server',
             filterKey: 'filter_server',
             filterOptions: serverFilterOpts,
-            render: (w: Website) => (
-                <span className="text-muted-foreground text-xs font-mono">{w.server || '—'}</span>
-            ),
-        },
-        {
-            key: 'domain_expires_at' as const,
-            label: 'Doména exp.',
-            sortable: true,
-            render: (w: Website) => w.domain_expires_at ? (
-                <span className={`text-sm font-medium ${expirationStyle(w.domain_expires_at)}`}>
-                    {format(new Date(w.domain_expires_at), 'd. M. yyyy', { locale: cs })}
-                </span>
-            ) : (
-                <span className="text-sm text-muted-foreground/50">—</span>
-            ),
+            render: (w: Website) => {
+                const serverName = w.hosting_server?.name || w.server;
+                return serverName ? (
+                    <span className="text-muted-foreground text-xs font-mono">{serverName}</span>
+                ) : (
+                    <span className="text-xs text-muted-foreground/50">\u2014</span>
+                );
+            },
         },
         {
             key: 'hosting_expires_at' as const,
             label: 'Hosting exp.',
             sortable: true,
             render: (w: Website) => w.hosting_expires_at ? (
-                <span className={`text-sm font-medium ${expirationStyle(w.hosting_expires_at)}`}>
+                <span className={`text-xs font-medium ${expirationStyle(w.hosting_expires_at)}`}>
                     {format(new Date(w.hosting_expires_at), 'd. M. yyyy', { locale: cs })}
                 </span>
             ) : (
-                <span className="text-sm text-muted-foreground/50">—</span>
+                <span className="text-xs text-muted-foreground/50">\u2014</span>
             ),
         },
         {
             key: 'storage_used_mb' as const,
-            label: 'Úložiště',
+            label: 'Uloziste',
             sortable: true,
             render: (w: Website) => {
-                if (!w.storage_quota_mb && !w.storage_used_mb) return <span className="text-muted-foreground/50 text-sm">—</span>;
+                if (!w.storage_quota_mb && !w.storage_used_mb) return <span className="text-muted-foreground/50 text-xs">\u2014</span>;
                 if (!w.storage_quota_mb && w.storage_used_mb) {
                     const usedGb = w.storage_used_mb >= 1024;
                     const label = usedGb ? `${(w.storage_used_mb / 1024).toFixed(1)} GB` : `${w.storage_used_mb} MB`;
@@ -602,33 +621,19 @@ export default function NeniwebIndex({
             sortable: true,
             render: (w: Website) => (
                 <span className="text-sm text-muted-foreground">
-                    {w.sell_yearly ? formatCurrency(w.sell_yearly) : '—'}
+                    {w.sell_yearly ? formatCurrency(w.sell_yearly) : '\u2014'}
                 </span>
             ),
         },
         {
             key: 'management_plan' as const,
-            label: 'Správa',
+            label: 'Sprava',
             filterKey: 'filter_management_plan',
             filterOptions: managementFilterOpts,
             render: (w: Website) => w.management_plan ? (
-                <span className="text-sm text-foreground">{w.management_plan.name}</span>
+                <span className="text-xs text-foreground">{w.management_plan.name}</span>
             ) : (
-                <span className="text-sm text-muted-foreground/50">—</span>
-            ),
-        },
-        {
-            key: 'registered' as const,
-            label: 'Registrátor',
-            filterKey: 'filter_registered',
-            filterOptions: registrarFilterOpts,
-            render: (w: Website) => w.is_registered_by_us ? (
-                <span className="inline-flex items-center gap-1.5 text-sm">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-                    <span className="text-emerald-400 font-medium">VH</span>
-                </span>
-            ) : (
-                <span className="text-muted-foreground/60 text-sm">Externí</span>
+                <span className="text-xs text-muted-foreground/50">\u2014</span>
             ),
         },
         {
@@ -682,7 +687,7 @@ export default function NeniwebIndex({
     const vpsColumns = [
         {
             key: 'name' as const,
-            label: 'Název',
+            label: 'Nazev',
             sortable: true,
             render: (vps: VpsServer) => (
                 <div className="flex items-center gap-2">
@@ -698,28 +703,28 @@ export default function NeniwebIndex({
         },
         {
             key: 'customer' as const,
-            label: 'Zákazník',
+            label: 'Zakaznik',
             render: (vps: VpsServer) => (
-                <span className="text-muted-foreground">{vps.customer ? vps.customer.company || vps.customer.name : '—'}</span>
+                <span className="text-muted-foreground">{vps.customer ? vps.customer.company || vps.customer.name : '\u2014'}</span>
             ),
         },
         {
             key: 'price_yearly' as const,
             label: 'Cena/rok',
             render: (vps: VpsServer) => (
-                <span className="text-sm text-muted-foreground">{vps.price_yearly ? formatCurrency(vps.price_yearly) : '—'}</span>
+                <span className="text-sm text-muted-foreground">{vps.price_yearly ? formatCurrency(vps.price_yearly) : '\u2014'}</span>
             ),
         },
         {
             key: 'hostings_count' as const,
-            label: 'Webů',
+            label: 'Webu',
             render: (vps: VpsServer) => <span className="text-sm text-foreground font-medium">{vps.hostings_count}</span>,
         },
         {
             key: 'storage_used_mb' as const,
-            label: 'Úložiště',
+            label: 'Uloziste',
             render: (vps: VpsServer) => {
-                if (!vps.storage_total_gb) return <span className="text-muted-foreground/50 text-sm">—</span>;
+                if (!vps.storage_total_gb) return <span className="text-muted-foreground/50 text-sm">\u2014</span>;
                 const totalMb = vps.storage_total_gb * 1024;
                 const usedMb = vps.storage_used_mb;
                 const pct = totalMb > 0 ? Math.min(100, Math.round((usedMb / totalMb) * 100)) : 0;
@@ -780,25 +785,25 @@ export default function NeniwebIndex({
         },
         {
             key: 'customer' as const,
-            label: 'Zákazník',
+            label: 'Zakaznik',
             render: (p: Payment) => (
-                <span className="text-muted-foreground">{p.website.customer ? p.website.customer.company || p.website.customer.name : '—'}</span>
+                <span className="text-muted-foreground">{p.website.customer ? p.website.customer.company || p.website.customer.name : '\u2014'}</span>
             ),
         },
         {
             key: 'period_start' as const,
-            label: 'Období',
+            label: 'Obdobi',
             render: (p: Payment) => (
                 <span className="text-sm text-muted-foreground">
                     {format(new Date(p.period_start), 'd. M. yyyy', { locale: cs })}
-                    {' – '}
+                    {' \u2013 '}
                     {format(new Date(p.period_end), 'd. M. yyyy', { locale: cs })}
                 </span>
             ),
         },
         {
             key: 'amount' as const,
-            label: 'Částka',
+            label: 'Castka',
             render: (p: Payment) => <span className="text-sm font-medium text-foreground">{formatCurrency(p.amount)}</span>,
         },
         {
@@ -821,7 +826,7 @@ export default function NeniwebIndex({
                     </Button>
                 ) : (
                     <span className="text-xs text-muted-foreground">
-                        {p.paid_at ? format(new Date(p.paid_at), 'd. M. yyyy', { locale: cs }) : '—'}
+                        {p.paid_at ? format(new Date(p.paid_at), 'd. M. yyyy', { locale: cs }) : '\u2014'}
                     </span>
                 ),
         },
@@ -829,84 +834,68 @@ export default function NeniwebIndex({
 
     return (
         <AuthenticatedLayout
-            title="Webové služby"
-            breadcrumbs={[{ label: 'Webové služby' }]}
+            title="Webove sluzby"
+            breadcrumbs={[{ label: 'Webove sluzby' }]}
         >
             <div className="p-6 space-y-6">
-                {/* Stats bar */}
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                {/* Stats bar — 4 key stats */}
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     <button
                         onClick={() => { setActiveTab('weby'); navigate({ tab: 'weby', expiry_filter: '' }); }}
                         className="bg-card border border-border rounded-xl px-4 py-3 text-left transition-colors hover:border-primary/40"
                     >
                         <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
                             <Globe className="h-3 w-3" />
-                            Weby
+                            Celkem webu
                         </p>
-                        <div className="flex items-baseline justify-between">
-                            <p className="text-2xl font-semibold text-foreground">{stats.total_websites}</p>
-                            <p className="text-sm font-medium text-emerald-400">
-                                <span className="text-[10px] text-muted-foreground mr-0.5">ARR</span>
-                                {formatCurrency(stats.arr_hosting)}
-                                <span className="text-xs text-muted-foreground">/rok</span>
-                            </p>
-                        </div>
+                        <p className="text-2xl font-semibold text-foreground">
+                            {stats.total_websites}
+                            {stats.total_aliases > 0 && (
+                                <span className="text-sm font-normal text-muted-foreground ml-1.5">
+                                    + {stats.total_aliases} aliasu
+                                </span>
+                            )}
+                        </p>
                     </button>
-                    <div className="bg-card border border-border rounded-xl px-4 py-3 text-left">
-                        <p className="text-xs text-muted-foreground mb-1">Aliasy</p>
-                        <p className="text-2xl font-semibold text-muted-foreground">{stats.total_aliases}</p>
-                    </div>
+
+                    <button
+                        onClick={() => { setActiveTab('weby'); navigate({ tab: 'weby', expiry_filter: 'expiring_soon' }); }}
+                        className="bg-card border border-border rounded-xl px-4 py-3 text-left transition-colors hover:border-amber-500/40"
+                    >
+                        <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            Expiruje do 30 dni
+                        </p>
+                        <p className="text-2xl font-semibold text-amber-400">
+                            {websites.data.filter((w) =>
+                                w.hosting_expires_at &&
+                                differenceInDays(new Date(w.hosting_expires_at), new Date()) >= 0 &&
+                                differenceInDays(new Date(w.hosting_expires_at), new Date()) <= 30
+                            ).length}
+                        </p>
+                    </button>
+
                     <button
                         onClick={() => { setActiveTab('weby'); navigate({ tab: 'weby', expiry_filter: 'expired' }); }}
                         className="bg-card border border-border rounded-xl px-4 py-3 text-left transition-colors hover:border-red-500/40"
                     >
                         <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
                             <CalendarX2 className="h-3 w-3" />
-                            Expirované
+                            Po expiraci
                         </p>
                         <p className="text-2xl font-semibold text-red-400">{stats.expired_count}</p>
                     </button>
-                    <button
-                        onClick={() => { setActiveTab('platby'); navigate({ tab: 'platby' }); }}
-                        className="bg-card border border-border rounded-xl px-4 py-3 text-left transition-colors hover:border-amber-500/40"
-                    >
+
+                    <div className="bg-card border border-border rounded-xl px-4 py-3 text-left">
                         <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
-                            <AlertCircle className="h-3 w-3" />
-                            Nezaplaceno
+                            <TrendingUp className="h-3 w-3" />
+                            MRR
                         </p>
-                        <div className="flex items-baseline justify-between">
-                            <p className="text-2xl font-semibold text-amber-400">{stats.unpaid_count}</p>
-                            {stats.unpaid_amount > 0 && (
-                                <p className="text-sm font-medium text-amber-400">{formatCurrency(stats.unpaid_amount)}</p>
-                            )}
-                        </div>
-                    </button>
-                    {stats.to_invoice_count > 0 && (
-                        <button
-                            onClick={() => { setActiveTab('weby'); navigate({ tab: 'weby', expiry_filter: 'expired' }); }}
-                            className="bg-card border border-border rounded-xl px-4 py-3 text-left transition-colors hover:border-primary/40"
-                        >
-                            <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
-                                <FileText className="h-3 w-3" />
-                                K fakturaci
-                            </p>
-                            <div className="flex items-baseline justify-between">
-                                <p className="text-2xl font-semibold text-primary">{stats.to_invoice_count}</p>
-                                {stats.to_invoice_amount > 0 && (
-                                    <p className="text-sm font-medium text-primary">{formatCurrency(stats.to_invoice_amount)}</p>
-                                )}
-                            </div>
-                        </button>
-                    )}
-                    {stats.external_count > 0 && (
-                        <div className="bg-card border border-border rounded-xl px-4 py-3 text-left">
-                            <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
-                                <UserPlus className="h-3 w-3" />
-                                Externí
-                            </p>
-                            <p className="text-2xl font-semibold text-muted-foreground">{stats.external_count}</p>
-                        </div>
-                    )}
+                        <p className="text-2xl font-semibold text-emerald-400">{formatCurrency(mrr)}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                            ARR {formatCurrency(stats.arr_hosting)}
+                        </p>
+                    </div>
                 </div>
 
                 <Tabs
@@ -943,7 +932,7 @@ export default function NeniwebIndex({
                                     </Button>
                                     <Button onClick={() => setShowVpsCreate(true)} className="bg-primary hover:bg-primary/80 text-white">
                                         <Plus className="h-4 w-4 mr-2" />
-                                        Nový VPS
+                                        Novy VPS
                                     </Button>
                                 </>
                             ) : activeTab === 'weby' ? (
@@ -959,12 +948,12 @@ export default function NeniwebIndex({
                                             className="text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 border border-amber-500/25"
                                         >
                                             <Bell className="h-4 w-4 mr-2" />
-                                            Ke schválení ({stats.pending_count})
+                                            Ke schvaleni ({stats.pending_count})
                                         </Button>
                                     )}
                                     <Button onClick={() => router.visit('/webove-sluzby/create')} className="bg-primary hover:bg-primary/80 text-white">
                                         <Plus className="h-4 w-4 mr-2" />
-                                        Nový web
+                                        Novy web
                                     </Button>
                                 </>
                             ) : null}
@@ -975,12 +964,12 @@ export default function NeniwebIndex({
                     <TabsContent value="weby">
                         {selectedIds.size > 0 && (
                             <div className="flex items-center gap-3 mb-4 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5">
-                                <span className="text-sm font-medium text-foreground">{selectedIds.size} vybráno</span>
+                                <span className="text-sm font-medium text-foreground">{selectedIds.size} vybrano</span>
                                 <div className="flex items-center gap-1.5 ml-auto">
                                     <Select onValueChange={(v) => handleBulkAction('set_customer', v)}>
                                         <SelectTrigger className="h-7 w-auto gap-1 px-2.5 text-xs border-0 bg-transparent text-blue-400 hover:text-blue-300 hover:bg-blue-500/10">
                                             <UserPlus className="h-3.5 w-3.5" />
-                                            Zákazník
+                                            Zakaznik
                                         </SelectTrigger>
                                         <SelectContent position="popper" align="end" sideOffset={4}>
                                             {customers.map((c) => (
@@ -993,10 +982,10 @@ export default function NeniwebIndex({
                                     {managementPlans.length > 0 && (
                                         <Select onValueChange={(v) => handleBulkAction('set_management_plan', v)}>
                                             <SelectTrigger className="h-7 w-auto gap-1 px-2.5 text-xs border-0 bg-transparent text-violet-400 hover:text-violet-300 hover:bg-violet-500/10">
-                                                Správa
+                                                Sprava
                                             </SelectTrigger>
                                             <SelectContent position="popper" align="end" sideOffset={4}>
-                                                <SelectItem value="none">Bez správy</SelectItem>
+                                                <SelectItem value="none">Bez spravy</SelectItem>
                                                 {managementPlans.map((p) => (
                                                     <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
                                                 ))}
@@ -1010,19 +999,13 @@ export default function NeniwebIndex({
                                         <Ban className="h-3.5 w-3.5 mr-1" />Zpoplatnit
                                     </Button>
                                     <Button size="sm" variant="ghost" onClick={() => handleBulkAction('set_status', 'aktivni')} className="h-7 px-2.5 text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10">
-                                        <CheckCircle className="h-3.5 w-3.5 mr-1" />Aktivní
+                                        <CheckCircle className="h-3.5 w-3.5 mr-1" />Aktivni
                                     </Button>
                                     <Button size="sm" variant="ghost" onClick={() => handleBulkAction('set_status', 'pozastaveno')} className="h-7 px-2.5 text-xs text-amber-400 hover:text-amber-300 hover:bg-amber-500/10">
                                         <Clock className="h-3.5 w-3.5 mr-1" />Pozastavit
                                     </Button>
                                     <Button size="sm" variant="ghost" onClick={() => handleBulkAction('set_status', 'zruseno')} className="h-7 px-2.5 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10">
-                                        <Ban className="h-3.5 w-3.5 mr-1" />Zrušit
-                                    </Button>
-                                    <Button size="sm" variant="ghost" onClick={() => handleBulkAction('set_external')} className="h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent">
-                                        <UserPlus className="h-3.5 w-3.5 mr-1" />Externí
-                                    </Button>
-                                    <Button size="sm" variant="ghost" onClick={() => handleBulkAction('unset_external')} className="h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent">
-                                        <Ban className="h-3.5 w-3.5 mr-1" />Naše
+                                        <Ban className="h-3.5 w-3.5 mr-1" />Zrusit
                                     </Button>
                                     <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())} className="h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground">
                                         <X className="h-3.5 w-3.5" />
@@ -1071,7 +1054,7 @@ export default function NeniwebIndex({
                             perPageOptions={[30, 50, 100]}
                             onPerPageChange={(n) => navigate({ per_page: String(n), tab: 'weby', page: '1' })}
                             onRowClick={(w) => router.visit(`/webove-sluzby/${w.id}`)}
-                            emptyMessage="Žádné weby"
+                            emptyMessage="Zadne weby"
                             selectable
                             selectedIds={selectedIds}
                             onSelectionChange={setSelectedIds}
@@ -1091,14 +1074,14 @@ export default function NeniwebIndex({
 
                     {/* TAB: VPS */}
                     <TabsContent value="vps">
-                        <DataTable data={vpsServers} columns={vpsColumns} emptyMessage="Žádné VPS servery" />
+                        <DataTable data={vpsServers} columns={vpsColumns} emptyMessage="Zadne VPS servery" />
                     </TabsContent>
 
                     {/* TAB: Platby */}
                     <TabsContent value="platby">
                         <div className="flex items-center gap-2 mb-4">
                             {[
-                                { value: '', label: 'Vše' },
+                                { value: '', label: 'Vse' },
                                 { value: 'nezaplaceno', label: 'Nezaplaceno' },
                                 { value: 'po_splatnosti', label: 'Po splatnosti' },
                                 { value: 'zaplaceno', label: 'Zaplaceno' },
@@ -1142,7 +1125,7 @@ export default function NeniwebIndex({
                             perPageOptions={[30, 50, 100]}
                             onPerPageChange={(n) => navigate({ per_page: String(n), tab: 'platby', payments_page: '1' })}
                             onRowClick={(p) => router.visit(`/webove-sluzby/${p.website_id}`)}
-                            emptyMessage="Žádné platby"
+                            emptyMessage="Zadne platby"
                         />
                     </TabsContent>
                 </Tabs>
@@ -1152,28 +1135,28 @@ export default function NeniwebIndex({
             <GlassModal
                 open={showVpsCreate || !!editVps}
                 onClose={() => { setShowVpsCreate(false); setEditVps(null); vpsForm.reset(); }}
-                title={editVps ? `Upravit VPS — ${editVps.name}` : 'Nový VPS server'}
+                title={editVps ? `Upravit VPS \u2014 ${editVps.name}` : 'Novy VPS server'}
                 maxWidth="max-w-lg"
             >
                 <form onSubmit={handleVpsSubmit} className="space-y-5">
                     <div>
-                        <Label className="text-muted-foreground">Název serveru</Label>
+                        <Label className="text-muted-foreground">Nazev serveru</Label>
                         <Input value={vpsForm.data.name} onChange={(e) => vpsForm.setData('name', e.target.value)} placeholder="sss06.vas-server.cz" className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground" />
                         {vpsForm.errors.name && <p className="mt-1 text-xs text-red-400">{vpsForm.errors.name}</p>}
                     </div>
                     <div>
-                        <Label className="text-muted-foreground">Zákazník</Label>
+                        <Label className="text-muted-foreground">Zakaznik</Label>
                         <Select value={vpsForm.data.customer_id} onValueChange={(v) => vpsForm.setData('customer_id', v === 'none' ? '' : v)}>
-                            <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground"><SelectValue placeholder="Vyberte zákazníka (volitelné)" /></SelectTrigger>
+                            <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground"><SelectValue placeholder="Vyberte zakaznika (volitelne)" /></SelectTrigger>
                             <SelectContent className="bg-card border-border">
-                                <SelectItem value="none">Bez zákazníka</SelectItem>
+                                <SelectItem value="none">Bez zakaznika</SelectItem>
                                 {customers.map((c) => <SelectItem key={c.id} value={String(c.id)}>{c.company || c.name}</SelectItem>)}
                             </SelectContent>
                         </Select>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <Label className="text-muted-foreground">Cena / rok (Kč)</Label>
+                            <Label className="text-muted-foreground">Cena / rok (Kc)</Label>
                             <Input type="number" value={vpsForm.data.price_yearly} onChange={(e) => vpsForm.setData('price_yearly', e.target.value)} placeholder="2500" className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground" />
                         </div>
                         <div>
@@ -1183,7 +1166,7 @@ export default function NeniwebIndex({
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <Label className="text-muted-foreground">Úložiště celkem (GB)</Label>
+                            <Label className="text-muted-foreground">Uloziste celkem (GB)</Label>
                             <Input type="number" value={vpsForm.data.storage_total_gb} onChange={(e) => vpsForm.setData('storage_total_gb', e.target.value)} placeholder="500" className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground" />
                         </div>
                         <div>
@@ -1191,20 +1174,20 @@ export default function NeniwebIndex({
                             <Select value={vpsForm.data.status} onValueChange={(v) => vpsForm.setData('status', v)}>
                                 <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground"><SelectValue /></SelectTrigger>
                                 <SelectContent className="bg-card border-border">
-                                    <SelectItem value="aktivni">Aktivní</SelectItem>
-                                    <SelectItem value="neaktivni">Neaktivní</SelectItem>
+                                    <SelectItem value="aktivni">Aktivni</SelectItem>
+                                    <SelectItem value="neaktivni">Neaktivni</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
                     </div>
                     <div>
-                        <Label className="text-muted-foreground">Poznámky</Label>
+                        <Label className="text-muted-foreground">Poznamky</Label>
                         <Textarea value={vpsForm.data.notes} onChange={(e) => vpsForm.setData('notes', e.target.value)} rows={3} className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground resize-none" />
                     </div>
                     <div className="flex items-center justify-end gap-3 pt-2">
-                        <Button type="button" variant="ghost" onClick={() => { setShowVpsCreate(false); setEditVps(null); vpsForm.reset(); }} className="text-muted-foreground hover:text-foreground">Zrušit</Button>
+                        <Button type="button" variant="ghost" onClick={() => { setShowVpsCreate(false); setEditVps(null); vpsForm.reset(); }} className="text-muted-foreground hover:text-foreground">Zrusit</Button>
                         <Button type="submit" disabled={vpsForm.processing} className="bg-primary hover:bg-primary/80 text-white">
-                            {vpsForm.processing ? 'Ukládám...' : editVps ? 'Uložit změny' : 'Vytvořit VPS'}
+                            {vpsForm.processing ? 'Ukladam...' : editVps ? 'Ulozit zmeny' : 'Vytvorit VPS'}
                         </Button>
                     </div>
                 </form>
@@ -1214,12 +1197,12 @@ export default function NeniwebIndex({
             <GlassModal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="Smazat web" maxWidth="max-w-md">
                 <div className="space-y-6">
                     <p className="text-sm text-muted-foreground">
-                        Opravdu chcete smazat <span className="font-semibold text-foreground">{deleteTarget?.name}</span>? Tato akce se nedá vrátit.
+                        Opravdu chcete smazat <span className="font-semibold text-foreground">{deleteTarget?.name}</span>? Tato akce se neda vratit.
                     </p>
                     <div className="flex justify-end gap-3">
-                        <Button variant="ghost" className="text-muted-foreground hover:text-foreground" onClick={() => setDeleteTarget(null)}>Zrušit</Button>
+                        <Button variant="ghost" className="text-muted-foreground hover:text-foreground" onClick={() => setDeleteTarget(null)}>Zrusit</Button>
                         <Button variant="destructive" disabled={deleting} onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-                            <Trash2 className="h-4 w-4" />{deleting ? 'Mažu...' : 'Smazat'}
+                            <Trash2 className="h-4 w-4" />{deleting ? 'Mazu...' : 'Smazat'}
                         </Button>
                     </div>
                 </div>
@@ -1232,14 +1215,14 @@ export default function NeniwebIndex({
                         Opravdu chcete smazat VPS <span className="font-semibold text-foreground">{deleteVpsTarget?.name}</span>?
                         {deleteVpsTarget && deleteVpsTarget.hostings_count > 0 && (
                             <span className="block mt-2 text-amber-400">
-                                Upozornění: Tento VPS obsahuje {deleteVpsTarget.hostings_count} přiřazených webů.
+                                Upozorneni: Tento VPS obsahuje {deleteVpsTarget.hostings_count} prirazenych webu.
                             </span>
                         )}
                     </p>
                     <div className="flex justify-end gap-3">
-                        <Button variant="ghost" className="text-muted-foreground hover:text-foreground" onClick={() => setDeleteVpsTarget(null)}>Zrušit</Button>
+                        <Button variant="ghost" className="text-muted-foreground hover:text-foreground" onClick={() => setDeleteVpsTarget(null)}>Zrusit</Button>
                         <Button variant="destructive" disabled={deletingVps} onClick={handleDeleteVps} className="bg-red-600 hover:bg-red-700">
-                            <Trash2 className="h-4 w-4" />{deletingVps ? 'Mažu...' : 'Smazat'}
+                            <Trash2 className="h-4 w-4" />{deletingVps ? 'Mazu...' : 'Smazat'}
                         </Button>
                     </div>
                 </div>
