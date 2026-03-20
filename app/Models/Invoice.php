@@ -112,8 +112,7 @@ class Invoice extends Model
     public function websites(): BelongsToMany
     {
         return $this->belongsToMany(Website::class, 'invoice_website', 'invoice_id', 'website_id')
-            ->withPivot('invoice_type')
-            ->withTimestamps();
+            ->withPivot('invoice_type', 'created_at');
     }
 
     public function bankTransaction(): BelongsTo

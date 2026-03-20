@@ -118,8 +118,7 @@ class Website extends Model
     public function invoices(): BelongsToMany
     {
         return $this->belongsToMany(Invoice::class, 'invoice_website', 'website_id', 'invoice_id')
-            ->withPivot('invoice_type')
-            ->withTimestamps();
+            ->withPivot('invoice_type', 'created_at');
     }
 
     // ── Scopes ─────────────────────────────────────────────────────
