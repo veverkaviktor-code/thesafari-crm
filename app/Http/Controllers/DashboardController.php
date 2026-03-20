@@ -366,7 +366,7 @@ class DashboardController extends Controller
             $label = $days === 0 ? 'dnes' : ($days === 1 ? 'zítra' : "za {$days} dní");
             $alerts[] = [
                 'type' => $days <= 1 ? 'danger' : 'warning',
-                'icon' => 'subscription',
+                'icon' => 'website',
                 'title' => "{$website->name} expiruje {$label}",
                 'subtitle' => 'Hosting',
                 'link' => "/webove-sluzby/{$website->id}",
@@ -386,7 +386,7 @@ class DashboardController extends Controller
             $days = (int) abs(now()->diffInDays($website->hosting_expires_at));
             $alerts[] = [
                 'type' => 'danger',
-                'icon' => 'subscription',
+                'icon' => 'website',
                 'title' => "{$website->name} — expirováno před {$days} dny",
                 'subtitle' => 'Hosting · stále označeno jako aktivní',
                 'link' => "/webove-sluzby/{$website->id}",
@@ -407,7 +407,7 @@ class DashboardController extends Controller
             $over = $website->storage_used_mb > $website->storage_quota_mb;
             $alerts[] = [
                 'type' => $over ? 'danger' : 'warning',
-                'icon' => 'subscription',
+                'icon' => 'website',
                 'title' => "{$website->name} — úložiště {$pct}%",
                 'subtitle' => "{$website->storage_used_mb} / {$website->storage_quota_mb} MB",
                 'link' => "/webove-sluzby/{$website->id}",

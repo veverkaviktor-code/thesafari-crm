@@ -30,10 +30,11 @@ interface Props {
         created_at: string;
         websites: {
             id: number;
-            type: 'hosting' | 'domena' | 'sluzba';
             name: string;
             status: string;
-            expires_at: string | null;
+            is_registered_by_us: boolean;
+            hosting_expires_at: string | null;
+            domain_expires_at: string | null;
         }[];
     };
     stats: {

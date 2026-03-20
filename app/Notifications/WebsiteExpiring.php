@@ -19,11 +19,11 @@ class WebsiteExpiring extends Notification
 
     public function toArray(object $notifiable): array
     {
-        $typeLabel = $this->website->type === 'domena' ? 'Doména' : 'Hosting';
+        $label = $this->website->is_registered_by_us ? 'Web (doména + hosting)' : 'Web (hosting)';
         return [
             'type' => 'website_expiring',
-            'title' => "{$typeLabel} {$this->website->name} expiruje za {$this->daysLeft} dní",
-            'message' => "{$typeLabel} {$this->website->name} ({$this->website->customer->name}) expiruje {$this->website->hosting_expires_at->format('d.m.Y')}.",
+            'title' => "{$label} {$this->website->name} expiruje za {$this->daysLeft} dní",
+            'message' => "{$label} {$this->website->name} ({$this->website->customer->name}) expiruje {$this->website->hosting_expires_at->format('d.m.Y')}.",
             'link' => "/webove-sluzby/{$this->website->id}",
             'website_id' => $this->website->id,
         ];

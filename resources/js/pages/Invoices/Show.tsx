@@ -71,8 +71,9 @@ interface Invoice {
     websites?: Array<{
         id: number;
         name: string;
-        type: string;
-        expires_at: string | null;
+        is_registered_by_us: boolean;
+        hosting_expires_at: string | null;
+        domain_expires_at: string | null;
     }>;
     bank_transaction?: BankTransaction;
 }
@@ -545,15 +546,15 @@ export default function Show({ invoice, company, unmatchedTransactions, activiti
                         </>
                     )}
 
-                    {/* Linked subscriptions */}
+                    {/* Linked websites */}
                     {invoice.websites && invoice.websites.length > 0 && (
                         <>
                             <Separator className="my-6 bg-border" />
                             <div>
-                                <p className="text-xs text-muted-foreground mb-2">Služby:</p>
+                                <p className="text-xs text-muted-foreground mb-2">Weby:</p>
                                 {invoice.websites.map((sub) => (
                                     <div key={sub.id} className="flex items-center gap-2 text-sm mb-1">
-                                        <span>{sub.type === 'domena' ? '🌐' : '🖥️'}</span>
+                                        <span>{sub.is_registered_by_us ? '🌐' : '🖥️'}</span>
                                         <Link
                                             href={`/webove-sluzby/${sub.id}`}
                                             className="text-primary hover:underline"
@@ -561,12 +562,12 @@ export default function Show({ invoice, company, unmatchedTransactions, activiti
                                             {sub.name}
                                         </Link>
                                         <span className="text-muted-foreground text-xs">
-                                            — {sub.type === 'domena' ? 'doména' : 'hosting'}
-                                            {sub.expires_at && ` (exp. ${new Date(sub.expires_at).toLocaleDateString('cs-CZ')})`}
+                                            — {sub.is_registered_by_us ? 'hosting + doména' : 'hosting'}
+                                            {sub.hosting_expires_at && ` (exp. ${new Date(sub.hosting_expires_at).toLocaleDateString('cs-CZ')})`}
                                         </span>
                                     </div>
                                 ))}
-                                {invoice.status === 'zaplacena' && invoice.websites.some(s => s.type === 'domena') && (
+                                {invoice.status === 'zaplacena' && invoice.websites.some(s => s.is_registered_by_us) && (
                                     <a
                                         href="https://portal.vas-hosting.cz"
                                         target="_blank"

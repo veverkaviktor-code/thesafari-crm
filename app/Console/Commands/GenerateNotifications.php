@@ -14,7 +14,7 @@ use Illuminate\Console\Command;
 class GenerateNotifications extends Command
 {
     protected $signature = 'notifications:generate';
-    protected $description = 'Generate notifications for overdue invoices and expiring subscriptions';
+    protected $description = 'Generate notifications for overdue invoices and expiring websites';
 
     public function handle(): int
     {

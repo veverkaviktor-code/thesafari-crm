@@ -24,10 +24,11 @@ interface Invoice {
 
 interface Website {
     id: number;
-    type: 'hosting' | 'domena' | 'sluzba';
     name: string;
     status: string;
-    expires_at: string | null;
+    is_registered_by_us: boolean;
+    hosting_expires_at: string | null;
+    domain_expires_at: string | null;
 }
 
 interface VpsServer {
@@ -80,11 +81,9 @@ const websiteStatusConfig: Record<string, { label: string; className: string }> 
     zruseno: { label: 'Zrušeno', className: 'bg-red-500/15 text-red-400 border-red-500/25' },
 };
 
-const typeLabels: Record<string, string> = {
-    hosting: 'Hosting',
-    domena: 'Doména',
-    sluzba: 'Služba',
-};
+function getWebsiteLabel(w: Website): string {
+    return w.is_registered_by_us ? 'Hosting + doména' : 'Hosting';
+}
 
 function Badge({ label, className }: { label: string; className: string }) {
     return (
@@ -265,11 +264,11 @@ export default function CustomerTabs({ orders, invoices, websites, vpsServers, o
                                                 {sub.name}
                                             </p>
                                             <p className="text-xs text-muted-foreground">
-                                                {typeLabels[sub.type] ?? sub.type}
-                                                {sub.expires_at && (
+                                                {getWebsiteLabel(sub)}
+                                                {sub.hosting_expires_at && (
                                                     <>
                                                         {' '}&middot; do{' '}
-                                                        {new Date(sub.expires_at).toLocaleDateString('cs-CZ')}
+                                                        {new Date(sub.hosting_expires_at).toLocaleDateString('cs-CZ')}
                                                     </>
                                                 )}
                                             </p>

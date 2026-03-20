@@ -57,7 +57,7 @@ class InvoiceController extends Controller
     public function show(Invoice $faktury)
     {
         $invoice = $faktury;
-        $invoice->load(['items', 'customer', 'order', 'websites:id,name,hosting_expires_at,domain_expires_at', 'bankTransaction']);
+        $invoice->load(['items', 'customer', 'order', 'websites:id,name,hosting_expires_at,domain_expires_at,is_registered_by_us', 'bankTransaction']);
 
         $activities = \Spatie\Activitylog\Models\Activity::query()
             ->where('subject_type', Invoice::class)

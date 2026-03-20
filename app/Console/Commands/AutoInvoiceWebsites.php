@@ -76,12 +76,7 @@ class AutoInvoiceWebsites extends Command
                     continue;
                 }
 
-                $typeLabel = match ($website->type) {
-                    'domena' => 'Obnova domény',
-                    'hosting' => 'Hosting',
-                    'sluzba' => 'Služba',
-                    default => 'Služba',
-                };
+                $typeLabel = $website->is_registered_by_us ? 'Hosting + doména' : 'Hosting';
 
                 $items[] = [
                     'website' => $website,

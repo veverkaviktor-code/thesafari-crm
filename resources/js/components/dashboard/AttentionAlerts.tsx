@@ -70,7 +70,7 @@ export default function AttentionAlerts({ alerts, ignoredAlerts, defaultVisible 
         if (!alert.website_id) return;
 
         setProcessingId(alert.website_id);
-        router.post(`/webove-sluzby/${alert.website_id}/toggle-ignore-alerts`, {}, {
+        router.post(`/webove-sluzby/${alert.website_id}/toggle-ignore`, {}, {
             preserveScroll: true,
             preserveState: true,
             onSuccess: () => {
@@ -93,7 +93,7 @@ export default function AttentionAlerts({ alerts, ignoredAlerts, defaultVisible 
 
     const handleRestore = (ignoredAlert: IgnoredAlert) => {
         setProcessingId(ignoredAlert.website_id);
-        router.post(`/webove-sluzby/${ignoredAlert.website_id}/toggle-ignore-alerts`, {}, {
+        router.post(`/webove-sluzby/${ignoredAlert.website_id}/toggle-ignore`, {}, {
             preserveScroll: true,
             preserveState: true,
             onSuccess: () => {

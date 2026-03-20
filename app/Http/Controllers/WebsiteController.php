@@ -754,7 +754,7 @@ class WebsiteController extends Controller
                         } else {
                             SyncPending::firstOrCreate(
                                 ['domain_name' => $domainName],
-                                ['source' => 'server']
+                                ['source' => 'sss06']
                             );
                             $pending++;
                         }
@@ -801,9 +801,15 @@ class WebsiteController extends Controller
                             $website->update($data);
                             $updated++;
                         } else {
+                            // Map full server name to short name matching CHECK constraint
+                            $shortName = match (true) {
+                                str_contains($serverName, 'ond08') => 'ond08',
+                                str_contains($serverName, 'thaimassage') => 'thaimassage',
+                                default => 'ond08', // fallback
+                            };
                             SyncPending::firstOrCreate(
                                 ['domain_name' => $domainName],
-                                ['source' => 'vpsc:' . $serverName]
+                                ['source' => $shortName]
                             );
                             $pending++;
                         }
