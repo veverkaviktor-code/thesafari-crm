@@ -23,7 +23,7 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 
-export interface NeniwebFormData {
+export interface WebsiteFormData {
     type: string;
     customer_id: string;
     name: string;
@@ -53,7 +53,7 @@ export interface NeniwebFormData {
     parent_subscription_id: string;
 }
 
-export const defaultNeniwebData: NeniwebFormData = {
+export const defaultWebsiteData: WebsiteFormData = {
     type: 'domena',
     customer_id: '',
     name: '',
@@ -108,8 +108,8 @@ interface ParentOption {
     type: string;
 }
 
-interface NeniwebFormProps {
-    form: InertiaFormProps<NeniwebFormData>;
+interface WebsiteFormProps {
+    form: InertiaFormProps<WebsiteFormData>;
     onSubmit: (e: FormEvent) => void;
     submitLabel: string;
     customers: Customer[];
@@ -118,7 +118,7 @@ interface NeniwebFormProps {
     onCancel?: () => void;
 }
 
-export default function NeniwebForm({
+export default function WebsiteForm({
     form,
     onSubmit,
     submitLabel,
@@ -126,7 +126,7 @@ export default function NeniwebForm({
     folders = [],
     parentOptions = [],
     onCancel,
-}: NeniwebFormProps) {
+}: WebsiteFormProps) {
     const { data, setData, errors, processing } = form;
 
     useEffect(() => {
@@ -144,7 +144,7 @@ export default function NeniwebForm({
         if (onCancel) {
             onCancel();
         } else {
-            router.visit('/neniweb');
+            router.visit('/webove-sluzby');
         }
     };
 

@@ -12,7 +12,7 @@ interface SearchResult {
 
 interface SearchResults {
     customers: SearchResult[];
-    subscriptions: SearchResult[];
+    websites: SearchResult[];
     orders: SearchResult[];
     invoices: SearchResult[];
     estimates: SearchResult[];
@@ -22,7 +22,7 @@ interface SearchResults {
 
 const sectionOrder: (keyof SearchResults)[] = [
     'customers',
-    'subscriptions',
+    'websites',
     'orders',
     'invoices',
     'estimates',
@@ -32,7 +32,7 @@ const sectionOrder: (keyof SearchResults)[] = [
 
 const typeConfig: Record<string, { icon: typeof User; label: string; color: string }> = {
     customer:     { icon: User,          label: 'Zákazníci',   color: 'text-amber-500' },
-    subscription: { icon: Globe,         label: 'Služby',      color: 'text-emerald-500' },
+    website:      { icon: Globe,         label: 'Služby',      color: 'text-emerald-500' },
     order:        { icon: FileText,      label: 'Zakázky',     color: 'text-primary' },
     invoice:      { icon: FileText,      label: 'Faktury',     color: 'text-[#D4A574]' },
     estimate:     { icon: Calculator,    label: 'Kalkulace',   color: 'text-amber-400' },

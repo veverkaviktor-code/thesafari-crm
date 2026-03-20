@@ -128,7 +128,7 @@ export default function MrrDetail({ data }: Props) {
                         {expiring_soon.map((sub) => (
                             <button
                                 key={sub.id}
-                                onClick={() => router.visit(`/neniweb/${sub.id}`)}
+                                onClick={() => router.visit(`/webove-sluzby/${sub.id}`)}
                                 className="w-full flex items-center justify-between rounded-lg border border-border p-2.5 text-left transition-colors hover:bg-accent"
                             >
                                 <div>

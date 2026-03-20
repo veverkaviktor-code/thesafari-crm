@@ -36,21 +36,21 @@ interface Props {
 const typeIcons: Record<string, React.ElementType> = {
     invoice_overdue: FileWarning,
     payment_received: CreditCard,
-    subscription_expiring: Globe,
+    website_expiring: Globe,
     new_ticket: MessageSquare,
 };
 
 const typeColors: Record<string, string> = {
     invoice_overdue: 'text-red-400',
     payment_received: 'text-emerald-400',
-    subscription_expiring: 'text-amber-400',
+    website_expiring: 'text-amber-400',
     new_ticket: 'text-blue-400',
 };
 
 const typeBgColors: Record<string, string> = {
     invoice_overdue: 'bg-red-500/10',
     payment_received: 'bg-emerald-500/10',
-    subscription_expiring: 'bg-amber-500/10',
+    website_expiring: 'bg-amber-500/10',
     new_ticket: 'bg-blue-500/10',
 };
 

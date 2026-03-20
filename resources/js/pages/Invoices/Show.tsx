@@ -68,7 +68,7 @@ interface Invoice {
     };
     order: { id: number; title: string } | null;
     items: InvoiceItem[];
-    subscriptions?: Array<{
+    websites?: Array<{
         id: number;
         name: string;
         type: string;
@@ -546,16 +546,16 @@ export default function Show({ invoice, company, unmatchedTransactions, activiti
                     )}
 
                     {/* Linked subscriptions */}
-                    {invoice.subscriptions && invoice.subscriptions.length > 0 && (
+                    {invoice.websites && invoice.websites.length > 0 && (
                         <>
                             <Separator className="my-6 bg-border" />
                             <div>
                                 <p className="text-xs text-muted-foreground mb-2">Služby:</p>
-                                {invoice.subscriptions.map((sub) => (
+                                {invoice.websites.map((sub) => (
                                     <div key={sub.id} className="flex items-center gap-2 text-sm mb-1">
                                         <span>{sub.type === 'domena' ? '🌐' : '🖥️'}</span>
                                         <Link
-                                            href={`/neniweb/${sub.id}`}
+                                            href={`/webove-sluzby/${sub.id}`}
                                             className="text-primary hover:underline"
                                         >
                                             {sub.name}
@@ -566,7 +566,7 @@ export default function Show({ invoice, company, unmatchedTransactions, activiti
                                         </span>
                                     </div>
                                 ))}
-                                {invoice.status === 'zaplacena' && invoice.subscriptions.some(s => s.type === 'domena') && (
+                                {invoice.status === 'zaplacena' && invoice.websites.some(s => s.type === 'domena') && (
                                     <a
                                         href="https://portal.vas-hosting.cz"
                                         target="_blank"

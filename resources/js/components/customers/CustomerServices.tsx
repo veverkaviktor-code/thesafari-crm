@@ -2,7 +2,7 @@ import { Link } from '@inertiajs/react';
 import { Server } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
-interface Subscription {
+interface Website {
     id: number;
     type: 'hosting' | 'domena' | 'sluzba';
     name: string;
@@ -19,7 +19,7 @@ interface VpsServer {
 }
 
 interface Props {
-    subscriptions: Subscription[];
+    websites: Website[];
     vpsServers?: VpsServer[];
 }
 
@@ -35,9 +35,9 @@ const typeLabels: Record<string, string> = {
     sluzba: 'Služba',
 };
 
-export default function CustomerServices({ subscriptions, vpsServers = [] }: Props) {
-    const hasItems = subscriptions.length > 0 || vpsServers.length > 0;
-    const totalCount = subscriptions.length + vpsServers.length;
+export default function CustomerServices({ websites, vpsServers = [] }: Props) {
+    const hasItems = websites.length > 0 || vpsServers.length > 0;
+    const totalCount = websites.length + vpsServers.length;
 
     return (
         <div className="rounded-xl border border-border bg-card p-5">
@@ -73,12 +73,12 @@ export default function CustomerServices({ subscriptions, vpsServers = [] }: Pro
                             </span>
                         </div>
                     ))}
-                    {subscriptions.map((sub) => {
+                    {websites.map((sub) => {
                         const statusInfo = statusMap[sub.status];
                         return (
                             <Link
                                 key={sub.id}
-                                href={`/neniweb/${sub.id}`}
+                                href={`/webove-sluzby/${sub.id}`}
                                 className="flex items-center justify-between rounded-lg bg-accent p-3 transition-colors hover:bg-accent/80"
                             >
                                 <div>

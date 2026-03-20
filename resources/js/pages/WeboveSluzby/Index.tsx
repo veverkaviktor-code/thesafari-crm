@@ -20,10 +20,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Checkbox } from '@/components/ui/checkbox';
 import GlassModal from '@/components/ui/GlassModal';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
-import NeniwebForm, {
-    defaultNeniwebData,
-    type NeniwebFormData,
-} from '@/components/neniweb/NeniwebForm';
+import WebsiteForm, {
+    defaultWebsiteData,
+    type WebsiteFormData,
+} from '@/components/webove-sluzby/WebsiteForm';
 import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
 import {
@@ -117,8 +117,8 @@ interface VpsServer {
 
 interface Payment {
     id: number;
-    subscription_id: number;
-    subscription: {
+    website_id: number;
+    website: {
         id: number;
         name: string;
         type: string;
@@ -498,8 +498,8 @@ export default function NeniwebIndex({
     const [deletingVps, setDeletingVps] = useState(false);
     const [syncingVps, setSyncingVps] = useState(false);
 
-    const form = useForm<NeniwebFormData>({
-        ...defaultNeniwebData,
+    const form = useForm<WebsiteFormData>({
+        ...defaultWebsiteData,
         type: activeTab === 'domeny' ? 'domena' : activeTab === 'hostingy' ? 'hosting' : 'sluzba',
     });
 
@@ -515,7 +515,7 @@ export default function NeniwebIndex({
 
     const handleCreateSubmit = (e: FormEvent) => {
         e.preventDefault();
-        form.post('/neniweb', {
+        form.post('/webove-sluzby', {
             onSuccess: () => {
                 setShowCreate(false);
                 form.reset();
@@ -539,14 +539,14 @@ export default function NeniwebIndex({
 
     const handleSync = () => {
         setSyncing(true);
-        router.post('/neniweb/sync', {}, {
+        router.post('/webove-sluzby/sync', {}, {
             onFinish: () => setSyncing(false),
         });
     };
 
     const handleSyncVps = () => {
         setSyncingVps(true);
-        router.post('/neniweb/vps/sync', {}, {
+        router.post('/webove-sluzby/vps/sync', {}, {
             onFinish: () => setSyncingVps(false),
         });
     };
@@ -554,7 +554,7 @@ export default function NeniwebIndex({
     const handleDelete = () => {
         if (!deleteTarget) return;
         setDeleting(true);
-        router.delete(`/neniweb/${deleteTarget.id}`, {
+        router.delete(`/webove-sluzby/${deleteTarget.id}`, {
             onSuccess: () => { setDeleteTarget(null); setDeleting(false); },
             onError: () => setDeleting(false),
         });
@@ -563,7 +563,7 @@ export default function NeniwebIndex({
     const handleDeleteVps = () => {
         if (!deleteVpsTarget) return;
         setDeletingVps(true);
-        router.delete(`/neniweb/vps/${deleteVpsTarget.id}`, {
+        router.delete(`/webove-sluzby/vps/${deleteVpsTarget.id}`, {
             onSuccess: () => { setDeleteVpsTarget(null); setDeletingVps(false); },
             onError: () => setDeletingVps(false),
         });
@@ -572,14 +572,14 @@ export default function NeniwebIndex({
     const handleVpsSubmit = (e: FormEvent) => {
         e.preventDefault();
         if (editVps) {
-            vpsForm.put(`/neniweb/vps/${editVps.id}`, {
+            vpsForm.put(`/webove-sluzby/vps/${editVps.id}`, {
                 onSuccess: () => {
                     setEditVps(null);
                     vpsForm.reset();
                 },
             });
         } else {
-            vpsForm.post('/neniweb/vps', {
+            vpsForm.post('/webove-sluzby/vps', {
                 onSuccess: () => {
                     setShowVpsCreate(false);
                     vpsForm.reset();
@@ -602,7 +602,7 @@ export default function NeniwebIndex({
     };
 
     const handleMarkPaid = (payment: Payment) => {
-        router.put(`/neniweb/${payment.subscription_id}/platby/${payment.id}/zaplaceno`, {});
+        router.put(`/webove-sluzby/${payment.subscription_id}/platby/${payment.id}/zaplaceno`, {});
     };
 
     const handleBulkAction = (action: string, value?: string) => {
@@ -612,7 +612,7 @@ export default function NeniwebIndex({
             ? selectedHostingIds
             : selectedServiceIds;
 
-        router.post('/neniweb/bulk-update', {
+        router.post('/webove-sluzby/bulk-update', {
             ids: Array.from(ids),
             action,
             value: value ?? null,
@@ -635,7 +635,7 @@ export default function NeniwebIndex({
         Object.keys(merged).forEach((k) => {
             if (!merged[k] || merged[k] === '') delete merged[k];
         });
-        router.get('/neniweb', merged, { preserveState: true });
+        router.get('/webove-sluzby', merged, { preserveState: true });
     }
 
     const handleColumnFilter = (filterKey: string, value: string) => {
@@ -799,7 +799,7 @@ export default function NeniwebIndex({
                 <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                     {!sub.is_free && sub.customer && (
                         <button
-                            onClick={() => router.post(`/neniweb/${sub.id}/faktura`)}
+                            onClick={() => router.post(`/webove-sluzby/${sub.id}/faktura`)}
                             className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-blue-500/10 hover:text-blue-400"
                             title="Vystavit fakturu"
                         >
@@ -807,7 +807,7 @@ export default function NeniwebIndex({
                         </button>
                     )}
                     <button
-                        onClick={() => router.visit(`/neniweb/${sub.id}/edit`)}
+                        onClick={() => router.visit(`/webove-sluzby/${sub.id}/edit`)}
                         className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                         title="Upravit"
                     >
@@ -975,7 +975,7 @@ export default function NeniwebIndex({
                 <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                     {!sub.is_free && sub.customer && (
                         <button
-                            onClick={() => router.post(`/neniweb/${sub.id}/faktura`)}
+                            onClick={() => router.post(`/webove-sluzby/${sub.id}/faktura`)}
                             className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-blue-500/10 hover:text-blue-400"
                             title="Vystavit fakturu"
                         >
@@ -983,7 +983,7 @@ export default function NeniwebIndex({
                         </button>
                     )}
                     <button
-                        onClick={() => router.visit(`/neniweb/${sub.id}/edit`)}
+                        onClick={() => router.visit(`/webove-sluzby/${sub.id}/edit`)}
                         className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                         title="Upravit"
                     >
@@ -1076,7 +1076,7 @@ export default function NeniwebIndex({
                 <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                     {!sub.is_free && sub.customer && (
                         <button
-                            onClick={() => router.post(`/neniweb/${sub.id}/faktura`)}
+                            onClick={() => router.post(`/webove-sluzby/${sub.id}/faktura`)}
                             className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-blue-500/10 hover:text-blue-400"
                             title="Vystavit fakturu"
                         >
@@ -1084,7 +1084,7 @@ export default function NeniwebIndex({
                         </button>
                     )}
                     <button
-                        onClick={() => router.visit(`/neniweb/${sub.id}/edit`)}
+                        onClick={() => router.visit(`/webove-sluzby/${sub.id}/edit`)}
                         className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                         title="Upravit"
                     >
@@ -1206,18 +1206,18 @@ export default function NeniwebIndex({
 
     const paymentColumns = [
         {
-            key: 'subscription' as const,
+            key: 'website' as const,
             label: 'Služba',
             render: (p: Payment) => (
                 <div className="flex items-center gap-2">
-                    {p.subscription.type === 'domena' ? (
+                    {p.website.type === 'domena' ? (
                         <Globe className="h-4 w-4 text-amber-500 shrink-0" />
-                    ) : p.subscription.type === 'sluzba' ? (
+                    ) : p.website.type === 'sluzba' ? (
                         <Wrench className="h-4 w-4 text-violet-400 shrink-0" />
                     ) : (
                         <Server className="h-4 w-4 text-blue-400 shrink-0" />
                     )}
-                    <span className="font-medium text-foreground">{p.subscription.name}</span>
+                    <span className="font-medium text-foreground">{p.website.name}</span>
                 </div>
             ),
         },
@@ -1226,8 +1226,8 @@ export default function NeniwebIndex({
             label: 'Zákazník',
             render: (p: Payment) => (
                 <span className="text-muted-foreground">
-                    {p.subscription.customer
-                        ? p.subscription.customer.company || p.subscription.customer.name
+                    {p.website.customer
+                        ? p.website.customer.company || p.website.customer.name
                         : '—'}
                 </span>
             ),
@@ -1612,7 +1612,7 @@ export default function NeniwebIndex({
                                 navigate({ per_page: String(n), tab: 'domeny', domains_page: '1' })
                             }
                             onRowClick={(sub) =>
-                                router.visit(`/neniweb/${sub.id}`)
+                                router.visit(`/webove-sluzby/${sub.id}`)
                             }
                             emptyMessage="Žádné domény"
                             selectable
@@ -1761,7 +1761,7 @@ export default function NeniwebIndex({
                                 navigate({ per_page: String(n), tab: 'hostingy', hostings_page: '1' })
                             }
                             onRowClick={(sub) =>
-                                router.visit(`/neniweb/${sub.id}`)
+                                router.visit(`/webove-sluzby/${sub.id}`)
                             }
                             emptyMessage="Žádné hostingy"
                             selectable
@@ -1886,7 +1886,7 @@ export default function NeniwebIndex({
                                 navigate({ per_page: String(n), tab: 'sluzby', services_page: '1' })
                             }
                             onRowClick={(sub) =>
-                                router.visit(`/neniweb/${sub.id}`)
+                                router.visit(`/webove-sluzby/${sub.id}`)
                             }
                             emptyMessage="Žádné správcovské služby"
                             selectable
@@ -1977,7 +1977,7 @@ export default function NeniwebIndex({
                                 navigate({ per_page: String(n), tab: 'platby', payments_page: '1' })
                             }
                             onRowClick={(p) =>
-                                router.visit(`/neniweb/${p.subscription_id}`)
+                                router.visit(`/webove-sluzby/${p.subscription_id}`)
                             }
                             emptyMessage="Žádné platby"
                         />
@@ -1998,7 +1998,7 @@ export default function NeniwebIndex({
                 }
                 maxWidth="max-w-2xl"
             >
-                <NeniwebForm
+                <WebsiteForm
                     form={form}
                     onSubmit={handleCreateSubmit}
                     submitLabel="Uložit"
@@ -2212,7 +2212,7 @@ export default function NeniwebIndex({
                 onClose={() => setDeleteFolderId(null)}
                 onConfirm={() => {
                     if (deleteFolderId !== null) {
-                        router.delete(`/neniweb/slozky/${deleteFolderId}`, { preserveScroll: true });
+                        router.delete(`/webove-sluzby/slozky/${deleteFolderId}`, { preserveScroll: true });
                         setDeleteFolderId(null);
                     }
                 }}
@@ -2257,7 +2257,7 @@ function FolderBar({
                 return (
                     <div key={folder.id} className="flex items-center gap-0.5 group">
                         <button
-                            onClick={() => router.post(`/neniweb/slozky/${folder.id}/toggle`, {}, { preserveScroll: true })}
+                            onClick={() => router.post(`/webove-sluzby/slozky/${folder.id}/toggle`, {}, { preserveScroll: true })}
                             className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors border ${
                                 folder.is_collapsed
                                     ? 'bg-muted/50 text-muted-foreground border-border'
@@ -2322,12 +2322,12 @@ function FolderForm({
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
         if (isEdit) {
-            form.put(`/neniweb/slozky/${folder!.id}`, {
+            form.put(`/webove-sluzby/slozky/${folder!.id}`, {
                 preserveScroll: true,
                 onSuccess,
             });
         } else {
-            form.post('/neniweb/slozky', {
+            form.post('/webove-sluzby/slozky', {
                 preserveScroll: true,
                 onSuccess: () => { form.reset(); onSuccess(); },
             });

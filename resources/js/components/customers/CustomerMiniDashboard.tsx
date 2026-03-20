@@ -9,7 +9,7 @@ interface Stats {
     invoiced?: number;
     paid?: number;
     uninvoiced?: number;
-    active_subscriptions?: number;
+    active_websites?: number;
     vps_yearly?: number;
 }
 
@@ -58,11 +58,11 @@ export default function CustomerMiniDashboard({ stats }: Props) {
                   },
               ]
             : []),
-        ...(stats.active_subscriptions && stats.active_subscriptions > 0
+        ...(stats.active_websites && stats.active_websites > 0
             ? [
                   {
                       label: 'Aktivní služby',
-                      value: String(stats.active_subscriptions),
+                      value: String(stats.active_websites),
                       icon: Monitor,
                       color: 'text-violet-400',
                       bg: 'bg-violet-500/10',

@@ -20,11 +20,11 @@ export interface Alert {
     title: string;
     subtitle: string;
     link: string;
-    subscription_id?: number;
+    website_id?: number;
 }
 
 export interface IgnoredAlert {
-    subscription_id: number;
+    website_id: number;
     name: string;
     type: string;
     ignored_at: string;
@@ -35,7 +35,7 @@ const iconMap: Record<string, { icon: typeof AlertTriangle; color: string }> = {
     order:        { icon: FileText,      color: 'text-amber-500' },
     invoice:      { icon: CreditCard,    color: 'text-red-500' },
     deadline:     { icon: Calendar,      color: 'text-orange-500' },
-    subscription: { icon: Globe,         color: 'text-primary' },
+    website: { icon: Globe,         color: 'text-primary' },
     payment:      { icon: CreditCard,    color: 'text-rose-500' },
 };
 
@@ -67,18 +67,18 @@ export default function AttentionAlerts({ alerts, ignoredAlerts, defaultVisible 
     const handleIgnore = (e: React.MouseEvent, alert: Alert) => {
         e.preventDefault();
         e.stopPropagation();
-        if (!alert.subscription_id) return;
+        if (!alert.website_id) return;
 
-        setProcessingId(alert.subscription_id);
-        router.post(`/neniweb/${alert.subscription_id}/toggle-ignore-alerts`, {}, {
+        setProcessingId(alert.website_id);
+        router.post(`/webove-sluzby/${alert.website_id}/toggle-ignore-alerts`, {}, {
             preserveScroll: true,
             preserveState: true,
             onSuccess: () => {
-                const removed = items.find(a => a.subscription_id === alert.subscription_id);
-                setItems(prev => prev.filter(a => a.subscription_id !== alert.subscription_id));
+                const removed = items.find(a => a.website_id === alert.website_id);
+                setItems(prev => prev.filter(a => a.website_id !== alert.website_id));
                 if (removed) {
                     setIgnored(prev => [{
-                        subscription_id: removed.subscription_id!,
+                        website_id: removed.website_id!,
                         name: removed.title.split(' — ')[0].split(' expiruje')[0],
                         type: removed.subtitle.split(' ·')[0],
                         ignored_at: 'Právě teď',
@@ -92,12 +92,12 @@ export default function AttentionAlerts({ alerts, ignoredAlerts, defaultVisible 
     };
 
     const handleRestore = (ignoredAlert: IgnoredAlert) => {
-        setProcessingId(ignoredAlert.subscription_id);
-        router.post(`/neniweb/${ignoredAlert.subscription_id}/toggle-ignore-alerts`, {}, {
+        setProcessingId(ignoredAlert.website_id);
+        router.post(`/webove-sluzby/${ignoredAlert.website_id}/toggle-ignore-alerts`, {}, {
             preserveScroll: true,
             preserveState: true,
             onSuccess: () => {
-                setIgnored(prev => prev.filter(a => a.subscription_id !== ignoredAlert.subscription_id));
+                setIgnored(prev => prev.filter(a => a.website_id !== ignoredAlert.website_id));
                 setProcessingId(null);
             },
             onError: () => setProcessingId(null),
@@ -123,7 +123,7 @@ export default function AttentionAlerts({ alerts, ignoredAlerts, defaultVisible 
                 {visibleItems.map((alert, i) => {
                     const config = iconMap[alert.icon] ?? iconMap.order;
                     const Icon = config.icon;
-                    const isProcessing = processingId === alert.subscription_id;
+                    const isProcessing = processingId === alert.website_id;
                     return (
                         <div key={i} className="relative group">
                             <Link
@@ -150,7 +150,7 @@ export default function AttentionAlerts({ alerts, ignoredAlerts, defaultVisible 
                                 </div>
                                 <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                             </Link>
-                            {alert.subscription_id && (
+                            {alert.website_id && (
                                 <button
                                     onClick={(e) => handleIgnore(e, alert)}
                                     title="Ignorovat upozornění"
@@ -202,10 +202,10 @@ export default function AttentionAlerts({ alerts, ignoredAlerts, defaultVisible 
                     {showIgnored && (
                         <div className="mt-2 max-h-[240px] space-y-1.5 overflow-y-auto overflow-x-hidden">
                             {ignored.map((item) => {
-                                const isProcessing = processingId === item.subscription_id;
+                                const isProcessing = processingId === item.website_id;
                                 return (
                                     <div
-                                        key={item.subscription_id}
+                                        key={item.website_id}
                                         className={cn(
                                             'flex items-center gap-3 rounded-lg border border-border/50 bg-accent/30 p-2.5 text-muted-foreground',
                                             isProcessing && 'opacity-50',

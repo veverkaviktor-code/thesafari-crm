@@ -4,7 +4,7 @@ import { ArrowLeft, Trash2 } from 'lucide-react';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import { Button } from '@/components/ui/button';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
-import NeniwebForm, { type NeniwebFormData } from '@/components/neniweb/NeniwebForm';
+import WebsiteForm, { type WebsiteFormData } from '@/components/webove-sluzby/WebsiteForm';
 
 interface Customer {
     id: number;
@@ -12,7 +12,7 @@ interface Customer {
     company: string | null;
 }
 
-interface Subscription {
+interface Website {
     id: number;
     type: string;
     customer_id: number;
@@ -53,57 +53,57 @@ interface ParentOption {
 }
 
 interface Props {
-    subscription: Subscription & { folder_id?: number | null; parent_subscription_id?: number | null };
+    website: Website & { folder_id?: number | null; parent_subscription_id?: number | null };
     customers: Customer[];
     folders?: FolderOption[];
     parentOptions?: ParentOption[];
 }
 
-export default function NeniwebEdit({ subscription, customers, folders = [], parentOptions = [] }: Props) {
+export default function WeboveSluzbyEdit({ website, customers, folders = [], parentOptions = [] }: Props) {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const form = useForm<NeniwebFormData>({
-        type: subscription.type,
-        customer_id: subscription.customer_id ? String(subscription.customer_id) : '',
-        name: subscription.name,
-        provider: subscription.provider || '',
-        server: subscription.server || '',
-        storage_quota_mb: String(subscription.storage_quota_mb || ''),
-        price_yearly: String(subscription.price_yearly || ''),
-        cost_yearly: String(subscription.cost_yearly || ''),
-        sell_yearly: String(subscription.sell_yearly || ''),
-        billing_cycle: subscription.billing_cycle || 'yearly',
-        monthly_price: String(subscription.monthly_price || ''),
-        monthly_plan: subscription.monthly_plan || '',
-        starts_at: subscription.starts_at || '',
-        expires_at: subscription.expires_at || '',
-        auto_renew: subscription.auto_renew,
-        auto_invoice: subscription.auto_invoice ?? true,
-        is_free: subscription.is_free ?? false,
-        is_external: subscription.is_external ?? false,
-        status: subscription.status,
-        notes: subscription.notes || '',
-        admin_url: subscription.admin_url || '',
-        admin_user: subscription.admin_user || '',
-        admin_password: subscription.admin_password || '',
-        client_user: subscription.client_user || '',
-        client_password: subscription.client_password || '',
-        folder_id: subscription.folder_id ? String(subscription.folder_id) : '',
-        parent_subscription_id: subscription.parent_subscription_id ? String(subscription.parent_subscription_id) : '',
+    const form = useForm<WebsiteFormData>({
+        type: website.type,
+        customer_id: website.customer_id ? String(website.customer_id) : '',
+        name: website.name,
+        provider: website.provider || '',
+        server: website.server || '',
+        storage_quota_mb: String(website.storage_quota_mb || ''),
+        price_yearly: String(website.price_yearly || ''),
+        cost_yearly: String(website.cost_yearly || ''),
+        sell_yearly: String(website.sell_yearly || ''),
+        billing_cycle: website.billing_cycle || 'yearly',
+        monthly_price: String(website.monthly_price || ''),
+        monthly_plan: website.monthly_plan || '',
+        starts_at: website.starts_at || '',
+        expires_at: website.expires_at || '',
+        auto_renew: website.auto_renew,
+        auto_invoice: website.auto_invoice ?? true,
+        is_free: website.is_free ?? false,
+        is_external: website.is_external ?? false,
+        status: website.status,
+        notes: website.notes || '',
+        admin_url: website.admin_url || '',
+        admin_user: website.admin_user || '',
+        admin_password: website.admin_password || '',
+        client_user: website.client_user || '',
+        client_password: website.client_password || '',
+        folder_id: website.folder_id ? String(website.folder_id) : '',
+        parent_subscription_id: website.parent_subscription_id ? String(website.parent_subscription_id) : '',
     });
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
-        form.put(`/neniweb/${subscription.id}`);
+        form.put(`/webove-sluzby/${website.id}`);
     };
 
     const handleDelete = () => setShowDeleteConfirm(true);
 
     return (
         <AuthenticatedLayout
-            title={`Upravit: ${subscription.name}`}
+            title={`Upravit: ${website.name}`}
             breadcrumbs={[
-                { label: 'Webové služby', href: '/neniweb' },
-                { label: subscription.name, href: `/neniweb/${subscription.id}` },
+                { label: 'Webové služby', href: '/webove-sluzby' },
+                { label: website.name, href: `/webove-sluzby/${website.id}` },
                 { label: 'Upravit' },
             ]}
         >
@@ -111,7 +111,7 @@ export default function NeniwebEdit({ subscription, customers, folders = [], par
                 <div className="flex items-center justify-between mb-4">
                     <Button
                         variant="ghost"
-                        onClick={() => router.visit(`/neniweb/${subscription.id}`)}
+                        onClick={() => router.visit(`/webove-sluzby/${website.id}`)}
                         className="text-muted-foreground hover:text-foreground"
                     >
                         <ArrowLeft className="h-4 w-4 mr-2" />
@@ -128,23 +128,23 @@ export default function NeniwebEdit({ subscription, customers, folders = [], par
                 </div>
 
                 <div className="bg-card rounded-xl border border-border p-6">
-                    <NeniwebForm
+                    <WebsiteForm
                         form={form}
                         onSubmit={handleSubmit}
                         submitLabel="Uložit změny"
                         customers={customers}
                         folders={folders}
                         parentOptions={parentOptions}
-                        onCancel={() => router.visit(`/neniweb/${subscription.id}`)}
+                        onCancel={() => router.visit(`/webove-sluzby/${website.id}`)}
                     />
                 </div>
             </div>
             <ConfirmDialog
                 open={showDeleteConfirm}
                 onClose={() => setShowDeleteConfirm(false)}
-                onConfirm={() => router.delete(`/neniweb/${subscription.id}`)}
+                onConfirm={() => router.delete(`/webove-sluzby/${website.id}`)}
                 title="Smazat službu"
-                message={`Opravdu chcete smazat "${subscription.name}"?`}
+                message={`Opravdu chcete smazat "${website.name}"?`}
             />
         </AuthenticatedLayout>
     );

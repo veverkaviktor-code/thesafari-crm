@@ -28,7 +28,7 @@ interface NotificationsSharedProp {
 const typeIcons: Record<string, React.ElementType> = {
     invoice_overdue: FileWarning,
     payment_received: CreditCard,
-    subscription_expiring: Globe,
+    website_expiring: Globe,
     new_ticket: MessageSquare,
     estimate_inactive: Calculator,
 };
@@ -36,7 +36,7 @@ const typeIcons: Record<string, React.ElementType> = {
 const typeColors: Record<string, string> = {
     invoice_overdue: 'text-red-400',
     payment_received: 'text-emerald-400',
-    subscription_expiring: 'text-amber-400',
+    website_expiring: 'text-amber-400',
     new_ticket: 'text-blue-400',
     estimate_inactive: 'text-orange-400',
 };

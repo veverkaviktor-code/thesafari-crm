@@ -59,7 +59,7 @@ interface CashflowPoint {
 interface ReceivableItem {
     id: number;
     customer_name: string;
-    type: 'invoice' | 'order' | 'subscription';
+    type: 'invoice' | 'order' | 'website';
     label: string;
     amount: number;
     status: string;
@@ -135,7 +135,7 @@ const statusColors: Record<string, string> = {
 const typeIcons: Record<string, React.ElementType> = {
     invoice: FileText,
     order: Hammer,
-    subscription: Globe,
+    website: Globe,
 };
 
 export default function Finance({
