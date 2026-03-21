@@ -21,12 +21,17 @@ class WebsiteController extends Controller
     {
         $perPage = min((int) ($request->input('per_page') ?: 50), 100);
 
+        // Query ONLY parents — aliases are injected after pagination
         $query = Website::query()
-            ->with(['customer:id,name,company', 'hostingServer', 'aliasOf:id,name', 'managementPlan', 'credentials', 'emailAccounts'])
+            ->whereNull('alias_of_id')
+            ->with(['customer:id,name,company', 'hostingServer', 'aliasOf:id,name', 'managementPlan', 'credentials', 'emailAccounts',
+                     'aliases' => fn ($q) => $q->with(['customer:id,name,company'])->orderBy('name')])
             ->when($request->input('search'), function ($q, $term) {
                 $q->where(function ($sub) use ($term) {
                     $sub->where('name', 'ilike', "%{$term}%")
-                        ->orWhereHas('customer', fn ($cq) => $cq->where('name', 'ilike', "%{$term}%"));
+                        ->orWhereHas('customer', fn ($cq) => $cq->where('name', 'ilike', "%{$term}%"))
+                        // Also find parents whose alias matches the search
+                        ->orWhereHas('aliases', fn ($aq) => $aq->where('name', 'ilike', "%{$term}%"));
                 });
             })
             ->when($request->input('status'), fn ($q, $s) => $q->where('status', $s))
@@ -70,25 +75,37 @@ class WebsiteController extends Controller
         $sortBy = $request->input('sort_by');
         $sortDir = $request->input('sort_dir') === 'desc' ? 'desc' : 'asc';
 
-        // Always group aliases under their parent, then apply sort within each group
-        // COALESCE(alias_of_id, id) groups parent+aliases together
-        // alias_of_id IS NULL DESC puts parent before its aliases
         if ($sortBy && in_array($sortBy, $allowedSorts)) {
-            $query->orderByRaw('COALESCE(alias_of_id, id) ' . $sortDir . ', alias_of_id IS NULL DESC')
-                  ->orderBy($sortBy, $sortDir);
+            $query->orderBy($sortBy, $sortDir);
         } else {
-            $query->orderByRaw('COALESCE(alias_of_id, id), alias_of_id IS NULL DESC, hosting_expires_at IS NULL, hosting_expires_at ASC');
+            $query->orderByRaw('hosting_expires_at IS NULL, hosting_expires_at ASC');
         }
 
-        $websites = $query
-            ->paginate($perPage)
-            ->withQueryString()
-            ->through(fn ($website) => array_merge($website->toArray(), [
-                'days_until_expiry' => $website->daysUntilExpiry(),
-                'urgency' => $website->expiryUrgency(),
-                'has_unpaid' => $website->hasUnpaidPayments(),
-                'yearly_margin' => $website->yearlyMargin(),
-            ]));
+        // Paginate parents, then flatten: parent → its aliases → next parent → ...
+        $parentsPaginator = $query->paginate($perPage)->withQueryString();
+
+        $enrichWebsite = fn ($website) => array_merge($website->toArray(), [
+            'days_until_expiry' => $website->daysUntilExpiry(),
+            'urgency' => $website->expiryUrgency(),
+            'has_unpaid' => $website->hasUnpaidPayments(),
+            'yearly_margin' => $website->yearlyMargin(),
+        ]);
+
+        $flatItems = collect();
+        foreach ($parentsPaginator->items() as $parent) {
+            $flatItems->push($enrichWebsite($parent));
+            foreach ($parent->aliases as $alias) {
+                $flatItems->push($enrichWebsite($alias));
+            }
+        }
+
+        $websites = new \Illuminate\Pagination\LengthAwarePaginator(
+            $flatItems,
+            $parentsPaginator->total(),
+            $parentsPaginator->perPage(),
+            $parentsPaginator->currentPage(),
+            ['path' => $parentsPaginator->path(), 'query' => $request->query()]
+        );
 
         // VPS servers with stats
         $vpsServers = VpsServer::with('customer:id,name,company')
