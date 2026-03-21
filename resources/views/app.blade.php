@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="cs" class="dark">
+<html lang="cs">
+<script>try{if(localStorage.getItem('theme')!=='light')document.documentElement.classList.add('dark')}catch(e){document.documentElement.classList.add('dark')}</script>
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />

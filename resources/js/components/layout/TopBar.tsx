@@ -1,9 +1,26 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Menu, Search } from 'lucide-react';
+import { Menu, Search, Sun, Moon } from 'lucide-react';
 import { Link } from '@inertiajs/react';
 import NotificationBell from '@/components/layout/NotificationBell';
 import UserMenu from '@/components/layout/UserMenu';
 import SearchPalette from '@/components/layout/SearchPalette';
+
+function useTheme() {
+    const [dark, setDark] = useState(() => {
+        try {
+            const stored = localStorage.getItem('theme');
+            if (stored) return stored === 'dark';
+            return true; // default dark
+        } catch { return true; }
+    });
+
+    useEffect(() => {
+        document.documentElement.classList.toggle('dark', dark);
+        try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch {}
+    }, [dark]);
+
+    return [dark, () => setDark(prev => !prev)] as const;
+}
 
 interface Breadcrumb {
     label: string;
@@ -16,6 +33,7 @@ interface TopBarProps {
 }
 
 export default function TopBar({ breadcrumbs = [], onMenuClick }: TopBarProps) {
+    const [isDark, toggleTheme] = useTheme();
     const [searchOpen, setSearchOpen] = useState(false);
 
     const toggleSearch = useCallback(() => {
@@ -89,6 +107,14 @@ export default function TopBar({ breadcrumbs = [], onMenuClick }: TopBarProps) {
 
                 {/* Right section */}
                 <div className="flex shrink-0 items-center gap-1">
+                    <button
+                        onClick={toggleTheme}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                        aria-label={isDark ? 'Přepnout na světlý režim' : 'Přepnout na tmavý režim'}
+                        title={isDark ? 'Světlý režim' : 'Tmavý režim'}
+                    >
+                        {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                    </button>
                     <NotificationBell />
                     <UserMenu />
                 </div>
