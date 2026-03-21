@@ -35,8 +35,10 @@ export interface WebsiteFormData {
     auto_invoice_management: boolean;
     is_free: boolean;
     is_external: boolean;
-    sell_yearly: string;
-    cost_yearly: string;
+    domain_sell_yearly: string;
+    domain_cost_yearly: string;
+    hosting_sell_yearly: string;
+    hosting_cost_yearly: string;
     admin_url: string;
     domain_expires_at: string;
     hosting_expires_at: string;
@@ -59,8 +61,10 @@ export const defaultWebsiteData: WebsiteFormData = {
     auto_invoice_management: false,
     is_free: false,
     is_external: false,
-    sell_yearly: '',
-    cost_yearly: '',
+    domain_sell_yearly: '',
+    domain_cost_yearly: '',
+    hosting_sell_yearly: '',
+    hosting_cost_yearly: '',
     admin_url: '',
     domain_expires_at: '',
     hosting_expires_at: '',
@@ -290,6 +294,33 @@ export default function WebsiteForm({
                     onClear={() => setData('domain_expires_at', '')}
                     error={errors.domain_expires_at}
                 />
+
+                {data.is_registered_by_us && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <Label className="text-muted-foreground">Roční náklad domény (Kč)</Label>
+                            <Input
+                                type="number"
+                                value={data.domain_cost_yearly}
+                                onChange={(e) => setData('domain_cost_yearly', e.target.value)}
+                                placeholder="200"
+                                className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
+                            />
+                            {errors.domain_cost_yearly && <p className="mt-1 text-xs text-red-400">{errors.domain_cost_yearly}</p>}
+                        </div>
+                        <div>
+                            <Label className="text-muted-foreground">Prodejní cena domény (Kč)</Label>
+                            <Input
+                                type="number"
+                                value={data.domain_sell_yearly}
+                                onChange={(e) => setData('domain_sell_yearly', e.target.value)}
+                                placeholder="300"
+                                className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
+                            />
+                            {errors.domain_sell_yearly && <p className="mt-1 text-xs text-red-400">{errors.domain_sell_yearly}</p>}
+                        </div>
+                    </div>
+                )}
             </FormSection>
 
             <Separator className="bg-border" />
@@ -335,48 +366,45 @@ export default function WebsiteForm({
                         />
                     </div>
                 </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <Label className="text-muted-foreground">Roční náklad hostingu (Kč)</Label>
+                        <Input
+                            type="number"
+                            value={data.hosting_cost_yearly}
+                            onChange={(e) => setData('hosting_cost_yearly', e.target.value)}
+                            placeholder="363"
+                            className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
+                        />
+                        {errors.hosting_cost_yearly && <p className="mt-1 text-xs text-red-400">{errors.hosting_cost_yearly}</p>}
+                    </div>
+                    <div>
+                        <Label className="text-muted-foreground">Prodejní cena hostingu (Kč)</Label>
+                        <Input
+                            type="number"
+                            value={data.hosting_sell_yearly}
+                            onChange={(e) => setData('hosting_sell_yearly', e.target.value)}
+                            placeholder="2050"
+                            className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
+                        />
+                        {errors.hosting_sell_yearly && <p className="mt-1 text-xs text-red-400">{errors.hosting_sell_yearly}</p>}
+                    </div>
+                </div>
             </FormSection>
 
             <Separator className="bg-border" />
 
             {/* ═══════ Fakturace ═══════ */}
             <FormSection icon={DollarSign} title="Fakturace">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <Label className="text-muted-foreground">Roční cena (Kc)</Label>
-                        <Input
-                            type="number"
-                            value={data.sell_yearly}
-                            onChange={(e) => setData('sell_yearly', e.target.value)}
-                            placeholder="2050"
-                            className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
-                        />
-                        {errors.sell_yearly && <p className="mt-1 text-xs text-red-400">{errors.sell_yearly}</p>}
-                    </div>
-                    <div>
-                        <Label className="text-muted-foreground">Roční náklad (Kc)</Label>
-                        <Input
-                            type="number"
-                            value={data.cost_yearly}
-                            onChange={(e) => setData('cost_yearly', e.target.value)}
-                            placeholder="200"
-                            className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
-                        />
-                        {errors.cost_yearly && <p className="mt-1 text-xs text-red-400">{errors.cost_yearly}</p>}
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="flex items-center gap-3 pt-2">
-                        <Switch
-                            checked={data.auto_invoice}
-                            onCheckedChange={(v) => setData('auto_invoice', v)}
-                            disabled={!data.auto_renew}
-                        />
-                        <Label className={!data.auto_renew ? 'text-muted-foreground/50' : 'text-muted-foreground'}>
-                            Auto-fakturace hosting
-                        </Label>
-                    </div>
+                <div className="flex items-center gap-3 pt-2">
+                    <Switch
+                        checked={data.auto_invoice}
+                        onCheckedChange={(v) => setData('auto_invoice', v)}
+                    />
+                    <Label className="text-muted-foreground">
+                        Auto-fakturace hosting
+                    </Label>
                 </div>
 
                 {/* Management plan + cycle */}

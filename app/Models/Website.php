@@ -33,6 +33,10 @@ class Website extends Model
         'is_external',
         'sell_yearly',
         'cost_yearly',
+        'domain_sell_yearly',
+        'domain_cost_yearly',
+        'hosting_sell_yearly',
+        'hosting_cost_yearly',
         'alerts_ignored_at',
         'admin_url',
         'domain_expires_at',
@@ -62,6 +66,10 @@ class Website extends Model
             'is_registered_by_us' => 'boolean',
             'sell_yearly' => 'decimal:2',
             'cost_yearly' => 'decimal:2',
+            'domain_sell_yearly' => 'decimal:2',
+            'domain_cost_yearly' => 'decimal:2',
+            'hosting_sell_yearly' => 'decimal:2',
+            'hosting_cost_yearly' => 'decimal:2',
         ];
     }
 
@@ -168,19 +176,34 @@ class Website extends Model
         return 'ok';
     }
 
+    public function totalSellYearly(): float
+    {
+        return (float) $this->domain_sell_yearly + (float) $this->hosting_sell_yearly;
+    }
+
+    public function totalCostYearly(): float
+    {
+        return (float) $this->domain_cost_yearly + (float) $this->hosting_cost_yearly;
+    }
+
+    public function totalMarginYearly(): float
+    {
+        return $this->totalSellYearly() - $this->totalCostYearly();
+    }
+
     public function yearlyMargin(): float
     {
-        return (float) $this->sell_yearly - (float) $this->cost_yearly;
+        return $this->totalMarginYearly();
     }
 
     public function monthlyRevenue(): float
     {
-        return (float) $this->sell_yearly / 12;
+        return $this->totalSellYearly() / 12;
     }
 
     public function totalAnnualRevenue(): float
     {
-        return (float) $this->sell_yearly;
+        return $this->totalSellYearly();
     }
 
     public function hasUnpaidPayments(): bool

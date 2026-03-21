@@ -45,6 +45,10 @@ interface Website {
     is_external: boolean;
     sell_yearly: number;
     cost_yearly: number;
+    domain_sell_yearly: number;
+    domain_cost_yearly: number;
+    hosting_sell_yearly: number;
+    hosting_cost_yearly: number;
     admin_url: string | null;
     domain_expires_at: string | null;
     hosting_expires_at: string | null;
@@ -78,8 +82,10 @@ export default function WeboveSluzbyEdit({ website, customers, vpsServers, manag
         auto_invoice_management: website.auto_invoice_management ?? false,
         is_free: website.is_free ?? false,
         is_external: website.is_external ?? false,
-        sell_yearly: String(website.sell_yearly || ''),
-        cost_yearly: String(website.cost_yearly || ''),
+        domain_sell_yearly: String(website.domain_sell_yearly || ''),
+        domain_cost_yearly: String(website.domain_cost_yearly || ''),
+        hosting_sell_yearly: String(website.hosting_sell_yearly || ''),
+        hosting_cost_yearly: String(website.hosting_cost_yearly || ''),
         admin_url: website.admin_url || '',
         domain_expires_at: website.domain_expires_at || '',
         hosting_expires_at: website.hosting_expires_at || '',

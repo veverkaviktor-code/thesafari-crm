@@ -122,6 +122,10 @@ interface Website {
     is_external: boolean;
     sell_yearly: number;
     cost_yearly: number;
+    domain_sell_yearly: number;
+    domain_cost_yearly: number;
+    hosting_sell_yearly: number;
+    hosting_cost_yearly: number;
     admin_url: string | null;
     domain_expires_at: string | null;
     hosting_expires_at: string | null;
@@ -491,62 +495,64 @@ function TabPrehled({ website, paymentStats, onShowPaymentModal }: {
                     <h3 className="text-sm font-semibold text-foreground">Fakturace</h3>
                 </div>
                 <div className="p-5">
-                    <div className="grid grid-cols-3 gap-6">
-                        {/* Naklad */}
-                        <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Naklad</p>
-                            <div className="space-y-1.5">
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">Hosting + Domena</span>
-                                    <span className="text-foreground">{website.cost_yearly ? formatCurrency(website.cost_yearly) : <span className="text-muted-foreground/50">&mdash;</span>}</span>
-                                </div>
-                                <Separator className="bg-border" />
-                                <div className="flex items-center justify-between text-sm font-semibold">
-                                    <span className="text-foreground">Celkem rocne</span>
-                                    <span className="text-foreground">{formatCurrency(website.cost_yearly || 0)}</span>
-                                </div>
-                            </div>
-                        </div>
-                        {/* Prodejni cena */}
-                        <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Prodejni cena</p>
-                            <div className="space-y-1.5">
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">Hosting + Domena</span>
-                                    <span className="text-foreground">{website.sell_yearly ? formatCurrency(website.sell_yearly) : <span className="text-muted-foreground/50">&mdash;</span>}</span>
-                                </div>
-                                {managementMonthly > 0 && (
-                                    <div className="flex items-center justify-between text-sm">
-                                        <span className="text-muted-foreground">Sprava ({website.management_plan?.name})</span>
-                                        <span className="text-foreground">{formatCurrency(managementYearly)}/rok</span>
-                                    </div>
+                    {/* Price breakdown table */}
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="text-xs text-muted-foreground uppercase tracking-wider">
+                                    <th className="text-left pb-3 font-medium"></th>
+                                    <th className="text-right pb-3 font-medium">Náklad</th>
+                                    <th className="text-right pb-3 font-medium">Prodej</th>
+                                    <th className="text-right pb-3 font-medium">Marže</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                                {(website.domain_sell_yearly > 0 || website.domain_cost_yearly > 0) && (
+                                    <tr>
+                                        <td className="py-2 text-muted-foreground">Doména</td>
+                                        <td className="py-2 text-right text-foreground">
+                                            {website.domain_cost_yearly ? formatCurrency(website.domain_cost_yearly) : <span className="text-muted-foreground/50">—</span>}
+                                        </td>
+                                        <td className="py-2 text-right text-foreground">
+                                            {website.domain_sell_yearly ? formatCurrency(website.domain_sell_yearly) : <span className="text-muted-foreground/50">—</span>}
+                                        </td>
+                                        <td className={`py-2 text-right ${(website.domain_sell_yearly - website.domain_cost_yearly) > 0 ? 'text-emerald-400' : (website.domain_sell_yearly - website.domain_cost_yearly) < 0 ? 'text-red-400' : 'text-foreground'}`}>
+                                            {formatCurrency(website.domain_sell_yearly - website.domain_cost_yearly)}
+                                        </td>
+                                    </tr>
                                 )}
-                                <Separator className="bg-border" />
-                                <div className="flex items-center justify-between text-sm font-semibold">
-                                    <span className="text-foreground">Celkem rocne</span>
-                                    <span className="text-foreground">{formatCurrency(website.total_annual_revenue)}</span>
-                                </div>
-                            </div>
-                        </div>
-                        {/* Marze */}
-                        <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Marze</p>
-                            <div className="space-y-1.5">
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">Hosting + Domena</span>
-                                    <span className={`${website.yearly_margin > 0 ? 'text-emerald-400' : website.yearly_margin < 0 ? 'text-red-400' : 'text-foreground'}`}>
-                                        {formatCurrency(website.yearly_margin)}
-                                    </span>
-                                </div>
-                                <Separator className="bg-border" />
-                                <div className="flex items-center justify-between text-sm font-semibold">
-                                    <span className="text-foreground">Celkem rocne</span>
-                                    <span className={`font-semibold ${(website.yearly_margin + managementYearly) > 0 ? 'text-emerald-400' : (website.yearly_margin + managementYearly) < 0 ? 'text-red-400' : 'text-foreground'}`}>
+                                <tr>
+                                    <td className="py-2 text-muted-foreground">Hosting</td>
+                                    <td className="py-2 text-right text-foreground">
+                                        {website.hosting_cost_yearly ? formatCurrency(website.hosting_cost_yearly) : <span className="text-muted-foreground/50">—</span>}
+                                    </td>
+                                    <td className="py-2 text-right text-foreground">
+                                        {website.hosting_sell_yearly ? formatCurrency(website.hosting_sell_yearly) : <span className="text-muted-foreground/50">—</span>}
+                                    </td>
+                                    <td className={`py-2 text-right ${(website.hosting_sell_yearly - website.hosting_cost_yearly) > 0 ? 'text-emerald-400' : (website.hosting_sell_yearly - website.hosting_cost_yearly) < 0 ? 'text-red-400' : 'text-foreground'}`}>
+                                        {formatCurrency(website.hosting_sell_yearly - website.hosting_cost_yearly)}
+                                    </td>
+                                </tr>
+                                {managementMonthly > 0 && (
+                                    <tr>
+                                        <td className="py-2 text-muted-foreground">Správa ({website.management_plan?.name})</td>
+                                        <td className="py-2 text-right text-muted-foreground/50">—</td>
+                                        <td className="py-2 text-right text-foreground">{formatCurrency(managementMonthly)}/měs</td>
+                                        <td className="py-2 text-right text-foreground"></td>
+                                    </tr>
+                                )}
+                            </tbody>
+                            <tfoot>
+                                <tr className="border-t border-border font-semibold">
+                                    <td className="pt-3 text-foreground">Celkem ročně</td>
+                                    <td className="pt-3 text-right text-foreground">{formatCurrency(website.cost_yearly || 0)}</td>
+                                    <td className="pt-3 text-right text-foreground">{formatCurrency(website.sell_yearly + managementYearly)}</td>
+                                    <td className={`pt-3 text-right ${(website.yearly_margin + managementYearly) > 0 ? 'text-emerald-400' : (website.yearly_margin + managementYearly) < 0 ? 'text-red-400' : 'text-foreground'}`}>
                                         {formatCurrency(website.yearly_margin + managementYearly)}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
                     </div>
 
                     <div className="flex items-center gap-6 mt-4 pt-4 border-t border-border">
@@ -558,7 +564,7 @@ function TabPrehled({ website, paymentStats, onShowPaymentModal }: {
                         </div>
                         {website.management_plan && (
                             <div className="flex items-center gap-2 text-sm">
-                                <span className="text-muted-foreground">Auto-fakturace sprava:</span>
+                                <span className="text-muted-foreground">Auto-fakturace správa:</span>
                                 <span className={website.auto_invoice_management ? 'text-emerald-400 font-medium' : 'text-muted-foreground'}>
                                     {website.auto_invoice_management ? 'Ano' : 'Ne'}
                                 </span>
@@ -734,13 +740,23 @@ function TabDomena({ website }: { website: Website }) {
                             <span className="font-mono text-xs">{website.ip_address}</span>
                         </InfoRow>
                     )}
-                    <InfoRow label="Externi domena">
+                    {website.is_registered_by_us && (website.domain_cost_yearly > 0 || website.domain_sell_yearly > 0) && (
+                        <>
+                            <InfoRow label="Roční náklad domény">
+                                <span className="text-foreground">{formatCurrency(website.domain_cost_yearly)}</span>
+                            </InfoRow>
+                            <InfoRow label="Prodejní cena domény">
+                                <span className="text-foreground">{formatCurrency(website.domain_sell_yearly)}</span>
+                            </InfoRow>
+                        </>
+                    )}
+                    <InfoRow label="Externí doména">
                         <span className={website.is_external ? 'text-amber-400' : 'text-muted-foreground'}>
                             {website.is_external ? 'Ano' : 'Ne'}
                         </span>
                     </InfoRow>
                     {website.starts_at && (
-                        <InfoRow label="Sluzba od">
+                        <InfoRow label="Služba od">
                             <span>{format(new Date(website.starts_at), 'd. M. yyyy', { locale: cs })}</span>
                         </InfoRow>
                     )}
@@ -848,6 +864,16 @@ function TabHosting({ website }: { website: Website }) {
                                 <StorageBar used={website.storage_used_mb} quota={website.storage_quota_mb} />
                             </div>
                         )}
+                        {(website.hosting_cost_yearly > 0 || website.hosting_sell_yearly > 0) && (
+                            <>
+                                <InfoRow label="Roční náklad hostingu">
+                                    <span className="text-foreground">{formatCurrency(website.hosting_cost_yearly)}</span>
+                                </InfoRow>
+                                <InfoRow label="Prodejní cena hostingu">
+                                    <span className="text-foreground">{formatCurrency(website.hosting_sell_yearly)}</span>
+                                </InfoRow>
+                            </>
+                        )}
                         {website.admin_url && (
                             <InfoRow label="Admin URL">
                                 <a href={website.admin_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
@@ -856,7 +882,7 @@ function TabHosting({ website }: { website: Website }) {
                             </InfoRow>
                         )}
                         {website.synced_at && (
-                            <InfoRow label="Posledni sync">
+                            <InfoRow label="Poslední sync">
                                 <span className="text-xs">{format(new Date(website.synced_at), 'd. M. yyyy HH:mm', { locale: cs })}</span>
                             </InfoRow>
                         )}

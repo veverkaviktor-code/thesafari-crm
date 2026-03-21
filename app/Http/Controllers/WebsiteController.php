@@ -244,6 +244,10 @@ class WebsiteController extends Controller
             'is_external'            => 'boolean',
             'sell_yearly'            => 'nullable|numeric|min:0',
             'cost_yearly'            => 'nullable|numeric|min:0',
+            'domain_sell_yearly'     => 'nullable|numeric|min:0',
+            'domain_cost_yearly'     => 'nullable|numeric|min:0',
+            'hosting_sell_yearly'    => 'nullable|numeric|min:0',
+            'hosting_cost_yearly'    => 'nullable|numeric|min:0',
             'admin_url'              => 'nullable|string|max:500',
             'domain_expires_at'      => 'nullable|date',
             'hosting_expires_at'     => 'nullable|date',
@@ -254,9 +258,15 @@ class WebsiteController extends Controller
             'storage_quota_mb'       => 'nullable|integer|min:0',
         ]);
 
-        $validated['sell_yearly'] = $validated['sell_yearly'] ?? 0;
-        $validated['cost_yearly'] = $validated['cost_yearly'] ?? 0;
+        $validated['domain_sell_yearly'] = $validated['domain_sell_yearly'] ?? 0;
+        $validated['domain_cost_yearly'] = $validated['domain_cost_yearly'] ?? 0;
+        $validated['hosting_sell_yearly'] = $validated['hosting_sell_yearly'] ?? 0;
+        $validated['hosting_cost_yearly'] = $validated['hosting_cost_yearly'] ?? 0;
         $validated['storage_quota_mb'] = $validated['storage_quota_mb'] ?? 0;
+
+        // Compute totals from split prices
+        $validated['sell_yearly'] = ($validated['domain_sell_yearly'] ?? 0) + ($validated['hosting_sell_yearly'] ?? 0);
+        $validated['cost_yearly'] = ($validated['domain_cost_yearly'] ?? 0) + ($validated['hosting_cost_yearly'] ?? 0);
 
         $website = Website::create($validated);
 
@@ -302,6 +312,10 @@ class WebsiteController extends Controller
             'is_external'            => 'boolean',
             'sell_yearly'            => 'nullable|numeric|min:0',
             'cost_yearly'            => 'nullable|numeric|min:0',
+            'domain_sell_yearly'     => 'nullable|numeric|min:0',
+            'domain_cost_yearly'     => 'nullable|numeric|min:0',
+            'hosting_sell_yearly'    => 'nullable|numeric|min:0',
+            'hosting_cost_yearly'    => 'nullable|numeric|min:0',
             'admin_url'              => 'nullable|string|max:500',
             'domain_expires_at'      => 'nullable|date',
             'hosting_expires_at'     => 'nullable|date',
@@ -312,9 +326,15 @@ class WebsiteController extends Controller
             'storage_quota_mb'       => 'nullable|integer|min:0',
         ]);
 
-        $validated['sell_yearly'] = $validated['sell_yearly'] ?? 0;
-        $validated['cost_yearly'] = $validated['cost_yearly'] ?? 0;
+        $validated['domain_sell_yearly'] = $validated['domain_sell_yearly'] ?? 0;
+        $validated['domain_cost_yearly'] = $validated['domain_cost_yearly'] ?? 0;
+        $validated['hosting_sell_yearly'] = $validated['hosting_sell_yearly'] ?? 0;
+        $validated['hosting_cost_yearly'] = $validated['hosting_cost_yearly'] ?? 0;
         $validated['storage_quota_mb'] = $validated['storage_quota_mb'] ?? 0;
+
+        // Compute totals from split prices
+        $validated['sell_yearly'] = ($validated['domain_sell_yearly'] ?? 0) + ($validated['hosting_sell_yearly'] ?? 0);
+        $validated['cost_yearly'] = ($validated['domain_cost_yearly'] ?? 0) + ($validated['hosting_cost_yearly'] ?? 0);
 
         $website->update($validated);
 
