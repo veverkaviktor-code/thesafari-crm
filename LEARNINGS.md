@@ -183,3 +183,35 @@
 **Learning**: Pro CRM s jedním adminem stačí 7 dní activity logu. Scheduler `Activity::where('created_at', '<', now()->subDays(7))->delete()` v 03:30. Dashboard query filtruje `->where('created_at', '>=', now()->subDays(7))` pro konzistenci.
 **Pattern**: Vždy nastavit retenci na log tabulky. Activity log = 7 dní, notifications = ponechat (user-facing).
 **Action**: Při přidávání log/audit tabulek vždy definovat retenci + cleanup schedule.
+
+---
+
+### 2026-03-21 — Rsync deploy nemaže staré soubory
+**Context**: Po rename Subscription→Website zůstaly staré .php soubory na VPS (Subscription.php, SubscriptionPayment.php, SubscriptionController.php). Autoloader je stále načítal → 500 error.
+**Learning**: `rsync --include='app/***' --exclude='*'` PŘIDÁVÁ nové soubory ale NEMAŽE staré. Po přejmenování/smazání souborů je nutné explicitně smazat staré na VPS + `composer dump-autoload`.
+**Pattern**: Po rename/delete souborů v deployi: (1) rsync nového kódu, (2) `ssh rm` starých souborů, (3) `composer dump-autoload`, (4) cache clear.
+**Action**: Zvážit deploy script s `--delete` na app/ directory, nebo whitelist přístup.
+
+---
+
+### 2026-03-21 — activity_log subject_type po rename modelu
+**Context**: Po rename `Subscription` → `Website` spadl dashboard — activity_log záznamy měly `subject_type = 'App\Models\Subscription'`, autoloader hledal smazaný soubor.
+**Learning**: spatie/activitylog ukládá plný namespace do `subject_type`. Po rename modelu je nutné UPDATE existujících záznamů v `activity_log` tabulce.
+**Pattern**: Při rename modelu vždy: `UPDATE activity_log SET subject_type = 'App\Models\NewName' WHERE subject_type = 'App\Models\OldName'`.
+**Action**: Přidat do migrace nebo post-deploy skriptu.
+
+---
+
+### 2026-03-21 — BelongsToMany pivot withTimestamps() vyžaduje oba sloupce
+**Context**: `invoice_website` pivot měl jen `created_at` (ne `updated_at`). Model s `withTimestamps()` selhal s "column updated_at does not exist".
+**Learning**: Laravel `withTimestamps()` na BelongsToMany vyžaduje OBA sloupce (`created_at` + `updated_at`). Pokud pivot nemá `updated_at`, použít `withPivot('created_at')` místo `withTimestamps()`.
+**Pattern**: U pivot tabulek bez `updated_at` nikdy `withTimestamps()`.
+**Action**: Při vytváření pivot tabulky rozhodnout: potřebuji updated_at? Pokud ne, nepřidávat a nepoužívat withTimestamps().
+
+---
+
+### 2026-03-21 — Split pricing: oddělené ceny doména/hosting
+**Context**: Uživatel chtěl vidět náklad a prodej zvlášť pro doménu a hosting na jedné kartě.
+**Learning**: Kombinovaný `sell_yearly`/`cost_yearly` nestačí pro transparentní fakturaci. Split na `domain_sell_yearly`/`domain_cost_yearly` + `hosting_sell_yearly`/`hosting_cost_yearly` s computed totals v `sell_yearly`/`cost_yearly` (zachovává zpětnou kompatibilitu s MRR, dashboard, finance).
+**Pattern**: Když máš víc cenových složek, raději separátní pole + computed total než jeden kombinovaný. Nový kód čte split pole, starý kód čte total = zpětná kompatibilita.
+**Action**: Při store/update vždy přepočítat `sell_yearly = totalSellYearly()` a `cost_yearly = totalCostYearly()`.
