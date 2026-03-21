@@ -437,7 +437,7 @@ export default function NeniwebIndex({
             storage_total_gb: String(vps.storage_total_gb),
             notes: vps.notes ?? '',
             status: vps.status,
-            expires_at: vps.expires_at ?? '',
+            expires_at: vps.expires_at ? vps.expires_at.substring(0, 10) : '',
             auto_invoice: vps.auto_invoice ?? false,
         });
         setEditVps(vps);
