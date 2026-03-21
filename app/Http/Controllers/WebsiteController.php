@@ -70,10 +70,13 @@ class WebsiteController extends Controller
         $sortBy = $request->input('sort_by');
         $sortDir = $request->input('sort_dir') === 'desc' ? 'desc' : 'asc';
 
+        // Always group aliases under their parent, then apply sort within each group
+        // COALESCE(alias_of_id, id) groups parent+aliases together
+        // alias_of_id IS NULL DESC puts parent before its aliases
         if ($sortBy && in_array($sortBy, $allowedSorts)) {
-            $query->orderBy($sortBy, $sortDir);
+            $query->orderByRaw('COALESCE(alias_of_id, id) ' . $sortDir . ', alias_of_id IS NULL DESC')
+                  ->orderBy($sortBy, $sortDir);
         } else {
-            // Sort aliases right after their parent: use COALESCE(alias_of_id, id) to group them
             $query->orderByRaw('COALESCE(alias_of_id, id), alias_of_id IS NULL DESC, hosting_expires_at IS NULL, hosting_expires_at ASC');
         }
 
