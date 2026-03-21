@@ -31,7 +31,6 @@ export interface WebsiteFormData {
     notes: string;
     starts_at: string;
     is_registered_by_us: boolean;
-    auto_renew: boolean;
     auto_invoice: boolean;
     auto_invoice_management: boolean;
     is_free: boolean;
@@ -56,8 +55,7 @@ export const defaultWebsiteData: WebsiteFormData = {
     notes: '',
     starts_at: format(new Date(), 'yyyy-MM-dd'),
     is_registered_by_us: true,
-    auto_renew: true,
-    auto_invoice: true,
+    auto_invoice: false,
     auto_invoice_management: false,
     is_free: false,
     is_external: false,
@@ -183,12 +181,6 @@ export default function WebsiteForm({
 }: WebsiteFormProps) {
     const { data, setData, errors, processing } = form;
 
-    useEffect(() => {
-        if (!data.auto_renew) {
-            setData('auto_invoice', false);
-        }
-    }, [data.auto_renew]);
-
     const handleCancel = () => {
         if (onCancel) {
             onCancel();
@@ -199,11 +191,11 @@ export default function WebsiteForm({
 
     return (
         <form onSubmit={onSubmit} className="space-y-8">
-            {/* ═══════ Zakladni udaje ═══════ */}
-            <FormSection icon={Globe} title="Zakladni udaje">
+            {/* ═══════ Základní údaje ═══════ */}
+            <FormSection icon={Globe} title="Základní údaje">
                 {/* Name */}
                 <div>
-                    <Label className="text-muted-foreground">Nazev (domena)</Label>
+                    <Label className="text-muted-foreground">Název (doména)</Label>
                     <Input
                         value={data.name}
                         onChange={(e) => setData('name', e.target.value)}
@@ -215,16 +207,16 @@ export default function WebsiteForm({
 
                 {/* Customer */}
                 <div>
-                    <Label className="text-muted-foreground">Zakaznik</Label>
+                    <Label className="text-muted-foreground">Zákazník</Label>
                     <Select
                         value={data.customer_id}
                         onValueChange={(v) => setData('customer_id', v === 'none' ? '' : v)}
                     >
                         <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
-                            <SelectValue placeholder="Vyberte zakaznika" />
+                            <SelectValue placeholder="Vyberte zákazníka" />
                         </SelectTrigger>
                         <SelectContent className="bg-card border-border">
-                            <SelectItem value="none">Bez zakaznika</SelectItem>
+                            <SelectItem value="none">Bez zákazníka</SelectItem>
                             {customers.map((c) => (
                                 <SelectItem key={c.id} value={String(c.id)}>
                                     {c.company || c.name}
@@ -242,15 +234,15 @@ export default function WebsiteForm({
                         <Select value={data.status} onValueChange={(v) => setData('status', v)}>
                             <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground"><SelectValue /></SelectTrigger>
                             <SelectContent className="bg-card border-border">
-                                <SelectItem value="aktivni">Aktivni</SelectItem>
+                                <SelectItem value="aktivni">Aktivní</SelectItem>
                                 <SelectItem value="pozastaveno">Pozastaveno</SelectItem>
-                                <SelectItem value="zruseno">Zruseno</SelectItem>
+                                <SelectItem value="zruseno">Zrušeno</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
                     {/* Starts at */}
                     <DatePickerField
-                        label="Zacatek"
+                        label="Začátek"
                         value={data.starts_at}
                         onChange={(d) => setData('starts_at', d)}
                     />
@@ -269,7 +261,7 @@ export default function WebsiteForm({
 
                 {/* Notes */}
                 <div>
-                    <Label className="text-muted-foreground">Poznamky</Label>
+                    <Label className="text-muted-foreground">Poznámky</Label>
                     <Textarea
                         value={data.notes}
                         onChange={(e) => setData('notes', e.target.value)}
@@ -281,27 +273,18 @@ export default function WebsiteForm({
 
             <Separator className="bg-border" />
 
-            {/* ═══════ Domena ═══════ */}
-            <FormSection icon={Globe} title="Domena">
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="flex items-center gap-3 pt-6">
-                        <Switch
-                            checked={data.is_registered_by_us}
-                            onCheckedChange={(v) => setData('is_registered_by_us', v)}
-                        />
-                        <Label className="text-muted-foreground">Registrator u nas</Label>
-                    </div>
-                    <div className="flex items-center gap-3 pt-6">
-                        <Switch
-                            checked={data.auto_renew}
-                            onCheckedChange={(v) => setData('auto_renew', v)}
-                        />
-                        <Label className="text-muted-foreground">Auto-renew</Label>
-                    </div>
+            {/* ═══════ Doména ═══════ */}
+            <FormSection icon={Globe} title="Doména">
+                <div className="flex items-center gap-3 pt-2">
+                    <Switch
+                        checked={data.is_registered_by_us}
+                        onCheckedChange={(v) => setData('is_registered_by_us', v)}
+                    />
+                    <Label className="text-muted-foreground">Registrátor u nás</Label>
                 </div>
 
                 <DatePickerField
-                    label="Expirace domeny"
+                    label="Expirace domény"
                     value={data.domain_expires_at}
                     onChange={(d) => setData('domain_expires_at', d)}
                     onClear={() => setData('domain_expires_at', '')}
@@ -313,37 +296,24 @@ export default function WebsiteForm({
 
             {/* ═══════ Hosting ═══════ */}
             <FormSection icon={HardDrive} title="Hosting">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <Label className="text-muted-foreground">Server (hostname)</Label>
-                        <Input
-                            value={data.server}
-                            onChange={(e) => setData('server', e.target.value)}
-                            placeholder="sss06.vas-server.cz"
-                            className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
-                        />
-                    </div>
-                    {vpsServers.length > 0 && (
-                        <div>
-                            <Label className="text-muted-foreground">VPS server</Label>
-                            <Select
-                                value={data.hosting_server_id || 'none'}
-                                onValueChange={(v) => setData('hosting_server_id', v === 'none' ? '' : v)}
-                            >
-                                <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
-                                    <SelectValue placeholder="Zadny" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-card border-border">
-                                    <SelectItem value="none">Bez hostingu</SelectItem>
-                                    {vpsServers.map((vps) => (
-                                        <SelectItem key={vps.id} value={String(vps.id)}>
-                                            {vps.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    )}
+                <div>
+                    <Label className="text-muted-foreground">Server</Label>
+                    <Select
+                        value={data.hosting_server_id || 'none'}
+                        onValueChange={(v) => setData('hosting_server_id', v === 'none' ? '' : v)}
+                    >
+                        <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
+                            <SelectValue placeholder="Bez hostingu" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-card border-border">
+                            <SelectItem value="none">Bez hostingu</SelectItem>
+                            {vpsServers.map((vps) => (
+                                <SelectItem key={vps.id} value={String(vps.id)}>
+                                    {vps.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -355,12 +325,12 @@ export default function WebsiteForm({
                         error={errors.hosting_expires_at}
                     />
                     <div>
-                        <Label className="text-muted-foreground">Uloziste kvota (MB)</Label>
+                        <Label className="text-muted-foreground">Úložiště kvóta (MB)</Label>
                         <Input
                             type="number"
                             value={data.storage_quota_mb}
                             onChange={(e) => setData('storage_quota_mb', e.target.value)}
-                            placeholder="napr. 4096"
+                            placeholder="např. 4096"
                             className="mt-1.5 bg-muted border-border"
                         />
                     </div>
@@ -373,7 +343,7 @@ export default function WebsiteForm({
             <FormSection icon={DollarSign} title="Fakturace">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <Label className="text-muted-foreground">Rocni cena (Kc)</Label>
+                        <Label className="text-muted-foreground">Roční cena (Kc)</Label>
                         <Input
                             type="number"
                             value={data.sell_yearly}
@@ -384,7 +354,7 @@ export default function WebsiteForm({
                         {errors.sell_yearly && <p className="mt-1 text-xs text-red-400">{errors.sell_yearly}</p>}
                     </div>
                     <div>
-                        <Label className="text-muted-foreground">Rocni naklad (Kc)</Label>
+                        <Label className="text-muted-foreground">Roční náklad (Kc)</Label>
                         <Input
                             type="number"
                             value={data.cost_yearly}
@@ -413,22 +383,22 @@ export default function WebsiteForm({
                 {managementPlans.length > 0 && (
                     <>
                         <Separator className="bg-border !my-3" />
-                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Sprava webu</p>
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Správa webu</p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <Label className="text-muted-foreground">Balicek spravy</Label>
+                                <Label className="text-muted-foreground">Balíček správy</Label>
                                 <Select
                                     value={data.management_plan_id || 'none'}
                                     onValueChange={(v) => setData('management_plan_id', v === 'none' ? '' : v)}
                                 >
                                     <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
-                                        <SelectValue placeholder="Bez spravy" />
+                                        <SelectValue placeholder="Bez správy" />
                                     </SelectTrigger>
                                     <SelectContent className="bg-card border-border">
-                                        <SelectItem value="none">Bez spravy</SelectItem>
+                                        <SelectItem value="none">Bez správy</SelectItem>
                                         {managementPlans.map((p) => (
                                             <SelectItem key={p.id} value={String(p.id)}>
-                                                {p.name} \u2014 {Number(p.price_monthly).toLocaleString('cs-CZ')} Kc/mes
+                                                {p.name} — {Number(p.price_monthly).toLocaleString('cs-CZ')} Kč/mes
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
@@ -436,19 +406,19 @@ export default function WebsiteForm({
                                 {errors.management_plan_id && <p className="mt-1 text-xs text-red-400">{errors.management_plan_id}</p>}
                             </div>
                             <div>
-                                <Label className="text-muted-foreground">Fakturacni cyklus spravy</Label>
+                                <Label className="text-muted-foreground">Fakturační cyklus správy</Label>
                                 <Select
                                     value={data.management_cycle || 'none'}
                                     onValueChange={(v) => setData('management_cycle', v === 'none' ? '' : v)}
                                 >
                                     <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
-                                        <SelectValue placeholder="Nevybrano" />
+                                        <SelectValue placeholder="Nevybráno" />
                                     </SelectTrigger>
                                     <SelectContent className="bg-card border-border">
-                                        <SelectItem value="none">Nevybrano</SelectItem>
-                                        <SelectItem value="quarterly">Ctvrtletne</SelectItem>
-                                        <SelectItem value="semi_annual">Pololetne</SelectItem>
-                                        <SelectItem value="annual">Rocne</SelectItem>
+                                        <SelectItem value="none">Nevybráno</SelectItem>
+                                        <SelectItem value="quarterly">Čtvrtletně</SelectItem>
+                                        <SelectItem value="semi_annual">Pololetně</SelectItem>
+                                        <SelectItem value="annual">Ročně</SelectItem>
                                     </SelectContent>
                                 </Select>
                                 {errors.management_cycle && <p className="mt-1 text-xs text-red-400">{errors.management_cycle}</p>}
@@ -459,7 +429,7 @@ export default function WebsiteForm({
                                 checked={data.auto_invoice_management}
                                 onCheckedChange={(v) => setData('auto_invoice_management', v)}
                             />
-                            <Label className="text-muted-foreground">Auto-fakturace sprava</Label>
+                            <Label className="text-muted-foreground">Auto-fakturace správa</Label>
                         </div>
                     </>
                 )}
@@ -467,21 +437,21 @@ export default function WebsiteForm({
 
             <Separator className="bg-border" />
 
-            {/* ═══════ Pokrocile ═══════ */}
-            <FormSection icon={Settings} title="Pokrocile">
+            {/* ═══════ Pokročilé ═══════ */}
+            <FormSection icon={Settings} title="Pokročilé">
                 {/* Alias of */}
                 {aliasOptions.length > 0 && (
                     <div>
-                        <Label className="text-muted-foreground">Alias webu (nadrazeny hosting)</Label>
+                        <Label className="text-muted-foreground">Alias webu (nadřazený web)</Label>
                         <Select
                             value={data.alias_of_id || 'none'}
                             onValueChange={(v) => setData('alias_of_id', v === 'none' ? '' : v)}
                         >
                             <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
-                                <SelectValue placeholder="Zadny (samostatny web)" />
+                                <SelectValue placeholder="Žádný (samostatný web)" />
                             </SelectTrigger>
                             <SelectContent className="bg-card border-border">
-                                <SelectItem value="none">Zadny (samostatny web)</SelectItem>
+                                <SelectItem value="none">Žádný (samostatný web)</SelectItem>
                                 {aliasOptions.map((opt) => (
                                     <SelectItem key={opt.id} value={String(opt.id)}>
                                         {opt.name}
@@ -499,7 +469,7 @@ export default function WebsiteForm({
                             checked={data.is_external}
                             onCheckedChange={(v) => setData('is_external', v)}
                         />
-                        <Label className="text-muted-foreground">Je externi</Label>
+                        <Label className="text-muted-foreground">Je externí</Label>
                     </div>
                     <div className="flex items-center gap-3 pt-2">
                         <Switch
@@ -519,7 +489,7 @@ export default function WebsiteForm({
                     onClick={handleCancel}
                     className="text-muted-foreground hover:text-foreground"
                 >
-                    Zrusit
+                    Zrušit
                 </Button>
                 <Separator orientation="vertical" className="h-6 bg-border" />
                 <Button
@@ -527,7 +497,7 @@ export default function WebsiteForm({
                     disabled={processing}
                     className="bg-primary hover:bg-primary/80 text-white"
                 >
-                    {processing ? 'Ukladam...' : submitLabel}
+                    {processing ? 'Ukládám...' : submitLabel}
                 </Button>
             </div>
         </form>
