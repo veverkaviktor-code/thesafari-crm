@@ -243,6 +243,7 @@ export default function Edit({ invoice, customers, orders }: Props) {
                     <div>
                         <InvoicePreview
                             invoiceNumber={invoice.invoice_number}
+                            variableSymbol={invoice.variable_symbol}
                             customerName={selectedCustomer?.name}
                             issueDate={data.issue_date}
                             dueDate={data.due_date}
