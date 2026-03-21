@@ -79,11 +79,18 @@ class AutoInvoiceWebsites extends Command
                     continue;
                 }
 
+                // Build period string from hosting expiration (same as createInvoice)
+                $periodStr = '1 rok';
+                if ($website->hosting_expires_at) {
+                    $expiry = \Carbon\Carbon::parse($website->hosting_expires_at);
+                    $periodStr = $expiry->format('j. n. Y') . ' – ' . $expiry->copy()->addYear()->format('j. n. Y');
+                }
+
                 // Hosting item
                 if ($hostingPrice > 0) {
                     $items[] = [
                         'website'     => $website,
-                        'description' => "Hosting {$website->name} (1 rok)",
+                        'description' => "Hosting {$website->name} ({$periodStr})",
                         'quantity'    => 1,
                         'unit'        => 'rok',
                         'unit_price'  => $hostingPrice,
@@ -95,7 +102,7 @@ class AutoInvoiceWebsites extends Command
                 if ($domainPrice > 0 && $website->is_registered_by_us) {
                     $items[] = [
                         'website'     => $website,
-                        'description' => "Doména {$website->name} (1 rok)",
+                        'description' => "Doména {$website->name} ({$periodStr})",
                         'quantity'    => 1,
                         'unit'        => 'rok',
                         'unit_price'  => $domainPrice,
@@ -113,7 +120,7 @@ class AutoInvoiceWebsites extends Command
                 foreach ($aliases as $alias) {
                     $items[] = [
                         'website'     => $alias,
-                        'description' => "Doména {$alias->name} (1 rok)",
+                        'description' => "Doména {$alias->name} ({$periodStr})",
                         'quantity'    => 1,
                         'unit'        => 'rok',
                         'unit_price'  => (float) $alias->domain_sell_yearly,

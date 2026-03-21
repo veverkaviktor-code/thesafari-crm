@@ -19,7 +19,7 @@ class WebsiteController extends Controller
 {
     public function index(Request $request)
     {
-        $perPage = min((int) ($request->input('per_page') ?: 30), 100);
+        $perPage = min((int) ($request->input('per_page') ?: 50), 100);
 
         $query = Website::query()
             ->with(['customer:id,name,company', 'hostingServer', 'aliasOf:id,name', 'managementPlan', 'credentials', 'emailAccounts'])
