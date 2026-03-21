@@ -6,6 +6,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import ExpirationBadge from '@/components/webove-sluzby/ExpirationBadge';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -557,17 +558,21 @@ function TabPrehled({ website, paymentStats, onShowPaymentModal }: {
 
                     <div className="flex items-center gap-6 mt-4 pt-4 border-t border-border">
                         <div className="flex items-center gap-2 text-sm">
-                            <span className="text-muted-foreground">Auto-fakturace hosting:</span>
-                            <span className={website.auto_invoice ? 'text-emerald-400 font-medium' : 'text-muted-foreground'}>
-                                {website.auto_invoice ? 'Ano' : 'Ne'}
-                            </span>
+                            <Switch
+                                checked={website.auto_invoice}
+                                onCheckedChange={(v) => router.put(`/webove-sluzby/${website.id}`, { auto_invoice: v }, { preserveScroll: true })}
+                                className="scale-90"
+                            />
+                            <span className="text-muted-foreground">Auto-fakturace (hosting + doména)</span>
                         </div>
                         {website.management_plan && (
                             <div className="flex items-center gap-2 text-sm">
-                                <span className="text-muted-foreground">Auto-fakturace správa:</span>
-                                <span className={website.auto_invoice_management ? 'text-emerald-400 font-medium' : 'text-muted-foreground'}>
-                                    {website.auto_invoice_management ? 'Ano' : 'Ne'}
-                                </span>
+                                <Switch
+                                    checked={website.auto_invoice_management}
+                                    onCheckedChange={(v) => router.put(`/webove-sluzby/${website.id}`, { auto_invoice_management: v }, { preserveScroll: true })}
+                                    className="scale-90"
+                                />
+                                <span className="text-muted-foreground">Auto-fakturace správa</span>
                             </div>
                         )}
                     </div>
