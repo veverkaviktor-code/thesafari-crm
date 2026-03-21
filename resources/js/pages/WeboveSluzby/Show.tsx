@@ -48,8 +48,10 @@ import {
     Server,
     HardDrive,
     DollarSign,
-    Settings,
     ExternalLink,
+    LayoutDashboard,
+    Settings,
+    KeyRound,
 } from 'lucide-react';
 
 /* ─────── Types ─────── */
@@ -102,6 +104,7 @@ interface ManagementPlan {
 interface AliasWebsite {
     id: number;
     name: string;
+    domain_expires_at?: string | null;
 }
 
 interface Website {
@@ -193,6 +196,16 @@ const paymentMethodLabels: Record<string, string> = {
     karta: 'Kartou',
 };
 
+type TabId = 'prehled' | 'domena' | 'hosting' | 'sprava' | 'pristupy';
+
+const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
+    { id: 'prehled', label: 'Prehled', icon: LayoutDashboard },
+    { id: 'domena', label: 'Domena', icon: Globe },
+    { id: 'hosting', label: 'Hosting', icon: HardDrive },
+    { id: 'sprava', label: 'Sprava', icon: Settings },
+    { id: 'pristupy', label: 'Pristupy', icon: KeyRound },
+];
+
 /* ─────── Small components ─────── */
 
 function PaymentStatusBadge({ status }: { status: string }) {
@@ -262,6 +275,22 @@ function PasswordField({ password }: { password: string }) {
             >
                 {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
             </button>
+        </div>
+    );
+}
+
+function StorageBar({ used, quota }: { used: number; quota: number }) {
+    const pct = quota > 0 ? Math.min(100, Math.round((used / quota) * 100)) : 0;
+    const color = pct > 90 ? 'bg-red-400' : pct > 70 ? 'bg-amber-400' : 'bg-emerald-400';
+    return (
+        <div>
+            <div className="flex items-center justify-between text-sm mb-1.5">
+                <span className="text-muted-foreground">Uloziste</span>
+                <span className="text-foreground text-xs">{used} / {quota} MB</span>
+            </div>
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+            </div>
         </div>
     );
 }
@@ -375,24 +404,406 @@ function PaymentForm({ website, onClose }: { website: Website; onClose: () => vo
     );
 }
 
-/* ─────── Main Component ─────── */
+/* ─────── Tab: Prehled ─────── */
 
-export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
-    const [showPaymentModal, setShowPaymentModal] = useState(false);
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
-    const statusInfo = statusMap[website.status];
-
+function TabPrehled({ website, paymentStats, onShowPaymentModal }: {
+    website: Website;
+    paymentStats: Props['paymentStats'];
+    onShowPaymentModal: () => void;
+}) {
     const handleMarkPaid = (paymentId: number) => {
         router.put(`/webove-sluzby/${website.id}/platby/${paymentId}/zaplaceno`, {});
     };
 
+    const managementMonthly = website.management_plan ? Number(website.management_plan.price_monthly) : 0;
+    const managementYearly = managementMonthly * 12;
+
+    return (
+        <div className="space-y-4">
+            {/* Domain + Hosting summary cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Card: Domena */}
+                <div className="bg-card border border-border rounded-lg p-4 space-y-1">
+                    <div className="flex items-center gap-2 mb-3">
+                        <Globe className="h-4 w-4 text-amber-500" />
+                        <h3 className="text-sm font-semibold text-foreground">Domena</h3>
+                    </div>
+                    <InfoRow label="Registrator">
+                        {website.is_registered_by_us ? (
+                            <span className="inline-flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                <span className="text-emerald-400 font-medium">Vlastni</span>
+                            </span>
+                        ) : (
+                            <span className="text-muted-foreground/60">Externi</span>
+                        )}
+                    </InfoRow>
+                    <InfoRow label="Expirace">
+                        {website.domain_expires_at ? (
+                            <ExpirationBadge expiresAt={website.domain_expires_at} />
+                        ) : (
+                            <span className="text-muted-foreground/50">Nenastaveno</span>
+                        )}
+                    </InfoRow>
+                    <InfoRow label="Auto-renew">
+                        <span className={website.auto_renew ? 'text-emerald-400' : 'text-muted-foreground'}>
+                            {website.auto_renew ? 'Ano' : 'Ne'}
+                        </span>
+                    </InfoRow>
+                </div>
+
+                {/* Card: Hosting */}
+                <div className="bg-card border border-border rounded-lg p-4 space-y-1">
+                    <div className="flex items-center gap-2 mb-3">
+                        <HardDrive className="h-4 w-4 text-sky-400" />
+                        <h3 className="text-sm font-semibold text-foreground">Hosting</h3>
+                    </div>
+                    <InfoRow label="Server">
+                        {website.hosting_server ? (
+                            <span className="font-medium">{website.hosting_server.name}</span>
+                        ) : website.server ? (
+                            <span className="font-mono text-xs">{website.server}</span>
+                        ) : (
+                            <span className="text-muted-foreground/50">Bez hostingu</span>
+                        )}
+                    </InfoRow>
+                    <InfoRow label="Expirace">
+                        {website.hosting_expires_at ? (
+                            <ExpirationBadge expiresAt={website.hosting_expires_at} />
+                        ) : (
+                            <span className="text-muted-foreground/50">&mdash;</span>
+                        )}
+                    </InfoRow>
+                    {website.storage_quota_mb > 0 && (
+                        <div className="py-1.5">
+                            <StorageBar used={website.storage_used_mb} quota={website.storage_quota_mb} />
+                        </div>
+                    )}
+                    {website.admin_url && (
+                        <InfoRow label="Admin URL">
+                            <a href={website.admin_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
+                                Otevrit <ExternalLink className="h-3 w-3" />
+                            </a>
+                        </InfoRow>
+                    )}
+                </div>
+            </div>
+
+            {/* Financial summary */}
+            <div className="bg-card border border-border rounded-lg overflow-hidden">
+                <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border">
+                    <DollarSign className="h-4 w-4 text-emerald-400" />
+                    <h3 className="text-sm font-semibold text-foreground">Fakturace</h3>
+                </div>
+                <div className="p-5">
+                    <div className="grid grid-cols-3 gap-6">
+                        {/* Naklad */}
+                        <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Naklad</p>
+                            <div className="space-y-1.5">
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="text-muted-foreground">Hosting + Domena</span>
+                                    <span className="text-foreground">{website.cost_yearly ? formatCurrency(website.cost_yearly) : <span className="text-muted-foreground/50">&mdash;</span>}</span>
+                                </div>
+                                <Separator className="bg-border" />
+                                <div className="flex items-center justify-between text-sm font-semibold">
+                                    <span className="text-foreground">Celkem rocne</span>
+                                    <span className="text-foreground">{formatCurrency(website.cost_yearly || 0)}</span>
+                                </div>
+                            </div>
+                        </div>
+                        {/* Prodejni cena */}
+                        <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Prodejni cena</p>
+                            <div className="space-y-1.5">
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="text-muted-foreground">Hosting + Domena</span>
+                                    <span className="text-foreground">{website.sell_yearly ? formatCurrency(website.sell_yearly) : <span className="text-muted-foreground/50">&mdash;</span>}</span>
+                                </div>
+                                {managementMonthly > 0 && (
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-muted-foreground">Sprava ({website.management_plan?.name})</span>
+                                        <span className="text-foreground">{formatCurrency(managementYearly)}/rok</span>
+                                    </div>
+                                )}
+                                <Separator className="bg-border" />
+                                <div className="flex items-center justify-between text-sm font-semibold">
+                                    <span className="text-foreground">Celkem rocne</span>
+                                    <span className="text-foreground">{formatCurrency(website.total_annual_revenue)}</span>
+                                </div>
+                            </div>
+                        </div>
+                        {/* Marze */}
+                        <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Marze</p>
+                            <div className="space-y-1.5">
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="text-muted-foreground">Hosting + Domena</span>
+                                    <span className={`${website.yearly_margin > 0 ? 'text-emerald-400' : website.yearly_margin < 0 ? 'text-red-400' : 'text-foreground'}`}>
+                                        {formatCurrency(website.yearly_margin)}
+                                    </span>
+                                </div>
+                                <Separator className="bg-border" />
+                                <div className="flex items-center justify-between text-sm font-semibold">
+                                    <span className="text-foreground">Celkem rocne</span>
+                                    <span className={`font-semibold ${(website.yearly_margin + managementYearly) > 0 ? 'text-emerald-400' : (website.yearly_margin + managementYearly) < 0 ? 'text-red-400' : 'text-foreground'}`}>
+                                        {formatCurrency(website.yearly_margin + managementYearly)}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-6 mt-4 pt-4 border-t border-border">
+                        <div className="flex items-center gap-2 text-sm">
+                            <span className="text-muted-foreground">Auto-fakturace hosting:</span>
+                            <span className={website.auto_invoice ? 'text-emerald-400 font-medium' : 'text-muted-foreground'}>
+                                {website.auto_invoice ? 'Ano' : 'Ne'}
+                            </span>
+                        </div>
+                        {website.management_plan && (
+                            <div className="flex items-center gap-2 text-sm">
+                                <span className="text-muted-foreground">Auto-fakturace sprava:</span>
+                                <span className={website.auto_invoice_management ? 'text-emerald-400 font-medium' : 'text-muted-foreground'}>
+                                    {website.auto_invoice_management ? 'Ano' : 'Ne'}
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Platebni historie */}
+            <div className="bg-card border border-border rounded-lg overflow-hidden">
+                <SectionHeader
+                    icon={ReceiptText}
+                    title="Platebni historie"
+                    count={paymentStats.payments_count}
+                    action={
+                        <Button size="sm" onClick={onShowPaymentModal} className="bg-primary hover:bg-primary/80 text-white h-7 px-3 text-xs">
+                            <Plus className="h-3.5 w-3.5 mr-1" />
+                            Nova platba
+                        </Button>
+                    }
+                />
+                {website.payments.length === 0 ? (
+                    <div className="px-5 py-8 text-center text-sm text-muted-foreground">Zadne platby</div>
+                ) : (
+                    <div className="divide-y divide-border">
+                        {website.payments.map((payment) => (
+                            <div key={payment.id} className="flex items-center justify-between px-5 py-3 hover:bg-muted/30 transition-colors">
+                                <div className="min-w-0">
+                                    <p className="text-sm text-muted-foreground">
+                                        {format(new Date(payment.period_start), 'd. M. yyyy', { locale: cs })}
+                                        {' \u2013 '}
+                                        {format(new Date(payment.period_end), 'd. M. yyyy', { locale: cs })}
+                                    </p>
+                                    {payment.notes && (
+                                        <p className="text-xs text-muted-foreground/70 truncate mt-0.5">{payment.notes}</p>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-3 shrink-0 ml-4">
+                                    <span className="text-sm font-medium text-foreground">{formatCurrency(payment.amount)}</span>
+                                    <PaymentStatusBadge status={payment.status} />
+                                    {payment.paid_at && (
+                                        <span className="text-xs text-muted-foreground hidden sm:block">
+                                            {format(new Date(payment.paid_at), 'd. M. yyyy', { locale: cs })}
+                                        </span>
+                                    )}
+                                    {payment.payment_method && (
+                                        <span className="text-xs text-muted-foreground hidden md:block">
+                                            {paymentMethodLabels[payment.payment_method] ?? payment.payment_method}
+                                        </span>
+                                    )}
+                                    {payment.status !== 'zaplaceno' && (
+                                        <Button size="sm" variant="ghost" onClick={() => handleMarkPaid(payment.id)} className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-7 px-2 text-xs">
+                                            <RefreshCw className="h-3 w-3 mr-1" />
+                                            Zaplatit
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+                {paymentStats.payments_count > 0 && (
+                    <div className="flex items-center gap-6 px-5 py-3 border-t border-border bg-muted/30">
+                        <div>
+                            <p className="text-xs text-muted-foreground">Zaplaceno celkem</p>
+                            <p className="text-sm font-medium text-emerald-400">{formatCurrency(paymentStats.total_paid)}</p>
+                        </div>
+                        {paymentStats.total_unpaid > 0 && (
+                            <div>
+                                <p className="text-xs text-muted-foreground">Nezaplaceno</p>
+                                <p className="text-sm font-medium text-amber-400">{formatCurrency(paymentStats.total_unpaid)}</p>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* Faktury */}
+            {website.invoices && website.invoices.length > 0 && (
+                <div className="bg-card border border-border rounded-lg overflow-hidden">
+                    <SectionHeader icon={FileText} title="Faktury" count={website.invoices.length} />
+                    <div className="divide-y divide-border">
+                        {website.invoices.map((inv) => {
+                            const invStatus = invoiceStatusConfig[inv.status] ?? invoiceStatusConfig.vystavena;
+                            return (
+                                <a key={inv.id} href={`/faktury/${inv.id}`} className="flex items-center justify-between px-5 py-3 hover:bg-muted/30 transition-colors">
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-sm font-medium text-foreground">{inv.invoice_number}</span>
+                                        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${invStatus.className}`}>
+                                            {invStatus.label}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <span className="text-sm font-medium text-foreground">{formatCurrency(Number(inv.total))}</span>
+                                        <span className="text-xs text-muted-foreground">
+                                            {format(new Date(inv.issue_date), 'd. M. yyyy', { locale: cs })}
+                                        </span>
+                                    </div>
+                                </a>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {/* Aliasy */}
+            {website.aliases && website.aliases.length > 0 && (
+                <div className="bg-card border border-border rounded-lg overflow-hidden">
+                    <SectionHeader icon={Link2} title="Aliasy" count={website.aliases.length} />
+                    <div className="divide-y divide-border">
+                        {website.aliases.map((alias) => (
+                            <a
+                                key={alias.id}
+                                href={`/webove-sluzby/${alias.id}`}
+                                className="flex items-center justify-between px-5 py-3 hover:bg-muted/30 transition-colors"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
+                                    <span className="text-sm font-medium text-primary">{alias.name}</span>
+                                </div>
+                                {alias.domain_expires_at && (
+                                    <ExpirationBadge expiresAt={alias.domain_expires_at} />
+                                )}
+                            </a>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Poznamky */}
+            {website.notes && (
+                <div className="bg-card border border-border rounded-lg px-5 py-4">
+                    <h3 className="text-sm font-semibold text-foreground mb-2">Poznamky</h3>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{website.notes}</p>
+                </div>
+            )}
+        </div>
+    );
+}
+
+/* ─────── Tab: Domena ─────── */
+
+function TabDomena({ website }: { website: Website }) {
+    return (
+        <div className="space-y-4">
+            {/* Registrace */}
+            <div className="bg-card border border-border rounded-lg overflow-hidden">
+                <SectionHeader icon={Globe} title="Registrace domeny" />
+                <div className="px-5 py-4 space-y-1">
+                    <InfoRow label="Registrator">
+                        {website.is_registered_by_us ? (
+                            <span className="inline-flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                <span className="text-emerald-400 font-medium">Vlastni</span>
+                            </span>
+                        ) : (
+                            <span className="text-muted-foreground/60">Externi</span>
+                        )}
+                    </InfoRow>
+                    <InfoRow label="Expirace domeny">
+                        {website.domain_expires_at ? (
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm">{format(new Date(website.domain_expires_at), 'd. M. yyyy', { locale: cs })}</span>
+                                <ExpirationBadge expiresAt={website.domain_expires_at} />
+                            </div>
+                        ) : (
+                            <span className="text-muted-foreground/50">Nenastaveno</span>
+                        )}
+                    </InfoRow>
+                    <InfoRow label="Auto-renew">
+                        <span className={website.auto_renew ? 'text-emerald-400 font-medium' : 'text-muted-foreground'}>
+                            {website.auto_renew ? 'Ano' : 'Ne'}
+                        </span>
+                    </InfoRow>
+                    {website.ip_address && (
+                        <InfoRow label="IP adresa">
+                            <span className="font-mono text-xs">{website.ip_address}</span>
+                        </InfoRow>
+                    )}
+                    <InfoRow label="Externi domena">
+                        <span className={website.is_external ? 'text-amber-400' : 'text-muted-foreground'}>
+                            {website.is_external ? 'Ano' : 'Ne'}
+                        </span>
+                    </InfoRow>
+                    {website.starts_at && (
+                        <InfoRow label="Sluzba od">
+                            <span>{format(new Date(website.starts_at), 'd. M. yyyy', { locale: cs })}</span>
+                        </InfoRow>
+                    )}
+                </div>
+            </div>
+
+            {/* Aliasy */}
+            <div className="bg-card border border-border rounded-lg overflow-hidden">
+                <SectionHeader icon={Link2} title="Aliasy" count={website.aliases?.length ?? 0} />
+                <div className="px-5 py-4">
+                    {(!website.aliases || website.aliases.length === 0) ? (
+                        <p className="text-sm text-muted-foreground">Zadne aliasy</p>
+                    ) : (
+                        <div className="space-y-2">
+                            {website.aliases.map((alias) => (
+                                <a
+                                    key={alias.id}
+                                    href={`/webove-sluzby/${alias.id}`}
+                                    className="flex items-center justify-between rounded-lg bg-accent px-3 py-2.5 hover:bg-accent/80 transition-colors"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
+                                        <span className="text-sm font-medium text-primary">{alias.name}</span>
+                                    </div>
+                                    {alias.domain_expires_at && (
+                                        <ExpirationBadge expiresAt={alias.domain_expires_at} />
+                                    )}
+                                </a>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Sync info */}
+            {website.synced_at && (
+                <p className="text-xs text-muted-foreground/50 px-1">
+                    Posledni sync: {format(new Date(website.synced_at), 'd. M. yyyy HH:mm', { locale: cs })}
+                </p>
+            )}
+        </div>
+    );
+}
+
+/* ─────── Tab: Hosting ─────── */
+
+function TabHosting({ website }: { website: Website }) {
     const [activatingHosting, setActivatingHosting] = useState(false);
-    const [activateHostingResult, setActivateHostingResult] = useState<{ success: boolean; message: string } | null>(null);
+    const [activateResult, setActivateResult] = useState<{ success: boolean; message: string } | null>(null);
 
     const handleActivateHosting = async () => {
         setActivatingHosting(true);
-        setActivateHostingResult(null);
+        setActivateResult(null);
         try {
             const response = await fetch('/webove-sluzby/activate-domain', {
                 method: 'POST',
@@ -405,450 +816,360 @@ export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
             });
             const data = await response.json();
             if (response.ok) {
-                setActivateHostingResult({ success: true, message: data.message ?? 'Hosting aktivovan.' });
+                setActivateResult({ success: true, message: data.message ?? 'Hosting aktivovan.' });
                 setTimeout(() => router.post('/webove-sluzby/sync', {}, { preserveState: false }), 1500);
             } else {
-                setActivateHostingResult({ success: false, message: data.message ?? 'Aktivace selhala.' });
+                setActivateResult({ success: false, message: data.message ?? 'Aktivace selhala.' });
             }
         } catch {
-            setActivateHostingResult({ success: false, message: 'Sitova chyba.' });
+            setActivateResult({ success: false, message: 'Sitova chyba.' });
         } finally {
             setActivatingHosting(false);
         }
     };
 
-    const storagePct = website.storage_quota_mb > 0
-        ? Math.min(100, Math.round((website.storage_used_mb / website.storage_quota_mb) * 100))
-        : 0;
-    const storageColor = storagePct > 90 ? 'bg-red-400' : storagePct > 70 ? 'bg-amber-400' : 'bg-emerald-400';
+    const hasHosting = !!(website.hosting_server || website.server);
 
     return (
-        <AuthenticatedLayout
-            title={website.name}
-            breadcrumbs={[
-                { label: 'Webove sluzby', href: '/webove-sluzby' },
-                { label: website.name },
-            ]}
-        >
-            <div className="p-6 space-y-6 max-w-6xl mx-auto">
-                {/* ═══════ HEADER ═══════ */}
-                <div className="flex items-start justify-between gap-4 flex-wrap">
-                    <div className="flex items-start gap-4 min-w-0">
-                        <Button
-                            variant="ghost"
-                            onClick={() => router.visit('/webove-sluzby')}
-                            className="text-muted-foreground hover:text-foreground mt-0.5 shrink-0"
-                        >
-                            <ArrowLeft className="h-4 w-4" />
-                        </Button>
-                        <div className="min-w-0">
-                            <div className="flex items-center gap-3 mb-1 flex-wrap">
-                                <Globe className="h-6 w-6 text-amber-500 shrink-0" />
-                                <h1 className="text-2xl font-semibold tracking-tight text-foreground">{website.name}</h1>
-                                {statusInfo && <StatusBadge status={statusInfo.variant}>{statusInfo.label}</StatusBadge>}
-                                <ExpirationBadge expiresAt={website.hosting_expires_at} />
-                                {website.is_free && (
-                                    <span className="inline-flex items-center rounded-full bg-emerald-500/15 border border-emerald-500/25 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">ZDARMA</span>
-                                )}
-                                {website.alias_of && (
-                                    <span className="inline-flex items-center rounded-full bg-violet-500/15 border border-violet-500/25 px-2 py-0.5 text-[10px] font-semibold text-violet-400">
-                                        ALIAS &rarr; {website.alias_of.name}
-                                    </span>
-                                )}
-                            </div>
-                            <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                                {website.customer && (
-                                    <a href={`/zakaznici/${website.customer.id}`} className="hover:text-primary transition-colors">
-                                        {website.customer.company || website.customer.name}
-                                    </a>
-                                )}
-                                {website.customer && website.starts_at && <span className="text-muted-foreground/40">&middot;</span>}
-                                {website.starts_at && (
-                                    <span className="text-muted-foreground/70 text-xs">
-                                        Od {format(new Date(website.starts_at), 'MMMM yyyy', { locale: cs })}
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <Button
-                            variant="ghost"
-                            onClick={handleActivateHosting}
-                            disabled={activatingHosting}
-                            className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 border border-emerald-500/25"
-                        >
-                            {activatingHosting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Play className="h-4 w-4 mr-2" />}
-                            Aktivovat hosting
-                        </Button>
-                        {!website.is_free && website.customer && (
-                            <Button onClick={() => router.post(`/webove-sluzby/${website.id}/faktura`)} className="bg-[#ad9d8e] text-white hover:bg-[#ad9d8e]/90 border-0">
-                                <FileText className="h-4 w-4 mr-2" />
-                                Vystavit fakturu
-                            </Button>
-                        )}
-                        <Button onClick={() => router.visit(`/webove-sluzby/${website.id}/edit`)} className="bg-[#ad9d8e]/15 text-[#ad9d8e] hover:bg-[#ad9d8e]/25 border border-[#ad9d8e]/25">
-                            <Pencil className="h-4 w-4 mr-2" />
-                            Upravit
-                        </Button>
-                        <Button onClick={() => setShowDeleteConfirm(true)} className="bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/25">
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Smazat
-                        </Button>
-                        {activateHostingResult && (
-                            <span className={`text-xs ${activateHostingResult.success ? 'text-emerald-400' : 'text-red-400'}`}>
-                                {activateHostingResult.message}
-                            </span>
-                        )}
-                    </div>
-                </div>
-
-                {/* ═══════ INFO CARDS — Domain / Hosting / Billing ═══════ */}
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    {/* Card 1: Domena */}
-                    <div className="bg-card border border-border rounded-xl overflow-hidden">
-                        <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border bg-muted/30">
-                            <Globe className="h-4 w-4 text-amber-500" />
-                            <h3 className="text-sm font-semibold text-foreground">Domena</h3>
-                        </div>
-                        <div className="px-5 py-4 space-y-1">
-                            <InfoRow label="Registrator">
-                                {website.is_registered_by_us ? (
-                                    <span className="inline-flex items-center gap-1.5">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                        <span className="text-emerald-400 font-medium">Vlastni</span>
-                                    </span>
-                                ) : (
-                                    <span className="text-muted-foreground/60">Externi</span>
-                                )}
-                            </InfoRow>
-                            <InfoRow label="Expirace domeny">
-                                {website.domain_expires_at ? (
-                                    <ExpirationBadge expiresAt={website.domain_expires_at} />
-                                ) : (
-                                    <span className="text-muted-foreground/50">Nenastaveno</span>
-                                )}
-                            </InfoRow>
-                            {website.ip_address && (
-                                <InfoRow label="IP adresa">
-                                    <span className="font-mono text-xs">{website.ip_address}</span>
-                                </InfoRow>
-                            )}
-                            <InfoRow label="Auto-renew">
-                                <span className={website.auto_renew ? 'text-emerald-400' : 'text-muted-foreground'}>
-                                    {website.auto_renew ? 'Ano' : 'Ne'}
-                                </span>
-                            </InfoRow>
-                        </div>
-                    </div>
-
-                    {/* Card 2: Hosting */}
-                    <div className="bg-card border border-border rounded-xl overflow-hidden">
-                        <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border bg-muted/30">
-                            <HardDrive className="h-4 w-4 text-sky-400" />
-                            <h3 className="text-sm font-semibold text-foreground">Hosting</h3>
-                        </div>
-                        <div className="px-5 py-4 space-y-1">
-                            <InfoRow label="Server">
-                                {website.hosting_server ? (
-                                    <span className="font-medium">{website.hosting_server.name}</span>
-                                ) : website.server ? (
-                                    <span className="font-mono text-xs">{website.server}</span>
-                                ) : (
-                                    <span className="text-muted-foreground/50">Bez hostingu</span>
-                                )}
-                            </InfoRow>
-                            <InfoRow label="Expirace hostingu">
-                                {website.hosting_expires_at ? (
+        <div className="space-y-4">
+            {hasHosting ? (
+                <div className="bg-card border border-border rounded-lg overflow-hidden">
+                    <SectionHeader icon={Server} title="Hosting" />
+                    <div className="px-5 py-4 space-y-1">
+                        <InfoRow label="Server">
+                            {website.hosting_server ? (
+                                <span className="font-medium">{website.hosting_server.name}</span>
+                            ) : website.server ? (
+                                <span className="font-mono text-xs">{website.server}</span>
+                            ) : null}
+                        </InfoRow>
+                        <InfoRow label="Expirace hostingu">
+                            {website.hosting_expires_at ? (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm">{format(new Date(website.hosting_expires_at), 'd. M. yyyy', { locale: cs })}</span>
                                     <ExpirationBadge expiresAt={website.hosting_expires_at} />
-                                ) : (
-                                    <span className="text-muted-foreground/50">—</span>
-                                )}
-                            </InfoRow>
-                            {website.storage_quota_mb > 0 && (
-                                <div className="py-1.5">
-                                    <div className="flex items-center justify-between text-sm mb-1.5">
-                                        <span className="text-muted-foreground">Uloziste</span>
-                                        <span className="text-foreground text-xs">
-                                            {website.storage_used_mb} / {website.storage_quota_mb} MB
-                                        </span>
-                                    </div>
-                                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                                        <div className={`h-full rounded-full ${storageColor}`} style={{ width: `${storagePct}%` }} />
-                                    </div>
                                 </div>
-                            )}
-                            {website.admin_url && (
-                                <InfoRow label="Admin URL">
-                                    <a
-                                        href={website.admin_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-primary hover:underline inline-flex items-center gap-1"
-                                    >
-                                        Otevrit <ExternalLink className="h-3 w-3" />
-                                    </a>
-                                </InfoRow>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Card 3: Fakturace */}
-                    <div className="bg-card border border-border rounded-xl overflow-hidden">
-                        <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border bg-muted/30">
-                            <DollarSign className="h-4 w-4 text-emerald-400" />
-                            <h3 className="text-sm font-semibold text-foreground">Fakturace</h3>
-                        </div>
-                        <div className="px-5 py-4 space-y-1">
-                            <InfoRow label="Rocni cena">
-                                <span className="font-semibold">{website.sell_yearly ? formatCurrency(website.sell_yearly) : '—'}</span>
-                            </InfoRow>
-                            <InfoRow label="Rocni naklad">
-                                <span>{website.cost_yearly ? formatCurrency(website.cost_yearly) : '—'}</span>
-                            </InfoRow>
-                            <InfoRow label="Marze">
-                                <span className={website.yearly_margin > 0 ? 'text-emerald-400 font-medium' : website.yearly_margin < 0 ? 'text-red-400 font-medium' : ''}>
-                                    {formatCurrency(website.yearly_margin)}
-                                </span>
-                            </InfoRow>
-                            <Separator className="bg-border !my-2" />
-                            <InfoRow label="Auto-fakturace">
-                                <span className={website.auto_invoice ? 'text-emerald-400' : 'text-muted-foreground'}>
-                                    {website.auto_invoice ? 'Ano' : 'Ne'}
-                                </span>
-                            </InfoRow>
-                            {website.management_plan && (
-                                <>
-                                    <InfoRow label="Balicek spravy">
-                                        <span className="font-medium">{website.management_plan.name}</span>
-                                    </InfoRow>
-                                    <InfoRow label="Cena spravy">
-                                        {Number(website.management_plan.price_monthly).toLocaleString('cs-CZ')} Kc/mes
-                                    </InfoRow>
-                                    {website.management_cycle && (
-                                        <InfoRow label="Cyklus spravy">
-                                            {managementCycleLabels[website.management_cycle] ?? '—'}
-                                        </InfoRow>
-                                    )}
-                                    <InfoRow label="Auto-fakt. sprava">
-                                        <span className={website.auto_invoice_management ? 'text-emerald-400' : 'text-muted-foreground'}>
-                                            {website.auto_invoice_management ? 'Ano' : 'Ne'}
-                                        </span>
-                                    </InfoRow>
-                                </>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* ═══════ TWO COLUMN LAYOUT ═══════ */}
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                    {/* LEFT: Payments + Invoices — 2/3 */}
-                    <div className="lg:col-span-2 space-y-4">
-                        {/* Platebni historie */}
-                        <div className="bg-card border border-border rounded-xl overflow-hidden">
-                            <SectionHeader
-                                icon={ReceiptText}
-                                title="Platebni historie"
-                                count={paymentStats.payments_count}
-                                action={
-                                    <Button size="sm" onClick={() => setShowPaymentModal(true)} className="bg-primary hover:bg-primary/80 text-white h-7 px-3 text-xs">
-                                        <Plus className="h-3.5 w-3.5 mr-1" />
-                                        Nova platba
-                                    </Button>
-                                }
-                            />
-                            {website.payments.length === 0 ? (
-                                <div className="px-5 py-8 text-center text-sm text-muted-foreground">Zadne platby</div>
                             ) : (
-                                <div className="divide-y divide-border">
-                                    {website.payments.map((payment) => (
-                                        <div key={payment.id} className="flex items-center justify-between px-5 py-3 hover:bg-muted/30 transition-colors">
-                                            <div className="min-w-0">
-                                                <p className="text-sm text-muted-foreground">
-                                                    {format(new Date(payment.period_start), 'd. M. yyyy', { locale: cs })}
-                                                    {' \u2013 '}
-                                                    {format(new Date(payment.period_end), 'd. M. yyyy', { locale: cs })}
-                                                </p>
-                                                {payment.notes && (
-                                                    <p className="text-xs text-muted-foreground/70 truncate mt-0.5">{payment.notes}</p>
-                                                )}
-                                            </div>
-                                            <div className="flex items-center gap-3 shrink-0 ml-4">
-                                                <span className="text-sm font-medium text-foreground">{formatCurrency(payment.amount)}</span>
-                                                <PaymentStatusBadge status={payment.status} />
-                                                {payment.paid_at && (
-                                                    <span className="text-xs text-muted-foreground hidden sm:block">
-                                                        {format(new Date(payment.paid_at), 'd. M. yyyy', { locale: cs })}
-                                                    </span>
-                                                )}
-                                                {payment.payment_method && (
-                                                    <span className="text-xs text-muted-foreground hidden md:block">
-                                                        {paymentMethodLabels[payment.payment_method] ?? payment.payment_method}
-                                                    </span>
-                                                )}
-                                                {payment.status !== 'zaplaceno' && (
-                                                    <Button size="sm" variant="ghost" onClick={() => handleMarkPaid(payment.id)} className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-7 px-2 text-xs">
-                                                        <RefreshCw className="h-3 w-3 mr-1" />
-                                                        Zaplatit
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
+                                <span className="text-muted-foreground/50">&mdash;</span>
                             )}
-                            {paymentStats.payments_count > 0 && (
-                                <div className="flex items-center gap-6 px-5 py-3 border-t border-border bg-muted/30">
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">Zaplaceno celkem</p>
-                                        <p className="text-sm font-medium text-emerald-400">{formatCurrency(paymentStats.total_paid)}</p>
-                                    </div>
-                                    {paymentStats.total_unpaid > 0 && (
-                                        <div>
-                                            <p className="text-xs text-muted-foreground">Nezaplaceno</p>
-                                            <p className="text-sm font-medium text-amber-400">{formatCurrency(paymentStats.total_unpaid)}</p>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Faktury */}
-                        {website.invoices && website.invoices.length > 0 && (
-                            <div className="bg-card border border-border rounded-xl overflow-hidden">
-                                <SectionHeader icon={FileText} title="Faktury" count={website.invoices.length} />
-                                <div className="divide-y divide-border">
-                                    {website.invoices.map((inv) => {
-                                        const invStatus = invoiceStatusConfig[inv.status] ?? invoiceStatusConfig.vystavena;
-                                        return (
-                                            <a key={inv.id} href={`/faktury/${inv.id}`} className="flex items-center justify-between px-5 py-3 hover:bg-muted/30 transition-colors">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-sm font-medium text-foreground">{inv.invoice_number}</span>
-                                                    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${invStatus.className}`}>
-                                                        {invStatus.label}
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center gap-4">
-                                                    <span className="text-sm font-medium text-foreground">{formatCurrency(Number(inv.total))}</span>
-                                                    <span className="text-xs text-muted-foreground">
-                                                        {format(new Date(inv.issue_date), 'd. M. yyyy', { locale: cs })}
-                                                    </span>
-                                                </div>
-                                            </a>
-                                        );
-                                    })}
-                                </div>
+                        </InfoRow>
+                        {website.storage_quota_mb > 0 && (
+                            <div className="py-2">
+                                <StorageBar used={website.storage_used_mb} quota={website.storage_quota_mb} />
                             </div>
                         )}
-                    </div>
-
-                    {/* RIGHT: Credentials, Emails, Aliases, Notes — 1/3 */}
-                    <div className="space-y-4">
-                        {/* Pristupove udaje */}
-                        <div className="bg-card border border-border rounded-xl overflow-hidden">
-                            <SectionHeader icon={Shield} title="Pristupove udaje" count={website.credentials.length} />
-                            <div className="px-5 py-4">
-                                {website.admin_url && (
-                                    <div className="flex items-center justify-between py-1.5 mb-2">
-                                        <span className="text-sm text-muted-foreground">Admin URL</span>
-                                        <a href={website.admin_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
-                                            Otevrit <ExternalLink className="h-3 w-3" />
-                                        </a>
-                                    </div>
-                                )}
-                                {website.credentials.length === 0 && !website.admin_url && (
-                                    <p className="text-sm text-muted-foreground py-2">Zadne pristupove udaje</p>
-                                )}
-                                {website.credentials.map((cred) => (
-                                    <div key={cred.id} className="rounded-lg bg-accent px-3 py-2.5 mb-2 last:mb-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <Shield className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                            <span className="text-xs font-medium text-foreground">{cred.label}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between py-0.5">
-                                            <span className="text-xs text-muted-foreground">Login</span>
-                                            <span className="text-sm text-foreground">{cred.login}</span>
-                                        </div>
-                                        {cred.password && (
-                                            <div className="flex items-center justify-between py-0.5">
-                                                <span className="text-xs text-muted-foreground">Heslo</span>
-                                                <PasswordField password={cred.password} />
-                                            </div>
-                                        )}
-                                        {cred.notes && (
-                                            <p className="text-xs text-muted-foreground/70 mt-1">{cred.notes}</p>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* E-mailove schranky */}
-                        <EmailAccountsSection websiteId={website.id} emailAccounts={website.email_accounts ?? []} />
-
-                        {/* Aliasy */}
-                        {website.aliases && website.aliases.length > 0 && (
-                            <div className="bg-card border border-border rounded-xl overflow-hidden">
-                                <SectionHeader icon={Link2} title="Aliasy" count={website.aliases.length} />
-                                <div className="px-5 py-4 space-y-1">
-                                    {website.aliases.map((alias) => (
-                                        <a
-                                            key={alias.id}
-                                            href={`/webove-sluzby/${alias.id}`}
-                                            className="flex items-center gap-2 text-sm text-primary hover:underline py-1"
-                                        >
-                                            <Link2 className="h-3 w-3" />
-                                            {alias.name}
-                                        </a>
-                                    ))}
-                                </div>
-                            </div>
+                        {website.admin_url && (
+                            <InfoRow label="Admin URL">
+                                <a href={website.admin_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
+                                    {website.admin_url} <ExternalLink className="h-3 w-3" />
+                                </a>
+                            </InfoRow>
                         )}
-
-                        {/* Poznamky */}
-                        {website.notes && (
-                            <div className="bg-card border border-border rounded-xl px-5 py-4">
-                                <h2 className="text-sm font-semibold text-foreground mb-2">Poznamky</h2>
-                                <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{website.notes}</p>
-                            </div>
-                        )}
-
-                        {/* Sync info */}
                         {website.synced_at && (
-                            <div className="px-1 text-xs text-muted-foreground/50">
-                                Posledni sync: {format(new Date(website.synced_at), 'd. M. yyyy HH:mm', { locale: cs })}
-                            </div>
+                            <InfoRow label="Posledni sync">
+                                <span className="text-xs">{format(new Date(website.synced_at), 'd. M. yyyy HH:mm', { locale: cs })}</span>
+                            </InfoRow>
                         )}
                     </div>
                 </div>
-            </div>
+            ) : (
+                <div className="bg-card border border-border rounded-lg px-5 py-8 text-center">
+                    <HardDrive className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
+                    <p className="text-sm text-muted-foreground mb-4">Tento web nema aktivni hosting</p>
+                    <Button
+                        onClick={handleActivateHosting}
+                        disabled={activatingHosting}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                        {activatingHosting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Play className="h-4 w-4 mr-2" />}
+                        Aktivovat hosting na sss06
+                    </Button>
+                    {activateResult && (
+                        <p className={`text-xs mt-3 ${activateResult.success ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {activateResult.message}
+                        </p>
+                    )}
+                </div>
+            )}
 
-            <GlassModal open={showPaymentModal} onClose={() => setShowPaymentModal(false)} title="Nova platba" maxWidth="max-w-lg">
-                <PaymentForm website={website} onClose={() => setShowPaymentModal(false)} />
-            </GlassModal>
-
-            <ConfirmDialog
-                open={showDeleteConfirm}
-                onClose={() => setShowDeleteConfirm(false)}
-                onConfirm={() => router.delete(`/webove-sluzby/${website.id}`)}
-                title="Smazat web"
-                message={`Opravdu chcete smazat "${website.name}"?`}
-            />
-        </AuthenticatedLayout>
+            {/* Activate hosting button always available if hosting exists (for re-sync) */}
+            {hasHosting && (
+                <div className="flex items-center gap-3">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleActivateHosting}
+                        disabled={activatingHosting}
+                        className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 border border-emerald-500/25"
+                    >
+                        {activatingHosting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                        Znovu aktivovat hosting
+                    </Button>
+                    {activateResult && (
+                        <span className={`text-xs ${activateResult.success ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {activateResult.message}
+                        </span>
+                    )}
+                </div>
+            )}
+        </div>
     );
 }
 
-/* ─────── Email Accounts Section ─────── */
+/* ─────── Tab: Sprava ─────── */
 
-function EmailAccountsSection({ websiteId, emailAccounts }: { websiteId: number; emailAccounts: { id: number; email: string; password: string | null; quota_mb: number; notes: string | null }[] }) {
+function TabSprava({ website }: { website: Website }) {
+    const plan = website.management_plan;
+    const monthlyPrice = plan ? Number(plan.price_monthly) : 0;
+
+    return (
+        <div className="space-y-4">
+            {plan ? (
+                <div className="bg-card border border-border rounded-lg overflow-hidden">
+                    <SectionHeader icon={Settings} title="Balicek spravy" />
+                    <div className="px-5 py-4 space-y-1">
+                        <InfoRow label="Balicek">
+                            <span className="font-semibold text-foreground">{plan.name}</span>
+                        </InfoRow>
+                        <InfoRow label="Mesicni cena">
+                            <span className="font-medium">{formatCurrency(monthlyPrice)}/mes</span>
+                        </InfoRow>
+                        {website.management_cycle && (
+                            <InfoRow label="Fakturacni cyklus">
+                                <span>{managementCycleLabels[website.management_cycle] ?? website.management_cycle}</span>
+                            </InfoRow>
+                        )}
+                        <InfoRow label="Auto-fakturace spravy">
+                            <span className={website.auto_invoice_management ? 'text-emerald-400 font-medium' : 'text-muted-foreground'}>
+                                {website.auto_invoice_management ? 'Ano' : 'Ne'}
+                            </span>
+                        </InfoRow>
+                        <Separator className="bg-border !my-3" />
+                        <InfoRow label="Rocni vyse">
+                            <span className="font-semibold text-foreground">{formatCurrency(monthlyPrice * 12)}/rok</span>
+                        </InfoRow>
+                        {website.management_cycle && (
+                            <InfoRow label="Fakturacni castka">
+                                <span className="font-medium text-foreground">
+                                    {website.management_cycle === 'quarterly' && formatCurrency(monthlyPrice * 3)}
+                                    {website.management_cycle === 'semi_annual' && formatCurrency(monthlyPrice * 6)}
+                                    {website.management_cycle === 'annual' && formatCurrency(monthlyPrice * 12)}
+                                    {!['quarterly', 'semi_annual', 'annual'].includes(website.management_cycle ?? '') && formatCurrency(monthlyPrice)}
+                                </span>
+                            </InfoRow>
+                        )}
+                    </div>
+                </div>
+            ) : (
+                <div className="bg-card border border-border rounded-lg px-5 py-8 text-center">
+                    <Settings className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
+                    <p className="text-sm text-muted-foreground mb-2">Bez spravy webu</p>
+                    <p className="text-xs text-muted-foreground/60">Nastavte balicek pres tlacitko Upravit.</p>
+                </div>
+            )}
+        </div>
+    );
+}
+
+/* ─────── Tab: Pristupy ─────── */
+
+function TabPristupy({ website }: { website: Website }) {
+    return (
+        <div className="space-y-4">
+            {/* Pristupove udaje */}
+            <CredentialsSection websiteId={website.id} credentials={website.credentials} adminUrl={website.admin_url} />
+
+            {/* E-mailove schranky */}
+            <EmailAccountsSection websiteId={website.id} emailAccounts={website.email_accounts ?? []} />
+        </div>
+    );
+}
+
+/* ─────── Credentials Section with CRUD ─────── */
+
+function CredentialsSection({ websiteId, credentials, adminUrl }: {
+    websiteId: number;
+    credentials: WebsiteCredential[];
+    adminUrl: string | null;
+}) {
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [deleteId, setDeleteId] = useState<number | null>(null);
 
     return (
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="bg-card border border-border rounded-lg overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
+                <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-muted-foreground" />
+                    <h2 className="text-sm font-semibold text-foreground">Pristupove udaje</h2>
+                    {credentials.length > 0 && (
+                        <span className="text-xs text-muted-foreground">({credentials.length})</span>
+                    )}
+                </div>
+                {!showForm && !editingId && (
+                    <button
+                        onClick={() => setShowForm(true)}
+                        className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
+                    >
+                        <Plus className="h-3.5 w-3.5" />
+                        Pridat
+                    </button>
+                )}
+            </div>
+
+            <div className="px-5 py-4">
+                {adminUrl && (
+                    <div className="flex items-center justify-between py-1.5 mb-2">
+                        <span className="text-sm text-muted-foreground">Admin URL</span>
+                        <a href={adminUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
+                            Otevrit <ExternalLink className="h-3 w-3" />
+                        </a>
+                    </div>
+                )}
+
+                {showForm && (
+                    <CredentialForm
+                        websiteId={websiteId}
+                        onCancel={() => setShowForm(false)}
+                        onSuccess={() => setShowForm(false)}
+                    />
+                )}
+
+                {credentials.length === 0 && !showForm && !adminUrl && (
+                    <p className="text-sm text-muted-foreground py-2">Zadne pristupove udaje</p>
+                )}
+
+                <div className="space-y-2">
+                    {credentials.map((cred) =>
+                        editingId === cred.id ? (
+                            <CredentialForm
+                                key={cred.id}
+                                websiteId={websiteId}
+                                credential={cred}
+                                onCancel={() => setEditingId(null)}
+                                onSuccess={() => setEditingId(null)}
+                            />
+                        ) : (
+                            <div key={cred.id} className="rounded-lg bg-accent px-3 py-2.5">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <Shield className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                        <span className="text-xs font-medium text-foreground">{cred.label}</span>
+                                    </div>
+                                    <div className="flex shrink-0 gap-0.5">
+                                        <button onClick={() => setEditingId(cred.id)} className="rounded p-1.5 text-muted-foreground hover:bg-background hover:text-foreground" title="Upravit">
+                                            <Pencil className="h-3.5 w-3.5" />
+                                        </button>
+                                        <button onClick={() => setDeleteId(cred.id)} className="rounded p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" title="Smazat">
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-between py-0.5">
+                                    <span className="text-xs text-muted-foreground">Login</span>
+                                    <span className="text-sm text-foreground">{cred.login}</span>
+                                </div>
+                                {cred.password && (
+                                    <div className="flex items-center justify-between py-0.5">
+                                        <span className="text-xs text-muted-foreground">Heslo</span>
+                                        <PasswordField password={cred.password} />
+                                    </div>
+                                )}
+                                {cred.notes && (
+                                    <p className="text-xs text-muted-foreground/70 mt-1">{cred.notes}</p>
+                                )}
+                            </div>
+                        ),
+                    )}
+                </div>
+            </div>
+
+            <ConfirmDialog
+                open={deleteId !== null}
+                onClose={() => setDeleteId(null)}
+                onConfirm={() => {
+                    if (deleteId !== null) {
+                        router.delete(`/webove-sluzby/credentials/${deleteId}`, { preserveScroll: true });
+                        setDeleteId(null);
+                    }
+                }}
+                title="Smazat pristup"
+                message="Opravdu chcete smazat tyto pristupove udaje?"
+            />
+        </div>
+    );
+}
+
+function CredentialForm({
+    websiteId,
+    credential,
+    onCancel,
+    onSuccess,
+}: {
+    websiteId: number;
+    credential?: WebsiteCredential;
+    onCancel: () => void;
+    onSuccess: () => void;
+}) {
+    const isEdit = !!credential;
+    const form = useForm({
+        label: credential?.label ?? '',
+        login: credential?.login ?? '',
+        password: '',
+        notes: credential?.notes ?? '',
+    });
+
+    const handleSubmit = (e: FormEvent) => {
+        e.preventDefault();
+        if (isEdit) {
+            form.put(`/webove-sluzby/credentials/${credential!.id}`, { preserveScroll: true, onSuccess });
+        } else {
+            form.post(`/webove-sluzby/${websiteId}/credentials`, { preserveScroll: true, onSuccess: () => { form.reset(); onSuccess(); } });
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="rounded-lg border border-border bg-accent p-3 mb-2 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+                <div>
+                    <Label className="text-xs text-muted-foreground">Nazev *</Label>
+                    <Input value={form.data.label} onChange={(e) => form.setData('label', e.target.value)} placeholder="napr. WP admin" className="h-8 text-sm bg-background" />
+                    {form.errors.label && <p className="text-xs text-red-400 mt-0.5">{form.errors.label}</p>}
+                </div>
+                <div>
+                    <Label className="text-xs text-muted-foreground">Login</Label>
+                    <Input value={form.data.login} onChange={(e) => form.setData('login', e.target.value)} placeholder="admin" className="h-8 text-sm bg-background" />
+                </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+                <div>
+                    <Label className="text-xs text-muted-foreground">Heslo {isEdit && <span className="text-muted-foreground/50">(prazdne = beze zmeny)</span>}</Label>
+                    <Input type="text" value={form.data.password} onChange={(e) => form.setData('password', e.target.value)} placeholder={isEdit ? '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022' : 'heslo'} className="h-8 text-sm bg-background" />
+                </div>
+                <div>
+                    <Label className="text-xs text-muted-foreground">Poznamka</Label>
+                    <Input value={form.data.notes} onChange={(e) => form.setData('notes', e.target.value)} placeholder="volitelne" className="h-8 text-sm bg-background" />
+                </div>
+            </div>
+            <div className="flex justify-end gap-2">
+                <button type="button" onClick={onCancel} className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">Zrusit</button>
+                <button type="submit" disabled={form.processing} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/80 disabled:opacity-50">
+                    {form.processing ? 'Ukladam...' : isEdit ? 'Ulozit' : 'Pridat'}
+                </button>
+            </div>
+        </form>
+    );
+}
+
+/* ─────── Email Accounts Section ─────── */
+
+function EmailAccountsSection({ websiteId, emailAccounts }: { websiteId: number; emailAccounts: EmailAccount[] }) {
+    const [showForm, setShowForm] = useState(false);
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const [deleteId, setDeleteId] = useState<number | null>(null);
+
+    return (
+        <div className="bg-card border border-border rounded-lg overflow-hidden">
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
                 <div className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-muted-foreground" />
@@ -939,7 +1260,7 @@ function EmailAccountForm({
     onSuccess,
 }: {
     websiteId: number;
-    emailAccount?: { id: number; email: string; password: string | null; quota_mb: number; notes: string | null };
+    emailAccount?: EmailAccount;
     onCancel: () => void;
     onSuccess: () => void;
 }) {
@@ -990,5 +1311,135 @@ function EmailAccountForm({
                 </button>
             </div>
         </form>
+    );
+}
+
+/* ─────── Main Component ─────── */
+
+export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
+    const [activeTab, setActiveTab] = useState<TabId>('prehled');
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+    const statusInfo = statusMap[website.status];
+
+    return (
+        <AuthenticatedLayout
+            title={website.name}
+            breadcrumbs={[
+                { label: 'Webove sluzby', href: '/webove-sluzby' },
+                { label: website.name },
+            ]}
+        >
+            <div className="p-6 space-y-6 max-w-6xl mx-auto">
+                {/* ═══════ HEADER ═══════ */}
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                    <div className="flex items-start gap-4 min-w-0">
+                        <Button
+                            variant="ghost"
+                            onClick={() => router.visit('/webove-sluzby')}
+                            className="text-muted-foreground hover:text-foreground mt-0.5 shrink-0"
+                        >
+                            <ArrowLeft className="h-4 w-4" />
+                        </Button>
+                        <div className="min-w-0">
+                            <div className="flex items-center gap-3 mb-1 flex-wrap">
+                                <Globe className="h-6 w-6 text-amber-500 shrink-0" />
+                                <h1 className="text-2xl font-semibold tracking-tight text-foreground">{website.name}</h1>
+                                {statusInfo && <StatusBadge status={statusInfo.variant}>{statusInfo.label}</StatusBadge>}
+                                <ExpirationBadge expiresAt={website.hosting_expires_at} />
+                                {website.is_free && (
+                                    <span className="inline-flex items-center rounded-full bg-emerald-500/15 border border-emerald-500/25 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">ZDARMA</span>
+                                )}
+                                {website.alias_of && (
+                                    <span className="inline-flex items-center rounded-full bg-violet-500/15 border border-violet-500/25 px-2 py-0.5 text-[10px] font-semibold text-violet-400">
+                                        ALIAS &rarr; {website.alias_of.name}
+                                    </span>
+                                )}
+                            </div>
+                            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                                {website.customer && (
+                                    <a href={`/zakaznici/${website.customer.id}`} className="hover:text-primary transition-colors">
+                                        {website.customer.company || website.customer.name}
+                                    </a>
+                                )}
+                                {website.customer && website.starts_at && <span className="text-muted-foreground/40">&middot;</span>}
+                                {website.starts_at && (
+                                    <span className="text-muted-foreground/70 text-xs">
+                                        Od {format(new Date(website.starts_at), 'MMMM yyyy', { locale: cs })}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                        {!website.is_free && website.customer && (
+                            <Button onClick={() => router.post(`/webove-sluzby/${website.id}/faktura`)} className="bg-amber-600 text-white hover:bg-amber-700 border-0">
+                                <FileText className="h-4 w-4 mr-2" />
+                                Vystavit fakturu
+                            </Button>
+                        )}
+                        <Button onClick={() => router.visit(`/webove-sluzby/${website.id}/edit`)} className="bg-[#ad9d8e]/15 text-[#ad9d8e] hover:bg-[#ad9d8e]/25 border border-[#ad9d8e]/25">
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Upravit
+                        </Button>
+                        <Button onClick={() => setShowDeleteConfirm(true)} className="bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/25">
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Smazat
+                        </Button>
+                    </div>
+                </div>
+
+                {/* ═══════ TABS ═══════ */}
+                <div className="border-b border-border">
+                    <nav className="flex gap-0 -mb-px">
+                        {tabs.map((tab) => {
+                            const isActive = activeTab === tab.id;
+                            const Icon = tab.icon;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                                        isActive
+                                            ? 'border-primary text-foreground'
+                                            : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                                    }`}
+                                >
+                                    <Icon className="h-4 w-4" />
+                                    {tab.label}
+                                </button>
+                            );
+                        })}
+                    </nav>
+                </div>
+
+                {/* ═══════ TAB CONTENT ═══════ */}
+                {activeTab === 'prehled' && (
+                    <TabPrehled
+                        website={website}
+                        paymentStats={paymentStats}
+                        onShowPaymentModal={() => setShowPaymentModal(true)}
+                    />
+                )}
+                {activeTab === 'domena' && <TabDomena website={website} />}
+                {activeTab === 'hosting' && <TabHosting website={website} />}
+                {activeTab === 'sprava' && <TabSprava website={website} />}
+                {activeTab === 'pristupy' && <TabPristupy website={website} />}
+            </div>
+
+            <GlassModal open={showPaymentModal} onClose={() => setShowPaymentModal(false)} title="Nova platba" maxWidth="max-w-lg">
+                <PaymentForm website={website} onClose={() => setShowPaymentModal(false)} />
+            </GlassModal>
+
+            <ConfirmDialog
+                open={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={() => router.delete(`/webove-sluzby/${website.id}`)}
+                title="Smazat web"
+                message={`Opravdu chcete smazat "${website.name}"?`}
+            />
+        </AuthenticatedLayout>
     );
 }
