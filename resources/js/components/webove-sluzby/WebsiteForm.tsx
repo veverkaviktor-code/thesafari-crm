@@ -2,7 +2,7 @@ import { type FormEvent, useEffect } from 'react';
 import { type InertiaFormProps, router } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
-import { CalendarIcon, X, Globe, HardDrive, DollarSign, Settings } from 'lucide-react';
+import { CalendarIcon, X, Globe, HardDrive, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
@@ -194,7 +194,10 @@ export default function WebsiteForm({
     };
 
     return (
-        <form onSubmit={onSubmit} className="space-y-8">
+        <form onSubmit={onSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* ═══════ LEFT COLUMN ═══════ */}
+            <div className="space-y-6">
             {/* ═══════ Základní údaje ═══════ */}
             <FormSection icon={Globe} title="Základní údaje">
                 {/* Name */}
@@ -322,9 +325,9 @@ export default function WebsiteForm({
                     </div>
                 )}
             </FormSection>
-
-            <Separator className="bg-border" />
-
+            </div>
+            {/* ═══════ RIGHT COLUMN ═══════ */}
+            <div className="space-y-6">
             {/* ═══════ Hosting ═══════ */}
             <FormSection icon={HardDrive} title="Hosting">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -404,82 +407,51 @@ export default function WebsiteForm({
                 )}
             </FormSection>
 
-            <Separator className="bg-border" />
+            {/* ═══════ Správa webu ═══════ */}
+            {managementPlans.length > 0 && (
+                <FormSection icon={Settings} title="Správa webu">
+                    <div>
+                        <Label className="text-muted-foreground">Balíček správy</Label>
+                        <Select
+                            value={data.management_plan_id || 'none'}
+                            onValueChange={(v) => setData('management_plan_id', v === 'none' ? '' : v)}
+                        >
+                            <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
+                                <SelectValue placeholder="Bez správy" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-card border-border">
+                                <SelectItem value="none">Bez správy</SelectItem>
+                                {managementPlans.map((p) => (
+                                    <SelectItem key={p.id} value={String(p.id)}>
+                                        {p.name} — {Number(p.price_monthly).toLocaleString('cs-CZ')} Kč/měs
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div>
+                        <Label className="text-muted-foreground">Fakturační cyklus správy</Label>
+                        <Select
+                            value={data.management_cycle || 'none'}
+                            onValueChange={(v) => setData('management_cycle', v === 'none' ? '' : v)}
+                        >
+                            <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
+                                <SelectValue placeholder="Nevybráno" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-card border-border">
+                                <SelectItem value="none">Nevybráno</SelectItem>
+                                <SelectItem value="quarterly">Čtvrtletně</SelectItem>
+                                <SelectItem value="semi_annual">Pololetně</SelectItem>
+                                <SelectItem value="annual">Ročně</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </FormSection>
+            )}
 
-            {/* ═══════ Fakturace ═══════ */}
-            <FormSection icon={DollarSign} title="Fakturace">
-                <div className="flex items-center gap-3 pt-2">
-                    <Switch
-                        checked={data.auto_invoice}
-                        onCheckedChange={(v) => setData('auto_invoice', v)}
-                    />
-                    <Label className="text-muted-foreground">
-                        Auto-fakturace (hosting + doména)
-                    </Label>
-                </div>
-
-                {/* Management plan + cycle */}
-                {managementPlans.length > 0 && (
-                    <>
-                        <Separator className="bg-border !my-3" />
-                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Správa webu</p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <Label className="text-muted-foreground">Balíček správy</Label>
-                                <Select
-                                    value={data.management_plan_id || 'none'}
-                                    onValueChange={(v) => setData('management_plan_id', v === 'none' ? '' : v)}
-                                >
-                                    <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
-                                        <SelectValue placeholder="Bez správy" />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-card border-border">
-                                        <SelectItem value="none">Bez správy</SelectItem>
-                                        {managementPlans.map((p) => (
-                                            <SelectItem key={p.id} value={String(p.id)}>
-                                                {p.name} — {Number(p.price_monthly).toLocaleString('cs-CZ')} Kč/mes
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                {errors.management_plan_id && <p className="mt-1 text-xs text-red-400">{errors.management_plan_id}</p>}
-                            </div>
-                            <div>
-                                <Label className="text-muted-foreground">Fakturační cyklus správy</Label>
-                                <Select
-                                    value={data.management_cycle || 'none'}
-                                    onValueChange={(v) => setData('management_cycle', v === 'none' ? '' : v)}
-                                >
-                                    <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
-                                        <SelectValue placeholder="Nevybráno" />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-card border-border">
-                                        <SelectItem value="none">Nevybráno</SelectItem>
-                                        <SelectItem value="quarterly">Čtvrtletně</SelectItem>
-                                        <SelectItem value="semi_annual">Pololetně</SelectItem>
-                                        <SelectItem value="annual">Ročně</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                {errors.management_cycle && <p className="mt-1 text-xs text-red-400">{errors.management_cycle}</p>}
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-3 pt-2">
-                            <Switch
-                                checked={data.auto_invoice_management}
-                                onCheckedChange={(v) => setData('auto_invoice_management', v)}
-                            />
-                            <Label className="text-muted-foreground">Auto-fakturace správa</Label>
-                        </div>
-                    </>
-                )}
-            </FormSection>
-
-            <Separator className="bg-border" />
-
-            {/* ═══════ Pokročilé ═══════ */}
-            <FormSection icon={Settings} title="Pokročilé">
-                {/* Alias of */}
-                {aliasOptions.length > 0 && (
+            {/* ═══════ Alias ═══════ */}
+            {aliasOptions.length > 0 && (
+                <FormSection icon={Globe} title="Alias">
                     <div>
                         <Label className="text-muted-foreground">Alias webu (nadřazený web)</Label>
                         <Select
@@ -498,11 +470,12 @@ export default function WebsiteForm({
                                 ))}
                             </SelectContent>
                         </Select>
-                        {errors.alias_of_id && <p className="mt-1 text-xs text-red-400">{errors.alias_of_id}</p>}
                     </div>
-                )}
+                </FormSection>
+            )}
 
-            </FormSection>
+            </div>
+            </div>
 
             {/* ═══════ Actions ═══════ */}
             <div className="flex items-center justify-end gap-3 pt-2">

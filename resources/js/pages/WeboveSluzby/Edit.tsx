@@ -112,7 +112,7 @@ export default function WeboveSluzbyEdit({ website, customers, vpsServers, manag
                 { label: 'Upravit' },
             ]}
         >
-            <div className="p-6 max-w-2xl mx-auto">
+            <div className="p-6 max-w-5xl mx-auto">
                 <div className="flex items-center justify-between mb-4">
                     <Button
                         variant="ghost"
