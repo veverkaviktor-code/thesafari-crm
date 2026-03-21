@@ -414,7 +414,7 @@ export default function WebsiteForm({
                         onCheckedChange={(v) => setData('auto_invoice', v)}
                     />
                     <Label className="text-muted-foreground">
-                        Auto-fakturace hosting
+                        Auto-fakturace (hosting + doména)
                     </Label>
                 </div>
 
