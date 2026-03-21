@@ -157,19 +157,35 @@ class Invoice extends Model
         $this->load('websites');
         foreach ($this->websites as $website) {
             $pivotType = $website->pivot->invoice_type ?? 'hosting';
-            $amount = (float) $website->sell_yearly ?: (float) $website->cost_yearly;
+            $isAlias = $website->alias_of_id !== null;
+
+            // Payment amount: alias = domain price only, parent = full sell_yearly
+            $amount = $isAlias
+                ? (float) $website->domain_sell_yearly
+                : ((float) $website->sell_yearly ?: (float) $website->cost_yearly);
+
+            // Period: alias uses domain_expires_at, parent uses hosting_expires_at
+            $periodStart = $isAlias
+                ? ($website->domain_expires_at ?? now())
+                : ($website->hosting_expires_at ?? now());
+            $periodEnd = $periodStart->copy()->addYear();
 
             $website->payments()->create([
                 'amount'         => $amount,
-                'period_start'   => $website->hosting_expires_at ?? now(),
-                'period_end'     => ($website->hosting_expires_at ?? now())->copy()->addYear(),
+                'period_start'   => $periodStart,
+                'period_end'     => $periodEnd,
                 'status'         => 'zaplaceno',
                 'paid_at'        => now(),
                 'invoice_id'     => $this->id,
                 'payment_method' => $paymentMethod,
             ]);
 
-            if ($pivotType === 'hosting') {
+            if ($isAlias) {
+                // Alias: only extend domain expiration, NOT hosting
+                $website->domain_expires_at = $website->domain_expires_at?->addYear() ?? now()->addYear();
+                $website->save();
+            } elseif ($pivotType === 'hosting') {
+                // Parent: extend hosting + domain
                 $website->hosting_expires_at = $website->hosting_expires_at?->addYear() ?? now()->addYear();
                 if ($website->is_registered_by_us) {
                     $website->domain_expires_at = $website->domain_expires_at?->addYear() ?? now()->addYear();

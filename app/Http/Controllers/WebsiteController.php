@@ -533,8 +533,16 @@ class WebsiteController extends Controller
                 ->get();
 
             foreach ($aliases as $alias) {
+                // Alias uses its own domain expiration for period string
+                $aliasPeriod = $periodStr; // fallback to parent period
+                if ($alias->domain_expires_at) {
+                    $aliasExpiry = \Carbon\Carbon::parse($alias->domain_expires_at);
+                    $aliasStart = $aliasExpiry->copy()->subYear();
+                    $aliasPeriod = $aliasStart->format('j. n. Y') . ' – ' . $aliasExpiry->format('j. n. Y');
+                }
+
                 $items[] = [
-                    'description' => "Doména {$alias->name} ({$periodStr})",
+                    'description' => "Doména {$alias->name} ({$aliasPeriod})",
                     'quantity' => 1,
                     'unit' => 'rok',
                     'unit_price' => (float) $alias->domain_sell_yearly,
