@@ -485,10 +485,7 @@ class WebsiteController extends Controller
 
         $invoice = DB::transaction(function () use ($website) {
             $items = [];
-            $price = (float) $website->sell_yearly;
-            if ($price <= 0) {
-                return null;
-            }
+            $websiteIds = [$website->id];
 
             // Build period string from hosting expiration
             $periodStr = '1 rok';
@@ -498,19 +495,47 @@ class WebsiteController extends Controller
                 $periodStr = $start->format('j. n. Y') . ' – ' . $expiry->format('j. n. Y');
             }
 
-            // Build description with hosting + domain info
-            $description = "Hosting + doména {$website->name} ({$periodStr})";
-            if ($website->server) {
-                $description = "Hosting {$website->name} na {$website->server} ({$periodStr})";
+            // Hosting item
+            $hostingPrice = (float) $website->hosting_sell_yearly;
+            if ($hostingPrice > 0) {
+                $items[] = [
+                    'description' => "Hosting {$website->name} ({$periodStr})",
+                    'quantity' => 1,
+                    'unit' => 'rok',
+                    'unit_price' => $hostingPrice,
+                    'total_price' => $hostingPrice,
+                ];
             }
 
-            $items[] = [
-                'description' => $description,
-                'quantity' => 1,
-                'unit' => 'rok',
-                'unit_price' => $price,
-                'total_price' => $price,
-            ];
+            // Domain item (if registered by us)
+            $domainPrice = (float) $website->domain_sell_yearly;
+            if ($domainPrice > 0 && $website->is_registered_by_us) {
+                $items[] = [
+                    'description' => "Doména {$website->name} ({$periodStr})",
+                    'quantity' => 1,
+                    'unit' => 'rok',
+                    'unit_price' => $domainPrice,
+                    'total_price' => $domainPrice,
+                ];
+            }
+
+            // Alias domains — add their domain prices
+            $aliases = Website::where('alias_of_id', $website->id)
+                ->whereNull('deleted_at')
+                ->where('is_registered_by_us', true)
+                ->where('domain_sell_yearly', '>', 0)
+                ->get();
+
+            foreach ($aliases as $alias) {
+                $items[] = [
+                    'description' => "Doména {$alias->name} ({$periodStr})",
+                    'quantity' => 1,
+                    'unit' => 'rok',
+                    'unit_price' => (float) $alias->domain_sell_yearly,
+                    'total_price' => (float) $alias->domain_sell_yearly,
+                ];
+                $websiteIds[] = $alias->id;
+            }
 
             if (empty($items)) {
                 return null;
@@ -541,8 +566,10 @@ class WebsiteController extends Controller
                 ]);
             }
 
-            // Attach website via pivot
-            $invoice->websites()->attach($website->id, ['invoice_type' => 'hosting']);
+            // Attach all websites (parent + aliases) via pivot
+            foreach ($websiteIds as $wId) {
+                $invoice->websites()->attach($wId, ['invoice_type' => 'hosting']);
+            }
 
             return $invoice;
         });
