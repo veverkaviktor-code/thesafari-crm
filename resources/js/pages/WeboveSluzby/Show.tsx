@@ -1387,61 +1387,54 @@ export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
         >
             <div className="p-6 space-y-6 max-w-6xl mx-auto">
                 {/* ═══════ HEADER ═══════ */}
-                <div className="flex items-start justify-between gap-4 flex-wrap">
-                    <div className="flex items-start gap-4 min-w-0">
+                <div className="space-y-3">
+                    {/* Row 1: Back + Name + Status */}
+                    <div className="flex items-center gap-3">
                         <Button
                             variant="ghost"
                             onClick={() => router.visit('/webove-sluzby')}
-                            className="text-muted-foreground hover:text-foreground mt-0.5 shrink-0"
+                            className="text-muted-foreground hover:text-foreground shrink-0 -ml-2"
                         >
                             <ArrowLeft className="h-4 w-4" />
                         </Button>
-                        <div className="min-w-0">
-                            <div className="flex items-center gap-3 mb-1 flex-wrap">
-                                <Globe className="h-6 w-6 text-amber-500 shrink-0" />
-                                <h1 className="text-2xl font-semibold tracking-tight text-foreground">{website.name}</h1>
-                                {statusInfo && <StatusBadge status={statusInfo.variant}>{statusInfo.label}</StatusBadge>}
-                                <ExpirationBadge expiresAt={website.hosting_expires_at} />
-                                {website.is_free && (
-                                    <span className="inline-flex items-center rounded-full bg-emerald-500/15 border border-emerald-500/25 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">ZDARMA</span>
-                                )}
-                                {website.alias_of && (
-                                    <span className="inline-flex items-center rounded-full bg-violet-500/15 border border-violet-500/25 px-2 py-0.5 text-[10px] font-semibold text-violet-400">
-                                        ALIAS &rarr; {website.alias_of.name}
-                                    </span>
-                                )}
-                            </div>
-                            <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                                {website.customer && (
-                                    <a href={`/zakaznici/${website.customer.id}`} className="hover:text-primary transition-colors">
-                                        {website.customer.company || website.customer.name}
-                                    </a>
-                                )}
-                                {website.customer && website.starts_at && <span className="text-muted-foreground/40">&middot;</span>}
-                                {website.starts_at && (
-                                    <span className="text-muted-foreground/70 text-xs">
-                                        Od {format(new Date(website.starts_at), 'MMMM yyyy', { locale: cs })}
-                                    </span>
-                                )}
-                            </div>
-                        </div>
+                        <Globe className="h-6 w-6 text-amber-500 shrink-0" />
+                        <h1 className="text-2xl font-semibold tracking-tight text-foreground">{website.name}</h1>
+                        {statusInfo && <StatusBadge status={statusInfo.variant}>{statusInfo.label}</StatusBadge>}
+                        {website.is_free && (
+                            <span className="inline-flex items-center rounded-full bg-emerald-500/15 border border-emerald-500/25 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">ZDARMA</span>
+                        )}
+                        {website.alias_of && (
+                            <span className="inline-flex items-center rounded-full bg-violet-500/15 border border-violet-500/25 px-2 py-0.5 text-[10px] font-semibold text-violet-400">
+                                ALIAS → {website.alias_of.name}
+                            </span>
+                        )}
                     </div>
 
-                    <div className="flex items-center gap-2 flex-wrap">
-                        {!website.is_free && website.customer && (
-                            <Button onClick={() => router.post(`/webove-sluzby/${website.id}/faktura`)} className="bg-amber-600 text-white hover:bg-amber-700 border-0">
-                                <FileText className="h-4 w-4 mr-2" />
-                                Vystavit fakturu
+                    {/* Row 2: Customer + Actions */}
+                    <div className="flex items-center justify-between pl-10">
+                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                            {website.customer && (
+                                <a href={`/zakaznici/${website.customer.id}`} className="hover:text-primary transition-colors">
+                                    {website.customer.company || website.customer.name}
+                                </a>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            {!website.is_free && website.customer && (
+                                <Button onClick={() => router.post(`/webove-sluzby/${website.id}/faktura`)} className="bg-amber-600 text-white hover:bg-amber-700 border-0" size="sm">
+                                    <FileText className="h-3.5 w-3.5 mr-1.5" />
+                                    Vystavit fakturu
+                                </Button>
+                            )}
+                            <Button onClick={() => router.visit(`/webove-sluzby/${website.id}/edit`)} className="bg-[#ad9d8e]/15 text-[#ad9d8e] hover:bg-[#ad9d8e]/25 border border-[#ad9d8e]/25" size="sm">
+                                <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                                Upravit
                             </Button>
-                        )}
-                        <Button onClick={() => router.visit(`/webove-sluzby/${website.id}/edit`)} className="bg-[#ad9d8e]/15 text-[#ad9d8e] hover:bg-[#ad9d8e]/25 border border-[#ad9d8e]/25">
-                            <Pencil className="h-4 w-4 mr-2" />
-                            Upravit
-                        </Button>
-                        <Button onClick={() => setShowDeleteConfirm(true)} className="bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/25">
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Smazat
-                        </Button>
+                            <Button onClick={() => setShowDeleteConfirm(true)} className="bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/25" size="sm">
+                                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                                Smazat
+                            </Button>
+                        </div>
                     </div>
                 </div>
 
