@@ -518,11 +518,6 @@ export default function NeniwebIndex({
                             ZDARMA
                         </span>
                     )}
-                    {w.is_external && (
-                        <span className="ml-1 inline-flex items-center rounded-full bg-zinc-500/15 px-1.5 py-0.5 text-[10px] font-medium text-zinc-400 border border-zinc-500/25">
-                            Externi
-                        </span>
-                    )}
                 </div>
             ),
         },
