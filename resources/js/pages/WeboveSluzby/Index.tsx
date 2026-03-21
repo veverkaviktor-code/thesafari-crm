@@ -18,6 +18,8 @@ import {
 } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
 import GlassModal from '@/components/ui/GlassModal';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { format } from 'date-fns';
@@ -1189,19 +1191,18 @@ export default function NeniwebIndex({
                             </Select>
                         </div>
                     </div>
+                    <Separator className="my-1" />
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <Label className="text-muted-foreground">Expirace</Label>
                             <Input type="date" value={vpsForm.data.expires_at} onChange={(e) => vpsForm.setData('expires_at', e.target.value)} className="mt-1.5 bg-muted border-border text-foreground" />
                         </div>
-                        <div className="flex items-end pb-1">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <Checkbox
-                                    checked={vpsForm.data.auto_invoice}
-                                    onCheckedChange={(v) => vpsForm.setData('auto_invoice', v === true)}
-                                />
-                                <span className="text-sm text-muted-foreground">Automatická fakturace</span>
-                            </label>
+                        <div className="flex items-center gap-3 pt-6">
+                            <Switch
+                                checked={vpsForm.data.auto_invoice}
+                                onCheckedChange={(v) => vpsForm.setData('auto_invoice', v)}
+                            />
+                            <Label className="text-muted-foreground">Automatická fakturace</Label>
                         </div>
                     </div>
                     <div>
