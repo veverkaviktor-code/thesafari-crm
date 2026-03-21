@@ -503,7 +503,7 @@ export default function NeniwebIndex({
                 <div className={`flex items-center gap-2 ${w.alias_of_id ? 'pl-5' : ''}`}>
                     {w.has_unpaid && <span className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0" />}
                     {w.alias_of_id ? (
-                        <span className="text-muted-foreground/40 text-xs shrink-0">&lsub;</span>
+                        <span className="text-muted-foreground/40 text-xs shrink-0">↳</span>
                     ) : (
                         <Globe className="h-4 w-4 text-amber-500 shrink-0" />
                     )}
