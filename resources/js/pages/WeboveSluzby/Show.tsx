@@ -1387,8 +1387,26 @@ export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
         >
             <div className="p-6 space-y-6 max-w-6xl mx-auto">
                 {/* ═══════ HEADER ═══════ */}
-                <div className="space-y-3">
-                    {/* Row 1: Back + Name + Status */}
+                <div className="space-y-2">
+                    {/* Row 1: Actions top-right */}
+                    <div className="flex items-center justify-end gap-2">
+                        {!website.is_free && website.customer && (
+                            <Button onClick={() => router.post(`/webove-sluzby/${website.id}/faktura`)} className="bg-amber-600 text-white hover:bg-amber-700 border-0" size="sm">
+                                <FileText className="h-3.5 w-3.5 mr-1.5" />
+                                Vystavit fakturu
+                            </Button>
+                        )}
+                        <Button onClick={() => router.visit(`/webove-sluzby/${website.id}/edit`)} className="bg-[#ad9d8e]/15 text-[#ad9d8e] hover:bg-[#ad9d8e]/25 border border-[#ad9d8e]/25" size="sm">
+                            <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                            Upravit
+                        </Button>
+                        <Button onClick={() => setShowDeleteConfirm(true)} className="bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/25" size="sm">
+                            <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                            Smazat
+                        </Button>
+                    </div>
+
+                    {/* Row 2: Back + Name + Badges */}
                     <div className="flex items-center gap-3">
                         <Button
                             variant="ghost"
@@ -1410,32 +1428,14 @@ export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
                         )}
                     </div>
 
-                    {/* Row 2: Customer + Actions */}
-                    <div className="flex items-center justify-between pl-10">
-                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                            {website.customer && (
-                                <a href={`/zakaznici/${website.customer.id}`} className="hover:text-primary transition-colors">
-                                    {website.customer.company || website.customer.name}
-                                </a>
-                            )}
+                    {/* Row 3: Customer */}
+                    {website.customer && (
+                        <div className="pl-10">
+                            <a href={`/zakaznici/${website.customer.id}`} className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                                {website.customer.company || website.customer.name}
+                            </a>
                         </div>
-                        <div className="flex items-center gap-2">
-                            {!website.is_free && website.customer && (
-                                <Button onClick={() => router.post(`/webove-sluzby/${website.id}/faktura`)} className="bg-amber-600 text-white hover:bg-amber-700 border-0" size="sm">
-                                    <FileText className="h-3.5 w-3.5 mr-1.5" />
-                                    Vystavit fakturu
-                                </Button>
-                            )}
-                            <Button onClick={() => router.visit(`/webove-sluzby/${website.id}/edit`)} className="bg-[#ad9d8e]/15 text-[#ad9d8e] hover:bg-[#ad9d8e]/25 border border-[#ad9d8e]/25" size="sm">
-                                <Pencil className="h-3.5 w-3.5 mr-1.5" />
-                                Upravit
-                            </Button>
-                            <Button onClick={() => setShowDeleteConfirm(true)} className="bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/25" size="sm">
-                                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                                Smazat
-                            </Button>
-                        </div>
-                    </div>
+                    )}
                 </div>
 
                 {/* ═══════ TABS ═══════ */}
