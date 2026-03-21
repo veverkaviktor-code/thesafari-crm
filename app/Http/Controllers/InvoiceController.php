@@ -452,7 +452,11 @@ class InvoiceController extends Controller
                 'po_splatnosti' => 'Po splatnosti',
                 default => $inv->status,
             };
-            $payment = $inv->payment_method === 'hotovost' ? 'Hotově' : 'Převodem';
+            $payment = match ($inv->payment_method) {
+                'hotovost' => 'Hotově',
+                'barter' => 'Barter',
+                default => 'Převodem',
+            };
             $csv .= implode(';', [
                 $inv->invoice_number,
                 '"' . ($inv->customer->name ?? '') . '"',

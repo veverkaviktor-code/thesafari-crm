@@ -240,7 +240,7 @@
             <td class="meta-label">Variabilní symbol</td>
             <td class="meta-value">{{ $invoice->variable_symbol }}</td>
             <td class="meta-label">Způsob platby</td>
-            <td class="meta-value">{{ $invoice->payment_method === 'banka' ? 'Bankovní převod' : 'Hotovost' }}</td>
+            <td class="meta-value">{{ match($invoice->payment_method) { 'hotovost' => 'Hotovost', 'barter' => 'Barter (bezhotovostní směna)', default => 'Bankovní převod' } }}</td>
         </tr>
         @if($company->bank_account)
         <tr>
@@ -279,7 +279,7 @@
     {{-- Total + QR --}}
     <div class="total-section">
         <div class="total-qr">
-            @if($qrSvg)
+            @if($qrSvg && $invoice->payment_method !== 'barter')
                 <div class="qr-label">QR platba</div>
                 <img src="data:image/svg+xml;base64,{{ $qrSvg }}" width="100" height="100" alt="QR kód">
             @endif

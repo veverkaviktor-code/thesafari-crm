@@ -210,7 +210,7 @@ export default function Index({ invoices, filters, trashedCount, paidCount, last
             label: 'Platba',
             render: (i) => (
                 <span className="text-muted-foreground">
-                    {i.payment_method === 'banka' ? 'Převodem' : 'Hotově'}
+                    {i.payment_method === 'barter' ? 'Barter' : i.payment_method === 'banka' ? 'Převodem' : 'Hotově'}
                 </span>
             ),
         },
@@ -347,7 +347,7 @@ export default function Index({ invoices, filters, trashedCount, paidCount, last
             label: 'Platba',
             render: (i) => (
                 <span className="text-muted-foreground">
-                    {i.payment_method === 'banka' ? 'Převodem' : 'Hotově'}
+                    {i.payment_method === 'barter' ? 'Barter' : i.payment_method === 'banka' ? 'Převodem' : 'Hotově'}
                 </span>
             ),
         },

@@ -340,6 +340,12 @@ export default function Create({
                                             >
                                                 Hotovost
                                             </SelectItem>
+                                            <SelectItem
+                                                value="barter"
+                                                className="focus:bg-accent"
+                                            >
+                                                Barter
+                                            </SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>

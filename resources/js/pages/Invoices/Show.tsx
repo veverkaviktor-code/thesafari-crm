@@ -211,7 +211,7 @@ export default function Show({ invoice, company, unmatchedTransactions, activiti
     // d) Zaplacena
     if (invoice.paid_at) {
         const method =
-            invoice.payment_method === 'banka' ? 'převodem' : 'hotovostí';
+            invoice.payment_method === 'barter' ? 'barterem' : invoice.payment_method === 'banka' ? 'převodem' : 'hotovostí';
         timelineItems.push({
             key: 'paid',
             date: new Date(invoice.paid_at),
@@ -421,7 +421,9 @@ export default function Show({ invoice, company, unmatchedTransactions, activiti
                                     Způsob platby
                                 </span>
                                 <span className="text-muted-foreground">
-                                    {invoice.payment_method === 'banka'
+                                    {invoice.payment_method === 'barter'
+                                        ? 'Barter'
+                                        : invoice.payment_method === 'banka'
                                         ? 'Bankovní převod'
                                         : 'Hotovost'}
                                 </span>

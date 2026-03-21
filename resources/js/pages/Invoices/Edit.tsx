@@ -213,6 +213,7 @@ export default function Edit({ invoice, customers, orders }: Props) {
                                         <SelectContent className="border-border bg-card">
                                             <SelectItem value="banka" className="focus:bg-accent">Bankovní převod</SelectItem>
                                             <SelectItem value="hotovost" className="focus:bg-accent">Hotovost</SelectItem>
+                                            <SelectItem value="barter" className="focus:bg-accent">Barter</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>

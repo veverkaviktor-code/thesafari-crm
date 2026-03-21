@@ -229,10 +229,11 @@ class FinanceController extends Controller
         $startDate = now()->subMonths(12)->startOfMonth();
         $monthNames = ['Led', 'Úno', 'Bře', 'Dub', 'Kvě', 'Čvn', 'Čvc', 'Srp', 'Zář', 'Říj', 'Lis', 'Pro'];
 
-        // Cash IN: paid invoices by paid_at
+        // Cash IN: paid invoices by paid_at (exclude barter — no real cash)
         $invoiceIncome = Invoice::where('status', 'zaplacena')
             ->whereNotNull('paid_at')
             ->where('paid_at', '>=', $startDate)
+            ->where(fn ($q) => $q->whereNull('payment_method')->orWhere('payment_method', '!=', 'barter'))
             ->selectRaw("TO_CHAR(paid_at, 'YYYY-MM') as month, SUM(total) as amount")
             ->groupByRaw("TO_CHAR(paid_at, 'YYYY-MM')")
             ->pluck('amount', 'month')
