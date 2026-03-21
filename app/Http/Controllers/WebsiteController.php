@@ -73,7 +73,8 @@ class WebsiteController extends Controller
         if ($sortBy && in_array($sortBy, $allowedSorts)) {
             $query->orderBy($sortBy, $sortDir);
         } else {
-            $query->orderByRaw('hosting_expires_at IS NULL, hosting_expires_at ASC');
+            // Sort aliases right after their parent: use COALESCE(alias_of_id, id) to group them
+            $query->orderByRaw('COALESCE(alias_of_id, id), alias_of_id IS NULL DESC, hosting_expires_at IS NULL, hosting_expires_at ASC');
         }
 
         $websites = $query
