@@ -112,6 +112,8 @@ interface VpsServer {
     hostings_count: number;
     notes: string | null;
     status: string;
+    expires_at: string | null;
+    auto_invoice: boolean;
 }
 
 interface Payment {
@@ -210,6 +212,8 @@ interface VpsFormData {
     storage_total_gb: string;
     notes: string;
     status: string;
+    expires_at: string;
+    auto_invoice: boolean;
 }
 
 /* ─────── Column visibility ─────── */
@@ -377,6 +381,8 @@ export default function NeniwebIndex({
         storage_total_gb: '',
         notes: '',
         status: 'aktivni',
+        expires_at: '',
+        auto_invoice: false,
     });
 
     const handleSync = () => {
@@ -429,6 +435,8 @@ export default function NeniwebIndex({
             storage_total_gb: String(vps.storage_total_gb),
             notes: vps.notes ?? '',
             status: vps.status,
+            expires_at: vps.expires_at ?? '',
+            auto_invoice: vps.auto_invoice ?? false,
         });
         setEditVps(vps);
     };
@@ -1179,6 +1187,21 @@ export default function NeniwebIndex({
                                     <SelectItem value="neaktivni">Neaktivni</SelectItem>
                                 </SelectContent>
                             </Select>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <Label className="text-muted-foreground">Expirace</Label>
+                            <Input type="date" value={vpsForm.data.expires_at} onChange={(e) => vpsForm.setData('expires_at', e.target.value)} className="mt-1.5 bg-muted border-border text-foreground" />
+                        </div>
+                        <div className="flex items-end pb-1">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <Checkbox
+                                    checked={vpsForm.data.auto_invoice}
+                                    onCheckedChange={(v) => vpsForm.setData('auto_invoice', v === true)}
+                                />
+                                <span className="text-sm text-muted-foreground">Automatická fakturace</span>
+                            </label>
                         </div>
                     </div>
                     <div>

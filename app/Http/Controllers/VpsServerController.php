@@ -19,6 +19,8 @@ class VpsServerController extends Controller
             'storage_total_gb' => 'nullable|integer|min:0',
             'notes'            => 'nullable|string',
             'status'           => 'required|in:aktivni,neaktivni',
+            'expires_at'       => 'nullable|date',
+            'auto_invoice'     => 'boolean',
         ]);
 
         $validated['price_yearly']    = $validated['price_yearly'] ?? 0;
@@ -40,6 +42,8 @@ class VpsServerController extends Controller
             'storage_total_gb' => 'nullable|integer|min:0',
             'notes'            => 'nullable|string',
             'status'           => 'required|in:aktivni,neaktivni',
+            'expires_at'       => 'nullable|date',
+            'auto_invoice'     => 'boolean',
         ]);
 
         $validated['price_yearly']    = $validated['price_yearly'] ?? 0;
