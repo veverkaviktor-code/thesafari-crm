@@ -576,19 +576,25 @@ export default function NeniwebIndex({
             key: 'hosting_expires_at' as const,
             label: 'Hosting exp.',
             sortable: true,
-            render: (w: Website) => w.hosting_expires_at ? (
-                <span className={`text-xs font-medium ${expirationStyle(w.hosting_expires_at)}`}>
-                    {format(new Date(w.hosting_expires_at), 'd. M. yyyy', { locale: cs })}
-                </span>
-            ) : (
-                <span className="text-xs text-muted-foreground/50">—</span>
-            ),
+            render: (w: Website) => {
+                // Aliases don't have their own hosting — skip
+                if (w.alias_of_id) return <span className="text-xs text-muted-foreground/50">—</span>;
+                return w.hosting_expires_at ? (
+                    <span className={`text-xs font-medium ${expirationStyle(w.hosting_expires_at)}`}>
+                        {format(new Date(w.hosting_expires_at), 'd. M. yyyy', { locale: cs })}
+                    </span>
+                ) : (
+                    <span className="text-xs text-muted-foreground/50">—</span>
+                );
+            },
         },
         {
             key: 'storage_used_mb' as const,
             label: 'Uloziste',
             sortable: true,
             render: (w: Website) => {
+                // Aliases share parent's storage — skip
+                if (w.alias_of_id) return <span className="text-muted-foreground/50 text-xs">—</span>;
                 if (!w.storage_quota_mb && !w.storage_used_mb) return <span className="text-muted-foreground/50 text-xs">—</span>;
                 if (!w.storage_quota_mb && w.storage_used_mb) {
                     const usedGb = w.storage_used_mb >= 1024;
