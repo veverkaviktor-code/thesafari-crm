@@ -3,11 +3,9 @@
 namespace App\Console\Commands;
 
 use App\Models\Estimate;
-use App\Models\Invoice;
 use App\Models\User;
 use App\Models\Website;
 use App\Notifications\EstimateInactive;
-use App\Notifications\InvoiceOverdue;
 use App\Notifications\WebsiteExpiring;
 use Illuminate\Console\Command;
 
@@ -26,26 +24,10 @@ class GenerateNotifications extends Command
 
         $generated = 0;
 
-        // 1. Overdue invoices
-        $overdueInvoices = Invoice::with('customer')
-            ->whereIn('status', ['vystavena', 'odeslana'])
-            ->where('due_date', '<', now()->startOfDay())
-            ->get();
+        // Note: InvoiceOverdue notifications are handled exclusively by CheckOverdueInvoices (08:00).
+        // Generating them here too would cause duplicates — removed from this command.
 
-        foreach ($overdueInvoices as $invoice) {
-            $exists = $admin->notifications()
-                ->where('type', InvoiceOverdue::class)
-                ->whereNull('read_at')
-                ->whereRaw("data::jsonb->>'invoice_id' = ?", [(string) $invoice->id])
-                ->exists();
-
-            if (!$exists) {
-                $admin->notify(new InvoiceOverdue($invoice));
-                $generated++;
-            }
-        }
-
-        // 2. Expiring websites (within 14 days)
+        // 1. Expiring websites (within 14 days)
         $expiringWebsites = Website::with('customer')
             ->where('status', 'aktivni')
             ->whereNotNull('hosting_expires_at')

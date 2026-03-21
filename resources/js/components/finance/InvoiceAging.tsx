@@ -50,7 +50,7 @@ export default function InvoiceAging({ data }: Props) {
                     const pct = totalUnpaid > 0 ? (bucket.total / totalUnpaid) * 100 : 0;
                     return (
                         <button
-                            key={i}
+                            key={`aging-${i}`}
                             onClick={() => {
                                 if (bucket.count > 0) {
                                     router.visit('/faktury?status=po_splatnosti');

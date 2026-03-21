@@ -69,23 +69,58 @@ class AutoInvoiceWebsites extends Command
             }
 
             $items = [];
+            $aliasWebsiteIds = [];
             foreach ($siteGroup as $website) {
-                $price = (float) $website->sell_yearly;
-                if ($price <= 0) {
+                $hostingPrice = (float) $website->hosting_sell_yearly;
+                $domainPrice  = (float) $website->domain_sell_yearly;
+
+                if ($hostingPrice <= 0 && $domainPrice <= 0) {
                     Log::warning("AutoInvoice: website {$website->id} ({$website->name}) has zero price, skipping.");
                     continue;
                 }
 
-                $typeLabel = $website->is_registered_by_us ? 'Hosting + doména' : 'Hosting';
+                // Hosting item
+                if ($hostingPrice > 0) {
+                    $items[] = [
+                        'website'     => $website,
+                        'description' => "Hosting {$website->name} (1 rok)",
+                        'quantity'    => 1,
+                        'unit'        => 'rok',
+                        'unit_price'  => $hostingPrice,
+                        'total_price' => $hostingPrice,
+                    ];
+                }
 
-                $items[] = [
-                    'website' => $website,
-                    'description' => "{$typeLabel} {$website->name} (1 rok)",
-                    'quantity' => 1,
-                    'unit' => 'rok',
-                    'unit_price' => $price,
-                    'total_price' => $price,
-                ];
+                // Domain item (only if registered by us)
+                if ($domainPrice > 0 && $website->is_registered_by_us) {
+                    $items[] = [
+                        'website'     => $website,
+                        'description' => "Doména {$website->name} (1 rok)",
+                        'quantity'    => 1,
+                        'unit'        => 'rok',
+                        'unit_price'  => $domainPrice,
+                        'total_price' => $domainPrice,
+                    ];
+                }
+
+                // Alias domains — add their domain prices as separate line items
+                $aliases = $website->aliases()
+                    ->whereNull('deleted_at')
+                    ->where('is_registered_by_us', true)
+                    ->where('domain_sell_yearly', '>', 0)
+                    ->get();
+
+                foreach ($aliases as $alias) {
+                    $items[] = [
+                        'website'     => $alias,
+                        'description' => "Doména {$alias->name} (1 rok)",
+                        'quantity'    => 1,
+                        'unit'        => 'rok',
+                        'unit_price'  => (float) $alias->domain_sell_yearly,
+                        'total_price' => (float) $alias->domain_sell_yearly,
+                    ];
+                    $aliasWebsiteIds[] = $alias->id;
+                }
             }
 
             if (empty($items)) {
@@ -102,7 +137,7 @@ class AutoInvoiceWebsites extends Command
                 continue;
             }
 
-            DB::transaction(function () use ($customer, $items, $total, $earliestExpiry, $admin) {
+            DB::transaction(function () use ($customer, $items, $total, $earliestExpiry, $admin, $aliasWebsiteIds) {
                 $invoiceNumber = Invoice::getNextInvoiceNumber('6');
 
                 $invoice = Invoice::create([
@@ -117,19 +152,25 @@ class AutoInvoiceWebsites extends Command
                     'notes' => 'Automaticky vygenerovaná faktura za obnovu služeb.',
                 ]);
 
+                $attachedWebsiteIds = [];
                 foreach ($items as $i => $item) {
                     $invoice->items()->create([
                         'description' => $item['description'],
-                        'quantity' => $item['quantity'],
-                        'unit' => $item['unit'],
-                        'unit_price' => $item['unit_price'],
+                        'quantity'    => $item['quantity'],
+                        'unit'        => $item['unit'],
+                        'unit_price'  => $item['unit_price'],
                         'total_price' => $item['total_price'],
-                        'sort_order' => $i,
+                        'sort_order'  => $i,
                     ]);
 
-                    $invoice->websites()->attach($item['website']->id, [
-                        'invoice_type' => 'hosting',
-                    ]);
+                    $websiteId = $item['website']->id;
+                    if (!in_array($websiteId, $attachedWebsiteIds, true)) {
+                        $invoice->websites()->attach($websiteId, [
+                            'invoice_type' => 'hosting',
+                            'created_at'   => now(),
+                        ]);
+                        $attachedWebsiteIds[] = $websiteId;
+                    }
                 }
 
                 if ($admin) {

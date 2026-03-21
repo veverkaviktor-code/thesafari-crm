@@ -76,7 +76,7 @@ export default function InvoiceItemsEditor({ items, onChange }: Props) {
             <div className="space-y-2">
                 {items.map((item, i) => (
                     <div
-                        key={i}
+                        key={`item-${i}`}
                         className="grid grid-cols-[1fr_80px_90px_100px_90px_36px] items-center gap-2"
                     >
                         <Input

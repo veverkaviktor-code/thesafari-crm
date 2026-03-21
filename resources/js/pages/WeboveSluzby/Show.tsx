@@ -105,7 +105,11 @@ interface ManagementPlan {
 interface AliasWebsite {
     id: number;
     name: string;
-    domain_expires_at?: string | null;
+    domain_sell_yearly: number;
+    domain_cost_yearly: number;
+    hosting_expires_at: string | null;
+    domain_expires_at: string | null;
+    is_registered_by_us: boolean;
 }
 
 interface Website {
@@ -535,7 +539,7 @@ function TabPrehled({ website, paymentStats, onShowPaymentModal }: {
                                     </td>
                                 </tr>
                                 {/* Alias domain prices */}
-                                {website.aliases?.filter((a: any) => a.domain_sell_yearly > 0 || a.domain_cost_yearly > 0).map((alias: any) => (
+                                {website.aliases?.filter((a: AliasWebsite) => a.domain_sell_yearly > 0 || a.domain_cost_yearly > 0).map((alias: any) => (
                                     <tr key={alias.id}>
                                         <td className="py-2 text-muted-foreground">
                                             Doména {alias.name}

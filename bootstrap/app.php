@@ -21,7 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('notifications:generate')->dailyAt('09:00');
         $schedule->command('invoices:send-reminders')->dailyAt('09:30');
         $schedule->command('model:prune')->dailyAt('03:00');
-        $schedule->call(fn () => Activity::where('created_at', '<', now()->subDays(7))->delete())->dailyAt('03:30');
+        $schedule->call(fn () => Activity::where('created_at', '<', now()->subDays(30))->delete())->dailyAt('03:30');
     })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [

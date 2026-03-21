@@ -131,8 +131,8 @@ export default function ProfitChart({ data }: Props) {
                                 <stop offset="100%" stopColor="var(--muted-foreground)" stopOpacity={0} />
                             </linearGradient>
                             <linearGradient id="profitProfitGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#10b981" stopOpacity={0.2} />
-                                <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                                <stop offset="0%" stopColor="#CF995F" stopOpacity={0.2} />
+                                <stop offset="100%" stopColor="#CF995F" stopOpacity={0} />
                             </linearGradient>
                         </defs>
                         <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
@@ -153,7 +153,7 @@ export default function ProfitChart({ data }: Props) {
                         <Tooltip content={<CustomTooltip />} />
                         <Area type="monotone" dataKey="revenue" stroke="var(--primary)" strokeWidth={2} fill="url(#profitRevenueGrad)" />
                         <Area type="monotone" dataKey="costs" stroke="var(--muted-foreground)" strokeWidth={2} fill="url(#profitCostsGrad)" />
-                        <Area type="monotone" dataKey="profit" stroke="#10b981" strokeWidth={2} fill="url(#profitProfitGrad)" />
+                        <Area type="monotone" dataKey="profit" stroke="#CF995F" strokeWidth={2} fill="url(#profitProfitGrad)" />
                     </AreaChart>
                 </ResponsiveContainer>
             </div>

@@ -112,16 +112,23 @@ class TimeEntry extends Model
         return ceil($minutes / 30) * 0.5;
     }
 
-    public function getDurationAttribute(): ?int
+    public function getDurationAttribute(): int
     {
         if ($this->duration_minutes !== null) {
             return $this->duration_minutes;
         }
 
-        if ($this->stopped_at === null) {
-            return (int) now()->diffInMinutes($this->started_at);
+        $end = $this->stopped_at ?? now();
+        $totalSeconds = (int) abs($end->diffInSeconds($this->started_at));
+        $pausedSeconds = $this->total_paused_seconds ?? 0;
+
+        // If currently paused, include the ongoing pause duration
+        if ($this->paused_at && !$this->stopped_at) {
+            $pausedSeconds += (int) abs(now()->diffInSeconds($this->paused_at));
         }
 
-        return (int) $this->stopped_at->diffInMinutes($this->started_at);
+        $effectiveSeconds = max(0, $totalSeconds - $pausedSeconds);
+
+        return (int) round($effectiveSeconds / 60);
     }
 }

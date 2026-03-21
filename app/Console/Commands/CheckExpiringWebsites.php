@@ -24,7 +24,10 @@ class CheckExpiringWebsites extends Command
 
         foreach ([30, 14, 7] as $days) {
             $expiring = Website::where('status', 'aktivni')
-                ->whereDate('hosting_expires_at', now()->addDays($days)->toDateString())
+                ->whereBetween('hosting_expires_at', [
+                    now()->addDays($days)->startOfDay(),
+                    now()->addDays($days)->endOfDay(),
+                ])
                 ->where(function ($q) use ($days) {
                     // Avoid duplicate notifications
                     $q->whereNull('last_expiry_notified_at')

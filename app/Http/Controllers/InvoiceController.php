@@ -107,7 +107,7 @@ class InvoiceController extends Controller
         $invoice = DB::transaction(function () use ($request) {
             $invoiceNumber = Invoice::getNextInvoiceNumber();
             $items = collect($request->input('items'))->map(function ($item) {
-                $item['total_price'] = $item['total_price'] ?? (float) $item['quantity'] * (float) $item['unit_price'];
+                $item['total_price'] = (float) $item['quantity'] * (float) $item['unit_price'];
                 return $item;
             })->toArray();
             $total = collect($items)->sum('total_price');
@@ -161,7 +161,7 @@ class InvoiceController extends Controller
     {
         $invoice = $faktury;
         $items = collect($request->input('items'))->map(function ($item) {
-            $item['total_price'] = $item['total_price'] ?? (float) $item['quantity'] * (float) $item['unit_price'];
+            $item['total_price'] = (float) $item['quantity'] * (float) $item['unit_price'];
             return $item;
         })->toArray();
         $total = collect($items)->sum('total_price');
@@ -355,6 +355,7 @@ class InvoiceController extends Controller
         $paymentMethod = $request->input('payment_method', $invoice->payment_method ?? 'banka');
 
         $invoice->processPayment($paymentMethod);
+        cache()->forget('dashboard_alerts');
 
         $invoice->loadMissing('customer');
         $user = auth()->user();

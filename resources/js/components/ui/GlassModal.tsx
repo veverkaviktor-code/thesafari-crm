@@ -9,6 +9,8 @@ interface GlassModalProps {
     maxWidth?: string;
 }
 
+const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+
 export default function GlassModal({
     open,
     onClose,
@@ -17,6 +19,7 @@ export default function GlassModal({
     maxWidth = 'max-w-6xl',
 }: GlassModalProps) {
     const overlayRef = useRef<HTMLDivElement>(null);
+    const dialogRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (!open) return;
@@ -25,13 +28,40 @@ export default function GlassModal({
         };
         document.addEventListener('keydown', handleEscape);
         document.body.style.overflow = 'hidden';
+
+        // Auto-focus na první focusable element
+        const timer = setTimeout(() => {
+            const first = dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE)?.[0];
+            first?.focus();
+        }, 50);
+
         return () => {
             document.removeEventListener('keydown', handleEscape);
             document.body.style.overflow = '';
+            clearTimeout(timer);
         };
     }, [open, onClose]);
 
     if (!open) return null;
+
+    const handleFocusTrap = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (e.key !== 'Tab') return;
+        const focusable = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? []);
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey) {
+            if (document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            }
+        } else {
+            if (document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        }
+    };
 
     return (
         <div
@@ -46,9 +76,11 @@ export default function GlassModal({
 
             {/* Modal — full screen on mobile, centered card on desktop */}
             <div
+                ref={dialogRef}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="glass-modal-title"
+                onKeyDown={handleFocusTrap}
                 className={`relative w-full ${maxWidth} flex flex-col overflow-hidden
                     h-[100dvh] sm:h-auto sm:max-h-[90vh]
                     sm:rounded-2xl
@@ -62,6 +94,7 @@ export default function GlassModal({
                     <h2 id="glass-modal-title" className="text-lg font-semibold text-foreground">{title}</h2>
                     <button
                         onClick={onClose}
+                        aria-label="Zavřít"
                         className="rounded-xl p-2 text-muted-foreground transition-all hover:bg-accent hover:text-foreground"
                     >
                         <X className="h-5 w-5" />

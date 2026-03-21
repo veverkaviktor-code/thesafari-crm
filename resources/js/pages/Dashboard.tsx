@@ -67,8 +67,8 @@ interface Props {
         link: string;
     }[];
     websiteStats?: {
-        active_domains: number;
-        active_hostings: number;
+        active_websites: number;
+        total_aliases: number;
         expiring_soon: number;
         expired: number;
         unpaid_payments: number;
@@ -77,8 +77,7 @@ interface Props {
         expiring: {
             id: number;
             name: string;
-            type: string;
-            expires_at: string;
+            hosting_expires_at: string;
             days: number;
             urgency: string;
             customer_name: string | null;

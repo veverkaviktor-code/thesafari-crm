@@ -70,7 +70,7 @@ export default function Login() {
                                             type="checkbox"
                                             checked={data.remember}
                                             onChange={(e) => setData('remember', e.target.checked)}
-                                            className="rounded border-border"
+                                            className="h-4 w-4 rounded border-border bg-transparent text-primary accent-primary"
                                         />
                                         <span className="text-sm text-muted-foreground">Zapamatovat si</span>
                                     </label>

@@ -34,7 +34,6 @@ export interface WebsiteFormData {
     auto_invoice: boolean;
     auto_invoice_management: boolean;
     is_free: boolean;
-    is_external: boolean;
     domain_sell_yearly: string;
     domain_cost_yearly: string;
     hosting_sell_yearly: string;
@@ -60,7 +59,6 @@ export const defaultWebsiteData: WebsiteFormData = {
     auto_invoice: false,
     auto_invoice_management: false,
     is_free: false,
-    is_external: false,
     domain_sell_yearly: '',
     domain_cost_yearly: '',
     hosting_sell_yearly: '',

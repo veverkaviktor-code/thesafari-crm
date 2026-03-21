@@ -82,27 +82,22 @@ export default function RunningTimerBar({ timer }: Props) {
 
     return (
         <div
-            className="sticky top-0 z-40 flex items-center gap-4 px-4 py-2 shadow-sm"
-            style={{ backgroundColor: isPaused ? '#4a5568' : '#628395' }}
+            className={`sticky top-0 z-40 flex items-center gap-4 px-4 py-2 shadow-sm border-b border-white/10 ${isPaused ? 'bg-[#4a5568]' : 'bg-[#628395]'}`}
         >
             {/* Pulse indicator — static when paused */}
             <span className="relative flex h-2.5 w-2.5 shrink-0">
                 {!isPaused && (
-                    <span
-                        className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60"
-                        style={{ backgroundColor: '#DFD5A5' }}
-                    />
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#DFD5A5] opacity-60" />
                 )}
                 <span
-                    className="relative inline-flex h-2.5 w-2.5 rounded-full"
-                    style={{ backgroundColor: isPaused ? '#a0aec0' : '#DFD5A5' }}
+                    className={`relative inline-flex h-2.5 w-2.5 rounded-full ${isPaused ? 'bg-[#a0aec0]' : 'bg-[#DFD5A5]'}`}
                 />
             </span>
 
             {/* Customer + Order link */}
             <div className="flex min-w-0 items-baseline gap-1.5 truncate">
                 {customerName && (
-                    <span className="hidden text-sm font-medium sm:inline" style={{ color: '#DFD5A5' }}>
+                    <span className="hidden text-sm font-medium text-[#DFD5A5] sm:inline">
                         {customerName}
                         <span className="mx-1.5 opacity-50">/</span>
                     </span>
@@ -117,7 +112,7 @@ export default function RunningTimerBar({ timer }: Props) {
 
             {/* Description */}
             {timer.description && (
-                <span className="hidden truncate text-sm sm:block" style={{ color: '#DFD5A5' }}>
+                <span className="hidden truncate text-sm text-[#DFD5A5] sm:block">
                     — {timer.description}
                 </span>
             )}
@@ -129,7 +124,7 @@ export default function RunningTimerBar({ timer }: Props) {
 
             <div className="ml-auto flex items-center gap-3">
                 {/* Hourly rate */}
-                <span className="hidden text-xs sm:block" style={{ color: '#DFD5A5' }}>
+                <span className="hidden text-xs text-[#DFD5A5] sm:block">
                     {new Intl.NumberFormat('cs-CZ').format(timer.hourly_rate)} Kč/hod
                 </span>
 
@@ -143,11 +138,7 @@ export default function RunningTimerBar({ timer }: Props) {
                     <Button
                         size="sm"
                         onClick={handleResume}
-                        className="h-7 gap-1.5 border px-3 text-xs font-semibold text-white hover:opacity-90"
-                        style={{
-                            backgroundColor: '#48bb78',
-                            borderColor: 'rgba(255,255,255,0.2)',
-                        }}
+                        className="h-7 gap-1.5 border border-white/20 bg-emerald-600 px-3 text-xs font-semibold text-white hover:bg-emerald-500 hover:opacity-90"
                     >
                         <Play className="h-3 w-3 fill-current" />
                         Pokračovat
@@ -156,11 +147,7 @@ export default function RunningTimerBar({ timer }: Props) {
                     <Button
                         size="sm"
                         onClick={handlePause}
-                        className="h-7 gap-1.5 border px-3 text-xs font-semibold text-white hover:opacity-90"
-                        style={{
-                            backgroundColor: '#CF995F',
-                            borderColor: 'rgba(255,255,255,0.2)',
-                        }}
+                        className="h-7 gap-1.5 border border-white/20 bg-[#CF995F] px-3 text-xs font-semibold text-white hover:bg-[#DBAD6A] hover:opacity-90"
                     >
                         <Pause className="h-3 w-3 fill-current" />
                         Pauza
@@ -171,11 +158,7 @@ export default function RunningTimerBar({ timer }: Props) {
                 <Button
                     size="sm"
                     onClick={handleStop}
-                    className="h-7 gap-1.5 border px-3 text-xs font-semibold text-white hover:opacity-90"
-                    style={{
-                        backgroundColor: '#e53e3e',
-                        borderColor: 'rgba(255,255,255,0.2)',
-                    }}
+                    className="h-7 gap-1.5 border border-white/20 bg-red-600 px-3 text-xs font-semibold text-white hover:bg-red-500 hover:opacity-90"
                 >
                     <Square className="h-3 w-3 fill-current" />
                     Hotovo

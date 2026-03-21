@@ -52,7 +52,7 @@ export default function TopBar({ breadcrumbs = [], onMenuClick }: TopBarProps) {
                 <nav className="flex min-w-0 items-center gap-1.5 text-sm">
                     {breadcrumbs.map((crumb, i) => (
                         <span
-                            key={i}
+                            key={crumb.label}
                             className={`flex items-center gap-1.5 ${
                                 i === breadcrumbs.length - 1 ? 'min-w-0 overflow-hidden' : 'shrink-0'
                             }`}

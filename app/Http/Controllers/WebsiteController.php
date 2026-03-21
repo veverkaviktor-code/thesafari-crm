@@ -339,6 +339,11 @@ class WebsiteController extends Controller
 
         $website->update($validated);
 
+        // Zapamatuj si co se změnilo PŘED jakýmkoliv dalším update
+        $expirationChanged = $website->wasChanged('hosting_expires_at') || $website->wasChanged('domain_expires_at');
+        $hostingExpirationChanged = $website->wasChanged('hosting_expires_at');
+        $domainExpirationChanged = $website->wasChanged('domain_expires_at');
+
         // If alias_of_id was set, sync expiration from parent
         if ($website->alias_of_id) {
             $parent = Website::find($website->alias_of_id);
@@ -353,12 +358,13 @@ class WebsiteController extends Controller
         }
 
         // If expiration changed on parent, sync to all aliases
-        if ($website->wasChanged('hosting_expires_at') || $website->wasChanged('domain_expires_at')) {
+        // Použij uložený výsledek místo wasChanged() — druhý update() by změnil stav wasChanged()
+        if ($expirationChanged) {
             $updateData = [];
-            if ($website->wasChanged('hosting_expires_at')) {
+            if ($hostingExpirationChanged) {
                 $updateData['hosting_expires_at'] = $website->hosting_expires_at;
             }
-            if ($website->wasChanged('domain_expires_at')) {
+            if ($domainExpirationChanged) {
                 $updateData['domain_expires_at'] = $website->domain_expires_at;
             }
             if (! empty($updateData)) {
@@ -828,7 +834,7 @@ class WebsiteController extends Controller
 
                         $data = [
                             'server'           => $serverName,
-                            'storage_quota_mb' => 4096,
+                            'storage_quota_mb' => null,
                             'synced_at'        => now(),
                         ];
 

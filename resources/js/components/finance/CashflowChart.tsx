@@ -98,8 +98,8 @@ export default function CashflowChart({ data }: Props) {
                             width={40}
                         />
                         <Tooltip content={<CustomTooltip />} cursor={false} />
-                        <Bar dataKey="income" fill="#34d399" radius={[3, 3, 0, 0]} barSize={14} />
-                        <Bar dataKey="expenses" fill="#f87171" radius={[3, 3, 0, 0]} barSize={14} />
+                        <Bar dataKey="income" fill="#CF995F" radius={[3, 3, 0, 0]} barSize={14} />
+                        <Bar dataKey="expenses" fill="#e57373" radius={[3, 3, 0, 0]} barSize={14} />
                         <Line
                             type="monotone"
                             dataKey="cumulative"

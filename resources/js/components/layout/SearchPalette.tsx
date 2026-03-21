@@ -133,7 +133,12 @@ export default function SearchPalette({ open, onClose }: Props) {
                 onClick={onClose}
             />
             {/* Dialog */}
-            <div className="fixed left-1/2 top-[15%] z-50 w-full max-w-lg -translate-x-1/2 rounded-xl border border-border bg-card shadow-2xl">
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-label="Vyhledávání"
+                className="fixed left-1/2 top-[15%] z-50 w-full max-w-lg -translate-x-1/2 rounded-xl border border-border bg-card shadow-2xl"
+            >
                 {/* Search input */}
                 <div className="flex items-center gap-3 border-b border-border px-4 py-3">
                     <Search className="h-4 w-4 text-muted-foreground shrink-0" />

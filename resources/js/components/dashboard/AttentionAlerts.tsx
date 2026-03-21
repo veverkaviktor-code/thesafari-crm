@@ -125,7 +125,7 @@ export default function AttentionAlerts({ alerts, ignoredAlerts, defaultVisible 
                     const Icon = config.icon;
                     const isProcessing = processingId === alert.website_id;
                     return (
-                        <div key={i} className="relative group">
+                        <div key={alert.website_id ?? `alert-${i}`} className="relative group">
                             <Link
                                 href={alert.link}
                                 className={cn(

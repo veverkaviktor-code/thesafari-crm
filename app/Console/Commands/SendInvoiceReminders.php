@@ -70,7 +70,7 @@ class SendInvoiceReminders extends Command
                 $this->line("  Odesláno: #{$invoice->invoice_number} — {$invoice->customer->name} — upomínka č. {$nextReminder}");
 
                 // Notify admin
-                $admin = User::first();
+                $admin = User::admin();
                 if ($admin) {
                     $admin->notify(new \App\Notifications\ReminderSent($invoice, $nextReminder));
                 }

@@ -88,7 +88,7 @@ class Invoice extends Model
 
             $lastInvoice = static::withTrashed()
                 ->where('invoice_number', 'LIKE', $prefix . '%')
-                ->orderByRaw('CAST(invoice_number AS INTEGER) DESC')
+                ->orderByRaw("CAST(NULLIF(REGEXP_REPLACE(invoice_number, '[^0-9]', '', 'g'), '') AS INTEGER) DESC NULLS LAST")
                 ->lockForUpdate()
                 ->first();
 
@@ -131,6 +131,10 @@ class Invoice extends Model
      */
     public function processPayment(string $paymentMethod = 'banka', ?int $bankTransactionId = null): void
     {
+        if ($this->status === 'zaplacena') {
+            return;
+        }
+
         $updateData = [
             'status'         => 'zaplacena',
             'paid_at'        => now(),
@@ -145,7 +149,8 @@ class Invoice extends Model
 
         // Order: update status
         if ($this->order_id) {
-            $this->order->update(['status' => 'fakturovano']);
+            $this->loadMissing('order');
+            $this->order?->update(['status' => 'fakturovano']);
         }
 
         // Websites: create payment records + extend expiry dates
@@ -172,5 +177,7 @@ class Invoice extends Model
                 $website->save();
             }
         }
+
+        cache()->forget('dashboard_alerts');
     }
 }

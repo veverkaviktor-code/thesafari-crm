@@ -38,11 +38,9 @@ interface Website {
     notes: string | null;
     starts_at: string | null;
     is_registered_by_us: boolean;
-    auto_renew: boolean;
     auto_invoice: boolean;
     auto_invoice_management: boolean;
     is_free: boolean;
-    is_external: boolean;
     sell_yearly: number;
     cost_yearly: number;
     domain_sell_yearly: number;
@@ -77,11 +75,9 @@ export default function WeboveSluzbyEdit({ website, customers, vpsServers, manag
         notes: website.notes || '',
         starts_at: website.starts_at || '',
         is_registered_by_us: website.is_registered_by_us ?? true,
-        auto_renew: website.auto_renew ?? true,
         auto_invoice: website.auto_invoice ?? true,
         auto_invoice_management: website.auto_invoice_management ?? false,
         is_free: website.is_free ?? false,
-        is_external: website.is_external ?? false,
         domain_sell_yearly: String(website.domain_sell_yearly || ''),
         domain_cost_yearly: String(website.domain_cost_yearly || ''),
         hosting_sell_yearly: String(website.hosting_sell_yearly || ''),

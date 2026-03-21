@@ -29,7 +29,7 @@ class VasHostingService
     public function listPortalDomains(): array
     {
         try {
-            $response = Http::withHeaders([
+            $response = Http::timeout(15)->withHeaders([
                 'X-API-Key' => $this->portalApiKey,
             ])->get("{$this->portalApiUrl}/domains");
 
@@ -52,7 +52,7 @@ class VasHostingService
     public function listServerHostings(): array
     {
         try {
-            $response = Http::withHeaders([
+            $response = Http::timeout(15)->withHeaders([
                 'X-API-Key' => $this->serverApiKey,
             ])->get("{$this->serverApiUrl}/domains");
 
@@ -74,7 +74,7 @@ class VasHostingService
     public function getPortalDomainInfo(string $domain): ?array
     {
         try {
-            $response = Http::withHeaders([
+            $response = Http::timeout(15)->withHeaders([
                 'X-API-Key' => $this->portalApiKey,
             ])->get("{$this->portalApiUrl}/domains/{$domain}");
 
@@ -95,7 +95,7 @@ class VasHostingService
     public function listUnpaidInvoices(): array
     {
         try {
-            $response = Http::withHeaders([
+            $response = Http::timeout(15)->withHeaders([
                 'X-API-Key' => $this->portalApiKey,
             ])->get("{$this->portalApiUrl}/account/unpaid-invoices");
 
@@ -119,7 +119,7 @@ class VasHostingService
     public function activateDomainOnServer(string $domainName): array
     {
         try {
-            $response = Http::withHeaders([
+            $response = Http::timeout(15)->withHeaders([
                 'X-API-Key' => $this->serverApiKey,
             ])->post("{$this->serverApiUrl}/domains", [
                 'name'       => $domainName,
@@ -180,7 +180,7 @@ class VasHostingService
     public function listVpsCentrumDomains(string $serverUrl, string $apiKey): array
     {
         try {
-            $response = Http::withHeaders([
+            $response = Http::timeout(15)->withHeaders([
                 'X-VPSC-Admin' => $this->vpscAdminEmail,
                 'X-VPSC-ApiKey' => $apiKey,
                 'Content-Type' => 'application/json',
@@ -214,7 +214,7 @@ class VasHostingService
     public function getVpsCentrumDomainSize(string $serverUrl, string $apiKey, string $domain): ?array
     {
         try {
-            $response = Http::withHeaders([
+            $response = Http::timeout(15)->withHeaders([
                 'X-VPSC-Admin' => $this->vpscAdminEmail,
                 'X-VPSC-ApiKey' => $apiKey,
                 'Content-Type' => 'application/json',

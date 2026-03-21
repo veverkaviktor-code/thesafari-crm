@@ -34,6 +34,11 @@ class TicketApiController extends Controller
             'content' => $validated['content'],
         ]);
 
+        $admin = \App\Models\User::admin();
+        if ($admin) {
+            $admin->notify(new \App\Notifications\NewTicket($ticket));
+        }
+
         return response()->json([
             'id' => $ticket->id,
             'customer_matched' => $customerId !== null,

@@ -4,9 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class WebsiteCredential extends Model
 {
+    use LogsActivity;
+
     protected $fillable = [
         'website_id',
         'label',
@@ -23,6 +27,14 @@ class WebsiteCredential extends Model
         return [
             'password' => 'encrypted',
         ];
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontLogIfAttributesChangedOnly(['password']);
     }
 
     public function website(): BelongsTo

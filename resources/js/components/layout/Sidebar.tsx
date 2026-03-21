@@ -52,7 +52,9 @@ const bottomNav: NavItem[] = [
 ];
 
 export default function Sidebar() {
-    const [collapsed, setCollapsed] = useState(false);
+    const [collapsed, setCollapsed] = useState(() => {
+        try { return localStorage.getItem('sidebar-collapsed') === 'true'; } catch { return false; }
+    });
     const { url, props: pageProps } = usePage<{ notifications?: { unread_count: number; new_tickets_count: number } }>();
     const unreadCount = pageProps.notifications?.unread_count ?? 0;
     const newTicketsCount = pageProps.notifications?.new_tickets_count ?? 0;
@@ -85,7 +87,11 @@ export default function Sidebar() {
                         </div>
                     )}
                     <button
-                        onClick={() => setCollapsed(!collapsed)}
+                        onClick={() => {
+                            const next = !collapsed;
+                            setCollapsed(next);
+                            try { localStorage.setItem('sidebar-collapsed', String(next)); } catch {}
+                        }}
                         className={cn(
                             'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-accent text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
                         )}

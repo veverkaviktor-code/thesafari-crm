@@ -76,6 +76,7 @@ class FinanceController extends Controller
         // Website costs (pro-rated to period)
         $webCostsYearly = (float) Website::where('status', 'aktivni')
             ->where('is_external', false)
+            ->where('is_free', false)
             ->sum('cost_yearly');
         $webCosts = $months ? $webCostsYearly * $months / 12 : $webCostsYearly;
 
@@ -93,7 +94,7 @@ class FinanceController extends Controller
         $unpaidTotal = $unpaidInvoices + $unpaidWebPayments;
 
         // MRR calculation — simplified: always sell_yearly / 12 + management plan
-        $ownWebsites = Website::where('status', 'aktivni')->where('is_external', false)->get();
+        $ownWebsites = Website::where('status', 'aktivni')->where('is_external', false)->where('is_free', false)->with('managementPlan')->get();
         $mrrCalc = fn($website) =>
             (float) ($website->sell_yearly ?: 0) / 12
             + ($website->managementPlan?->price_monthly ?? 0);
@@ -167,6 +168,8 @@ class FinanceController extends Controller
         // Website ARR — simplified: sell_yearly + management plan * 12
         $ownWebsites = Website::where('status', 'aktivni')
             ->where('is_external', false)
+            ->where('is_free', false)
+            ->with('managementPlan')
             ->get();
 
         $websiteARR = $ownWebsites->sum(fn($w) =>
@@ -340,6 +343,8 @@ class FinanceController extends Controller
     {
         $ownWebsites = Website::where('status', 'aktivni')
             ->where('is_external', false)
+            ->where('is_free', false)
+            ->with('managementPlan')
             ->get();
 
         // Simplified: always sell_yearly / 12 + management plan
