@@ -534,6 +534,28 @@ function TabPrehled({ website, paymentStats, onShowPaymentModal }: {
                                         {formatCurrency(website.hosting_sell_yearly - website.hosting_cost_yearly)}
                                     </td>
                                 </tr>
+                                {/* Alias domain prices */}
+                                {website.aliases?.filter((a: any) => a.domain_sell_yearly > 0 || a.domain_cost_yearly > 0).map((alias: any) => (
+                                    <tr key={alias.id}>
+                                        <td className="py-2 text-muted-foreground">
+                                            Doména {alias.name}
+                                            {alias.domain_expires_at && (
+                                                <span className="ml-2 text-xs text-muted-foreground/60">
+                                                    (exp. {format(new Date(alias.domain_expires_at), 'd. M. yyyy', { locale: cs })})
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="py-2 text-right text-foreground">
+                                            {alias.domain_cost_yearly ? formatCurrency(alias.domain_cost_yearly) : <span className="text-muted-foreground/50">—</span>}
+                                        </td>
+                                        <td className="py-2 text-right text-foreground">
+                                            {formatCurrency(alias.domain_sell_yearly)}
+                                        </td>
+                                        <td className={`py-2 text-right ${(alias.domain_sell_yearly - alias.domain_cost_yearly) > 0 ? 'text-emerald-400' : 'text-foreground'}`}>
+                                            {formatCurrency(alias.domain_sell_yearly - alias.domain_cost_yearly)}
+                                        </td>
+                                    </tr>
+                                ))}
                                 {managementMonthly > 0 && (
                                     <tr>
                                         <td className="py-2 text-muted-foreground">Správa ({website.management_plan?.name})</td>
@@ -546,11 +568,22 @@ function TabPrehled({ website, paymentStats, onShowPaymentModal }: {
                             <tfoot>
                                 <tr className="border-t border-border font-semibold">
                                     <td className="pt-3 text-foreground">Celkem ročně</td>
-                                    <td className="pt-3 text-right text-foreground">{formatCurrency(website.cost_yearly || 0)}</td>
-                                    <td className="pt-3 text-right text-foreground">{formatCurrency(website.sell_yearly + managementYearly)}</td>
-                                    <td className={`pt-3 text-right ${(website.yearly_margin + managementYearly) > 0 ? 'text-emerald-400' : (website.yearly_margin + managementYearly) < 0 ? 'text-red-400' : 'text-foreground'}`}>
-                                        {formatCurrency(website.yearly_margin + managementYearly)}
-                                    </td>
+                                    {(() => {
+                                        const aliasDomainCost = (website.aliases || []).reduce((sum: number, a: any) => sum + (Number(a.domain_cost_yearly) || 0), 0);
+                                        const aliasDomainSell = (website.aliases || []).reduce((sum: number, a: any) => sum + (Number(a.domain_sell_yearly) || 0), 0);
+                                        const totalCost = (Number(website.cost_yearly) || 0) + aliasDomainCost;
+                                        const totalSell = (Number(website.sell_yearly) || 0) + aliasDomainSell + managementYearly;
+                                        const totalMargin = totalSell - totalCost;
+                                        return (
+                                            <>
+                                                <td className="pt-3 text-right text-foreground">{formatCurrency(totalCost)}</td>
+                                                <td className="pt-3 text-right text-foreground">{formatCurrency(totalSell)}</td>
+                                                <td className={`pt-3 text-right ${totalMargin > 0 ? 'text-emerald-400' : totalMargin < 0 ? 'text-red-400' : 'text-foreground'}`}>
+                                                    {formatCurrency(totalMargin)}
+                                                </td>
+                                            </>
+                                        );
+                                    })()}
                                 </tr>
                             </tfoot>
                         </table>
