@@ -23,12 +23,16 @@ class VpsServer extends Model
         'storage_total_gb',
         'notes',
         'status',
+        'expires_at',
+        'auto_invoice',
     ];
 
     protected function casts(): array
     {
         return [
             'price_yearly' => 'decimal:2',
+            'expires_at' => 'date',
+            'auto_invoice' => 'boolean',
         ];
     }
 

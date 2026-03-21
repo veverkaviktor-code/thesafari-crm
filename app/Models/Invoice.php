@@ -194,6 +194,18 @@ class Invoice extends Model
             }
         }
 
+        // VPS servers: extend expiry if invoice was auto-generated for a VPS
+        if ($this->notes && str_contains($this->notes, 'VPS ')) {
+            // Extract VPS name from notes: "... za VPS thaimassage-server.cz."
+            if (preg_match('/VPS ([a-z0-9._-]+)/i', $this->notes, $matches)) {
+                $vps = \App\Models\VpsServer::where('name', $matches[1])->first();
+                if ($vps && $vps->expires_at) {
+                    $vps->expires_at = $vps->expires_at->addYear();
+                    $vps->save();
+                }
+            }
+        }
+
         cache()->forget('dashboard_alerts');
     }
 }

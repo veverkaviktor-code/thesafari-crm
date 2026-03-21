@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Invoice;
 use App\Models\User;
+use App\Models\VpsServer;
 use App\Models\Website;
 use App\Notifications\WebsiteInvoiceCreated;
 use Illuminate\Console\Command;
@@ -190,6 +191,74 @@ class AutoInvoiceWebsites extends Command
                 if ($admin) {
                     $names = collect($items)->pluck('website.name')->unique()->toArray();
                     $admin->notify(new WebsiteInvoiceCreated($invoice, $names));
+                }
+            });
+
+            $created++;
+        }
+
+        // === VPS Server auto-invoicing ===
+        $vpsServers = VpsServer::where('status', 'aktivni')
+            ->where('auto_invoice', true)
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '>', now())
+            ->where('expires_at', '<=', now()->addDays(30))
+            ->where('price_yearly', '>', 0)
+            ->whereNotNull('customer_id')
+            ->with('customer')
+            ->get();
+
+        foreach ($vpsServers as $vps) {
+            if (!$vps->customer) {
+                Log::warning("AutoInvoice VPS: {$vps->name} has no customer, skipping.");
+                continue;
+            }
+
+            // Check no open invoice exists for this VPS
+            $hasOpenInvoice = Invoice::whereIn('status', ['vystavena', 'odeslana'])
+                ->where('notes', 'like', "%VPS {$vps->name}%")
+                ->exists();
+
+            if ($hasOpenInvoice) {
+                continue;
+            }
+
+            $expiry = \Carbon\Carbon::parse($vps->expires_at);
+            $periodStr = $expiry->format('j. n. Y') . ' – ' . $expiry->copy()->addYear()->format('j. n. Y');
+            $price = (float) $vps->price_yearly;
+
+            if ($dryRun) {
+                $this->line("  VPS {$vps->name} — {$vps->customer->name} — " . number_format($price, 0) . " Kč ({$periodStr})");
+                $created++;
+                continue;
+            }
+
+            DB::transaction(function () use ($vps, $price, $periodStr, $expiry, $admin) {
+                $invoiceNumber = Invoice::getNextInvoiceNumber('6');
+
+                $invoice = Invoice::create([
+                    'customer_id' => $vps->customer_id,
+                    'invoice_number' => $invoiceNumber,
+                    'variable_symbol' => $invoiceNumber,
+                    'issue_date' => now()->toDateString(),
+                    'due_date' => $expiry->toDateString(),
+                    'status' => 'vystavena',
+                    'payment_method' => 'banka',
+                    'total' => $price,
+                    'notes' => "Automaticky vygenerovaná faktura za VPS {$vps->name}.",
+                ]);
+
+                $invoice->items()->create([
+                    'description' => "VPS server {$vps->name} ({$periodStr})",
+                    'quantity' => 1,
+                    'unit' => 'rok',
+                    'unit_price' => $price,
+                    'total_price' => $price,
+                    'sort_order' => 0,
+                ]);
+
+                if ($admin) {
+                    $admin->notify(new WebsiteInvoiceCreated($invoice, [$vps->name]));
                 }
             });
 
