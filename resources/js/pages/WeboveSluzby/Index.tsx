@@ -1192,18 +1192,16 @@ export default function NeniwebIndex({
                         </div>
                     </div>
                     <Separator className="my-1" />
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <Label className="text-muted-foreground">Expirace</Label>
-                            <Input type="date" value={vpsForm.data.expires_at} onChange={(e) => vpsForm.setData('expires_at', e.target.value)} className="mt-1.5 bg-muted border-border text-foreground" />
-                        </div>
-                        <div className="flex items-center gap-3 pt-6">
-                            <Switch
-                                checked={vpsForm.data.auto_invoice}
-                                onCheckedChange={(v) => vpsForm.setData('auto_invoice', v)}
-                            />
-                            <Label className="text-muted-foreground">Automatická fakturace</Label>
-                        </div>
+                    <div>
+                        <Label className="text-muted-foreground">Expirace</Label>
+                        <Input type="date" value={vpsForm.data.expires_at} onChange={(e) => vpsForm.setData('expires_at', e.target.value)} className="mt-1.5 bg-muted border-border text-foreground" />
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <Switch
+                            checked={vpsForm.data.auto_invoice}
+                            onCheckedChange={(v) => vpsForm.setData('auto_invoice', v)}
+                        />
+                        <Label className="text-muted-foreground">Automatická fakturace</Label>
                     </div>
                     <div>
                         <Label className="text-muted-foreground">Poznamky</Label>
