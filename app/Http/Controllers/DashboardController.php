@@ -60,6 +60,7 @@ class DashboardController extends Controller
     {
         $ownWebsites = Website::where('status', 'aktivni')
             ->where('is_external', false)
+            ->where('is_free', false)
             ->with('managementPlan')
             ->get();
 
