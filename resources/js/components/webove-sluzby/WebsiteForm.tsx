@@ -327,24 +327,33 @@ export default function WebsiteForm({
 
             {/* ═══════ Hosting ═══════ */}
             <FormSection icon={HardDrive} title="Hosting">
-                <div>
-                    <Label className="text-muted-foreground">Server</Label>
-                    <Select
-                        value={data.hosting_server_id || 'none'}
-                        onValueChange={(v) => setData('hosting_server_id', v === 'none' ? '' : v)}
-                    >
-                        <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
-                            <SelectValue placeholder="Bez hostingu" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-card border-border">
-                            <SelectItem value="none">Bez hostingu</SelectItem>
-                            {vpsServers.map((vps) => (
-                                <SelectItem key={vps.id} value={String(vps.id)}>
-                                    {vps.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <Label className="text-muted-foreground">Server</Label>
+                        <Select
+                            value={data.hosting_server_id || 'none'}
+                            onValueChange={(v) => setData('hosting_server_id', v === 'none' ? '' : v)}
+                        >
+                            <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
+                                <SelectValue placeholder="Bez hostingu" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-card border-border">
+                                <SelectItem value="none">Bez hostingu</SelectItem>
+                                {vpsServers.map((vps) => (
+                                    <SelectItem key={vps.id} value={String(vps.id)}>
+                                        {vps.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="flex items-center gap-3 pt-7">
+                        <Switch
+                            checked={data.is_free}
+                            onCheckedChange={(v) => setData('is_free', v)}
+                        />
+                        <Label className="text-muted-foreground">Hosting zdarma</Label>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -367,30 +376,32 @@ export default function WebsiteForm({
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <Label className="text-muted-foreground">Roční náklad hostingu (Kč)</Label>
-                        <Input
-                            type="number"
-                            value={data.hosting_cost_yearly}
-                            onChange={(e) => setData('hosting_cost_yearly', e.target.value)}
-                            placeholder="363"
-                            className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
-                        />
-                        {errors.hosting_cost_yearly && <p className="mt-1 text-xs text-red-400">{errors.hosting_cost_yearly}</p>}
+                {!data.is_free && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <Label className="text-muted-foreground">Roční náklad hostingu (Kč)</Label>
+                            <Input
+                                type="number"
+                                value={data.hosting_cost_yearly}
+                                onChange={(e) => setData('hosting_cost_yearly', e.target.value)}
+                                placeholder="363"
+                                className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
+                            />
+                            {errors.hosting_cost_yearly && <p className="mt-1 text-xs text-red-400">{errors.hosting_cost_yearly}</p>}
+                        </div>
+                        <div>
+                            <Label className="text-muted-foreground">Prodejní cena hostingu (Kč)</Label>
+                            <Input
+                                type="number"
+                                value={data.hosting_sell_yearly}
+                                onChange={(e) => setData('hosting_sell_yearly', e.target.value)}
+                                placeholder="2050"
+                                className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
+                            />
+                            {errors.hosting_sell_yearly && <p className="mt-1 text-xs text-red-400">{errors.hosting_sell_yearly}</p>}
+                        </div>
                     </div>
-                    <div>
-                        <Label className="text-muted-foreground">Prodejní cena hostingu (Kč)</Label>
-                        <Input
-                            type="number"
-                            value={data.hosting_sell_yearly}
-                            onChange={(e) => setData('hosting_sell_yearly', e.target.value)}
-                            placeholder="2050"
-                            className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
-                        />
-                        {errors.hosting_sell_yearly && <p className="mt-1 text-xs text-red-400">{errors.hosting_sell_yearly}</p>}
-                    </div>
-                </div>
+                )}
             </FormSection>
 
             <Separator className="bg-border" />
@@ -491,22 +502,6 @@ export default function WebsiteForm({
                     </div>
                 )}
 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div className="flex items-center gap-3 pt-2">
-                        <Switch
-                            checked={data.is_external}
-                            onCheckedChange={(v) => setData('is_external', v)}
-                        />
-                        <Label className="text-muted-foreground">Je externí</Label>
-                    </div>
-                    <div className="flex items-center gap-3 pt-2">
-                        <Switch
-                            checked={data.is_free}
-                            onCheckedChange={(v) => setData('is_free', v)}
-                        />
-                        <Label className="text-muted-foreground">Zdarma</Label>
-                    </div>
-                </div>
             </FormSection>
 
             {/* ═══════ Actions ═══════ */}
