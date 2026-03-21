@@ -366,7 +366,7 @@ class WebsiteController extends Controller
             }
         }
 
-        return redirect('/webove-sluzby')
+        return redirect("/webove-sluzby/{$website->id}")
             ->with('success', 'Web aktualizován.');
     }
 
