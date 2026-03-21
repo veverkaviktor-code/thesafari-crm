@@ -445,11 +445,6 @@ function TabPrehled({ website, paymentStats, onShowPaymentModal }: {
                             <span className="text-muted-foreground/50">Nenastaveno</span>
                         )}
                     </InfoRow>
-                    <InfoRow label="Auto-renew">
-                        <span className={website.auto_renew ? 'text-emerald-400' : 'text-muted-foreground'}>
-                            {website.auto_renew ? 'Ano' : 'Ne'}
-                        </span>
-                    </InfoRow>
                 </div>
 
                 {/* Card: Hosting */}
@@ -733,11 +728,6 @@ function TabDomena({ website }: { website: Website }) {
                         ) : (
                             <span className="text-muted-foreground/50">Nenastaveno</span>
                         )}
-                    </InfoRow>
-                    <InfoRow label="Auto-renew">
-                        <span className={website.auto_renew ? 'text-emerald-400 font-medium' : 'text-muted-foreground'}>
-                            {website.auto_renew ? 'Ano' : 'Ne'}
-                        </span>
                     </InfoRow>
                     {website.ip_address && (
                         <InfoRow label="IP adresa">
