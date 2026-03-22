@@ -215,3 +215,67 @@
 **Learning**: Kombinovaný `sell_yearly`/`cost_yearly` nestačí pro transparentní fakturaci. Split na `domain_sell_yearly`/`domain_cost_yearly` + `hosting_sell_yearly`/`hosting_cost_yearly` s computed totals v `sell_yearly`/`cost_yearly` (zachovává zpětnou kompatibilitu s MRR, dashboard, finance).
 **Pattern**: Když máš víc cenových složek, raději separátní pole + computed total než jeden kombinovaný. Nový kód čte split pole, starý kód čte total = zpětná kompatibilita.
 **Action**: Při store/update vždy přepočítat `sell_yearly = totalSellYearly()` a `cost_yearly = totalCostYearly()`.
+
+---
+
+### 2026-03-22 — Paralelní audit agenti: 4 specializace efektivnější než 1 velký audit
+**Context**: Kompletní audit CRM — backend, frontend, DB/security, business logika. Spuštěny 4 agenti paralelně.
+**Learning**: Specializovaní agenti (backend-audit, frontend-audit, security-audit, business-logic-audit) najdou více issues než jeden generický agent. Každý pracuje 2-4 minuty, celkem 45+ issues nalezeno. Klíčové je dát agentům kontext starého auditu pro cross-referenci (co je opraveno vs. co zůstává).
+**Pattern**: Pro audit vždy rozdělit na 4 specializace: (1) kód/modely/controllery, (2) frontend/UX/accessibility, (3) DB/security/OWASP, (4) business logika/data flow. Každému dát findings z předchozích auditů.
+**Action**: Po každém větším release spustit 4-agent audit. Uložit výsledky do `docs/audit/`.
+
+---
+
+### 2026-03-22 — is_free filtr musí být na VŠECH místech kde se počítají finance
+**Context**: Dashboard MRR počítal free weby (braco, neniweb, thesafari) → inflace 638 Kč. FinanceController měl filtr, DashboardController ne.
+**Learning**: Filtr `is_free` musí být konzistentně aplikován VŠUDE kde se agregují ceny: DashboardController (MRR, stats), FinanceController (revenue, costs, MRR detail), AutoInvoice (fakturace). Stačí jedno chybějící místo a finance nesedí.
+**Pattern**: Při přidání nového "exclude" flagu (is_free, is_external) → grep VŠECHNY controllery/commands kde se počítá s cenami a přidat filtr. Nejlépe scope na modelu: `Website::billable()`.
+**Action**: Zvážit přidání `scopeBillable()` na Website model (aktivní + ne-free + ne-external) aby se filtr nedupllikoval.
+
+---
+
+### 2026-03-22 — Free weby nesmí mít sell_yearly > 0
+**Context**: 5 free webů mělo sell_yearly (300–2350 Kč) — artifact z migrace. I s is_free filtrem to matlo.
+**Learning**: Datová konzistence > kódový filtr. Pokud web je zdarma, sell prices musí být 0. Nespoléhat jen na `WHERE is_free = false` v queries — opravit data.
+**Pattern**: Při nastavení `is_free = true` na webu automaticky vynulovat sell ceny (model observer nebo controller logika).
+**Action**: Přidat do WebsiteController store/update: `if (is_free) { sell_yearly = 0, hosting_sell = 0, domain_sell = 0 }`.
+
+---
+
+### 2026-03-22 — Aliasy jsou čistě doménové záznamy — ne hosting
+**Context**: Aliasy měly hosting ceny (250/222 nebo 2050/0) z migrace split pricingu. Zobrazovaly hosting expiraci a storage v seznamu.
+**Learning**: Alias = doména přidělená k parentu. NEMÁ vlastní hosting, storage, ani hosting expiraci. V DB: hosting_sell = 0, hosting_cost = 0. V UI: hosting exp a storage sloupce zobrazují "—". V query: aliasy vyloučeny z hlavního dotazu, vkládány pod parenta po paginaci.
+**Pattern**: Alias řádek v seznamu: zobrazit jen název, zákazníka, registrátora, doménovou expiraci, cenu domény. Vše hostingové = "—".
+**Action**: Při vytváření aliasu automaticky nastavit hosting_sell/cost = 0.
+
+---
+
+### 2026-03-22 — Konzistence fakturačních metod: createInvoice, createCustomerInvoice, AutoInvoice
+**Context**: 3 metody generovaly faktury v různém formátu — split vs. combined pricing, s/bez aliasů, různé splatnosti, různé formáty období.
+**Learning**: Všechny fakturační cesty MUSÍ generovat identický formát: split pricing (hosting + doména oddělené), alias domény zahrnuty, budoucí období (expiry → expiry+1rok), splatnost = datum expirace. Při přidání nové fakturační metody vždy cross-check se stávajícími.
+**Pattern**: Faktura = vždy oddělené řádky hosting/doména/alias s obdobím. Nikdy combined "Hosting + doména X" jako jedna položka. Period = budoucí (fakturujeme obnovu). Splatnost = expirace.
+**Action**: Při jakékoliv změně v jedné fakturační metodě → grep ostatní a sjednotit.
+
+---
+
+### 2026-03-22 — VPS fakturace: FK místo LIKE na notes
+**Context**: VPS auto-invoice kontroloval duplicity přes `WHERE notes LIKE '%VPS name%'` — křehké, manuální faktura bez tohoto textu by vytvořila duplikát.
+**Learning**: Pro vztah Invoice ↔ VpsServer je potřeba proper FK (`vps_server_id` na invoices). Pak kontrola i prodloužení expirace v processPayment() jsou robustní.
+**Pattern**: Nikdy nepoužívat LIKE na textovém poli pro business logiku. Vždy FK nebo pivot tabulka.
+**Action**: Pro jakýkoliv nový fakturovatelný typ entity → přidat FK na Invoice (nebo generický polymorphic vztah).
+
+---
+
+### 2026-03-22 — SendInvoiceReminders: vždy kontrolovat sent_at
+**Context**: Upomínky se posílaly i fakturám které zákazník nikdy nedostal (sent_at = NULL).
+**Learning**: Automatické follow-up emaily (upomínky, poděkování) smí jít JEN pokud předchozí komunikace proběhla. `whereNotNull('sent_at')` je povinná podmínka.
+**Pattern**: U všech automatických follow-up emailů: `if (!$record->sent_at) skip`.
+**Action**: Při přidání nového automatického emailu vždy přidat sent_at guard.
+
+---
+
+### 2026-03-22 — Float porovnání v Fio auto-match: nikdy ===
+**Context**: `(float) $invoice->total === $amount` může selhat při drobné floating point nepřesnosti.
+**Learning**: PostgreSQL decimal(10,2) → PHP float konverze může mít drobné odchylky. `===` je příliš striktní.
+**Pattern**: Pro finanční porovnání vždy `abs($a - $b) < 0.01`, nikdy `===` nebo `==`.
+**Action**: Grep pro `=== $amount` nebo `== $amount` v kontextu financí → nahradit abs() < epsilon.

@@ -7,15 +7,15 @@ Single admin, role-ready struktura. Neplátce DPH. Fio Bank API integrace.
 ## Tech Stack
 Laravel 12 + Inertia.js + React 19 + TypeScript + Tailwind 4 + Shadcn/UI + PostgreSQL
 
-## Moduly (stav k 2026-03-07)
+## Moduly (stav k 2026-03-22)
 
 ### Dokončené (MVP + Round 1-7)
 - **Dashboard** — stat cards, revenue chart, division donut chart, MRR, financial summary bar, activity timeline (reálná data, max 7 dní, s odkazy), AttentionAlerts (expand/collapse + ignorování)
 - **Zákazníci** — CRUD, glass modal, mini dashboard, tabs (kontakt, služby jako odkazy, faktury, tikety), ARES napojení
 - **Zakázky** — CRUD, glass modal, divize, stavy, OrderItems (inline CRUD s auto-price), OrderCosts, TimeTracker s running timer, marže
 - **Faktury** — CRUD, auto-numbering (lockForUpdate), SPD QR, PDF, email odesílání, stavy, položky editor, CSV export, Fio bank sync + auto-match, manuální párování, payment-thanks email
-- **Neniweb** — domény + hosting + služby, tabs UI, sync z vas-hosting API, platby, auto-invoice, alerts_ignored_at pro ignorování upozornění
-- **Subscriptions** — auto-fakturace (cron 07:00), per-služba auto_invoice přepínač, markAsPaid s rozšířením expirace
+- **Webové služby** (v1.2.0) — split pricing (doména/hosting oddělené), 5-tab detail, credentials CRUD, alias domény (vlastní expirace, pod parentem v seznamu), VPS servery s auto-fakturací, sync z vas-hosting API, sync blacklist/pending
+- **Auto-fakturace** — cron 07:00, split položky (hosting + doména + alias domény), VPS servery, budoucí období, splatnost = expirace, processPayment s idempotency guard
 - **Finance** — cashflow, revenue breakdown, MRR detail, cost breakdown, invoice aging, profit chart, pohledávky (plný seznam se scrollem)
 - **Tikety** — email-based (n8n integrace), thread view, priority, stavy
 - **Plánovač** — tasks CRUD s calendar grid, toggle complete, AttentionAlerts pod seznamem úkolů
@@ -50,19 +50,29 @@ Laravel 12 + Inertia.js + React 19 + TypeScript + Tailwind 4 + Shadcn/UI + Postg
 - **Preview endpoint**: `/attachments/{id}/preview` pro inline zobrazení PDF/SVG/obrázků v novém tabu
 - **Verze**: v1.1.0
 
+### Round 9+10 — Audit + Opravy + Features (2026-03-21/22) ✅ NASAZENO
+- **Kompletní audit**: 44+ issues nalezeno a opraveno (processPayment idempotency, NPE fix, safe CAST, HTTP timeouts, focus trap, dark mode, is_free filter, float porovnání...)
+- **Light/dark mode toggle**: Sun/Moon ikona v TopBaru, localStorage persistence
+- **Barter platební metoda**: třetí volba vedle banka/hotovost, vyloučen z cashflow, bez QR v PDF
+- **VPS auto-fakturace**: expires_at + auto_invoice na VPS, cron generuje fakturu 30d před expirací, processPayment prodlužuje přes vps_server_id FK
+- **Alias domény opraveny**: vlastní období na faktuře, hosting data skrytá v seznamu, vyloučeny z filtrů/řazení
+- **Fakturace sjednocena**: createInvoice, createCustomerInvoice, AutoInvoice — identický formát (split pricing, aliasy, budoucí období)
+- **MRR opraveno**: is_free filtr v Dashboard, free weby sell_yearly vynulováno
+- **Verze**: v1.2.1
+
 ### Budoucí (backlog)
-- [ ] Multi-user + role-based access
-- [ ] Statistiky a reporty (filtry, export)
-- [ ] thajskydotek integrace (WooCommerce sync)
-- [ ] confirm() → GlassModal dialog (4 soubory: CustomerProfile, Orders/Show, Neniweb/Edit, Neniweb/Show)
-- [ ] Dashboard/Neniweb index stats cachování (Cache::remember)
-- [ ] Mail odesílání přes queue (ne synchronně)
-- [ ] Soft delete/trash pattern na všechny modely (princip koše)
+- [ ] Multi-user + role-based access (RBAC)
+- [ ] Stránka "Ke schválení" (sync_pending UI)
+- [ ] Auto-fakturace správy (management plans)
+- [ ] 2FA (TOTP)
+- [ ] Mail odesílání přes queue
 - [ ] Email odeslání příloh (výběr souborů → email tiskárně)
 
 ## Design
-Safari Dark paleta — warm dark backgrounds (#0a0a08, #16140f), amber accent (#D97706), warm white (#F5F0E8).
-Shadcn/UI komponenty customizované na dark theme.
+Safari Dark paleta — warm dark backgrounds (#232e2a, #2e3a36), amber accent (#CF995F), warm white (#dac8b6).
+Light mode: cream (#F8F7F4), white cards, dark text (#1C1917).
+Toggle v TopBaru (Sun/Moon), localStorage persistence, default dark.
+Shadcn/UI komponenty s CSS proměnnými pro oba módy.
 
 ## Email šablony
 | Šablona | Soubor | Trigger |
@@ -83,21 +93,22 @@ Karel "Lenoch" (lenochod) = maskot fakturace. Obrázky v `storage/app/email-asse
 | Čas | Příkaz | Popis |
 |-----|--------|-------|
 | 03:00 | `model:prune` | Pruning prunable modelů |
-| 03:30 | activity_log cleanup | Mazání activity_log starších 7 dní |
-| 07:00 | `subscriptions:auto-invoice` | Auto-fakturace expirujících subscriptions (30d) |
+| 03:30 | activity_log cleanup | Mazání activity_log starších 30 dní |
+| 07:00 | `websites:auto-invoice` | Auto-fakturace webů + VPS expirujících do 30d |
 | 08:00-20:00 | `fio:sync` (hourly) | Sync transakcí z Fio Bank API |
 | 08:00 | `invoices:check-overdue` | Označení + notifikace overdue faktur |
-| 08:30 | `subscriptions:check-expiring` | Notifikace expirujících subscriptions (30/14/7d) |
-| 09:00 | `notifications:generate` | Deduplikované notifikace (overdue + expiring + inactive estimates) |
-| 09:30 | `invoices:send-reminders` | Email upomínky (3/10/21 dní po splatnosti) |
+| 08:30 | `websites:check-expiring` | Notifikace expirujících webů (30/14/7d) |
+| 09:00 | `notifications:generate` | Notifikace (inactive estimates) |
+| 09:30 | `invoices:send-reminders` | Email upomínky (3/10/21d po splatnosti, jen sent_at != NULL) |
 
 ## Statistiky projektu
 | Metrika | Hodnota |
 |---------|---------|
-| Modely | 19 (+ BankTransaction) |
-| Kontrolery | 18 (+ SearchController) |
-| React stránky | 28 |
-| React komponenty | 55+ |
-| Migrace | 43 |
-| Console Commands | 6 |
+| Modely | 27 |
+| Kontrolery | 32 |
+| React stránky | 34 |
+| React komponenty | 63 |
+| Migrace | 59 |
+| Console Commands | 7 |
 | Email šablony | 3 |
+| Verze | v1.2.1 |
