@@ -20,6 +20,7 @@ class Invoice extends Model
     protected $fillable = [
         'customer_id',
         'order_id',
+        'vps_server_id',
         'invoice_number',
         'issue_date',
         'due_date',
@@ -120,6 +121,11 @@ class Invoice extends Model
         return $this->belongsTo(BankTransaction::class);
     }
 
+    public function vpsServer(): BelongsTo
+    {
+        return $this->belongsTo(VpsServer::class);
+    }
+
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);
@@ -194,15 +200,12 @@ class Invoice extends Model
             }
         }
 
-        // VPS servers: extend expiry if invoice was auto-generated for a VPS
-        if ($this->notes && str_contains($this->notes, 'VPS ')) {
-            // Extract VPS name from notes: "... za VPS thaimassage-server.cz."
-            if (preg_match('/VPS ([a-z0-9._-]+)/i', $this->notes, $matches)) {
-                $vps = \App\Models\VpsServer::where('name', $matches[1])->first();
-                if ($vps && $vps->expires_at) {
-                    $vps->expires_at = $vps->expires_at->addYear();
-                    $vps->save();
-                }
+        // VPS servers: extend expiry via vps_server_id FK (robustní, bez regex z notes)
+        if ($this->vps_server_id) {
+            $vps = \App\Models\VpsServer::find($this->vps_server_id);
+            if ($vps && $vps->expires_at) {
+                $vps->expires_at = $vps->expires_at->addYear();
+                $vps->save();
             }
         }
 

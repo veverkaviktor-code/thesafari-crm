@@ -513,12 +513,11 @@ class WebsiteController extends Controller
             $items = [];
             $websiteIds = [$website->id];
 
-            // Build period string from hosting expiration
+            // S2: Budoucí period string (expiry → expiry+1rok), konzistentní s AutoInvoice
             $periodStr = '1 rok';
             if ($website->hosting_expires_at) {
                 $expiry = \Carbon\Carbon::parse($website->hosting_expires_at);
-                $start = $expiry->copy()->subYear();
-                $periodStr = $start->format('j. n. Y') . ' – ' . $expiry->format('j. n. Y');
+                $periodStr = $expiry->format('j. n. Y') . ' – ' . $expiry->copy()->addYear()->format('j. n. Y');
             }
 
             // Hosting item
@@ -553,12 +552,11 @@ class WebsiteController extends Controller
                 ->get();
 
             foreach ($aliases as $alias) {
-                // Alias uses its own domain expiration for period string
+                // Alias uses its own domain expiration for period string (budoucí)
                 $aliasPeriod = $periodStr; // fallback to parent period
                 if ($alias->domain_expires_at) {
                     $aliasExpiry = \Carbon\Carbon::parse($alias->domain_expires_at);
-                    $aliasStart = $aliasExpiry->copy()->subYear();
-                    $aliasPeriod = $aliasStart->format('j. n. Y') . ' – ' . $aliasExpiry->format('j. n. Y');
+                    $aliasPeriod = $aliasExpiry->format('j. n. Y') . ' – ' . $aliasExpiry->copy()->addYear()->format('j. n. Y');
                 }
 
                 $items[] = [
@@ -578,15 +576,20 @@ class WebsiteController extends Controller
             $total = collect($items)->sum('total_price');
             $invoiceNumber = Invoice::getNextInvoiceNumber('6');
 
+            // S3: Splatnost = datum expirace hostingu, fallback 14 dní
+            $dueDate = $website->hosting_expires_at
+                ? \Carbon\Carbon::parse($website->hosting_expires_at)->toDateString()
+                : now()->addDays(14)->toDateString();
+
             $invoice = Invoice::create([
-                'customer_id' => $website->customer_id,
-                'invoice_number' => $invoiceNumber,
+                'customer_id'     => $website->customer_id,
+                'invoice_number'  => $invoiceNumber,
                 'variable_symbol' => $invoiceNumber,
-                'issue_date' => now()->toDateString(),
-                'due_date' => now()->addDays(14)->toDateString(),
-                'status' => 'vystavena',
-                'payment_method' => 'banka',
-                'total' => $total,
+                'issue_date'      => now()->toDateString(),
+                'due_date'        => $dueDate,
+                'status'          => 'vystavena',
+                'payment_method'  => 'banka',
+                'total'           => $total,
             ]);
 
             foreach ($items as $i => $item) {
@@ -618,7 +621,10 @@ class WebsiteController extends Controller
 
     /**
      * Create a single merged invoice for ALL active non-free websites of a customer.
-     * Skips aliases (alias_of_id IS NOT NULL) and external domains.
+     * Skips aliases (alias_of_id IS NOT NULL).
+     * Uses split pricing: separate "Hosting X" and "Doména X" items.
+     * Includes alias domains as separate line items under their parent.
+     * Skips websites that already have an open invoice (status vystavena/odeslana).
      */
     public function createCustomerInvoice(Customer $customer)
     {
@@ -634,75 +640,144 @@ class WebsiteController extends Controller
 
         $invoice = DB::transaction(function () use ($websites, $customer) {
             $items = [];
-            $attachIds = [];
+            $attachedWebsiteIds = [];
+
+            // Determine splatnost = nejbližší expirace hostingu mezi fakturovanými weby
+            $earliestExpiry = null;
 
             foreach ($websites as $website) {
-                // Skip external domains
-                if ($website->is_external && !$website->is_registered_by_us) continue;
+                // K3: Skip websites with open invoice
+                $hasOpenInvoice = $website->invoices()
+                    ->whereIn('status', ['vystavena', 'odeslana'])
+                    ->exists();
+                if ($hasOpenInvoice) {
+                    continue;
+                }
 
-                $price = (float) $website->sell_yearly;
-                if ($price <= 0) continue;
+                $hostingPrice = (float) $website->hosting_sell_yearly;
+                $domainPrice  = (float) $website->domain_sell_yearly;
 
+                if ($hostingPrice <= 0 && $domainPrice <= 0) {
+                    continue;
+                }
+
+                // S2+S3: Budoucí period string (expiry → expiry+1rok), stejně jako AutoInvoice
                 $periodStr = '1 rok';
                 if ($website->hosting_expires_at) {
                     $expiry = \Carbon\Carbon::parse($website->hosting_expires_at);
-                    $start = $expiry->copy()->subYear();
-                    $periodStr = $start->format('j. n. Y') . ' – ' . $expiry->format('j. n. Y');
+                    $periodStr = $expiry->format('j. n. Y') . ' – ' . $expiry->copy()->addYear()->format('j. n. Y');
+
+                    // Track earliest expiry for due_date
+                    if ($earliestExpiry === null || $expiry->lt($earliestExpiry)) {
+                        $earliestExpiry = $expiry;
+                    }
                 }
 
-                $description = "Hosting + doména {$website->name} ({$periodStr})";
-                if ($website->server) {
-                    $description = "Hosting {$website->name} na {$website->server} ({$periodStr})";
+                // K1: Hosting item (split pricing)
+                if ($hostingPrice > 0) {
+                    $items[] = [
+                        'website_id'  => $website->id,
+                        'description' => "Hosting {$website->name} ({$periodStr})",
+                        'quantity'    => 1,
+                        'unit'        => 'rok',
+                        'unit_price'  => $hostingPrice,
+                        'total_price' => $hostingPrice,
+                    ];
                 }
 
-                $items[] = [
-                    'description' => $description,
-                    'quantity' => 1,
-                    'unit' => 'rok',
-                    'unit_price' => $price,
-                    'total_price' => $price,
-                ];
+                // K1: Domain item (split pricing, only if registered by us)
+                if ($domainPrice > 0 && $website->is_registered_by_us) {
+                    $items[] = [
+                        'website_id'  => $website->id,
+                        'description' => "Doména {$website->name} ({$periodStr})",
+                        'quantity'    => 1,
+                        'unit'        => 'rok',
+                        'unit_price'  => $domainPrice,
+                        'total_price' => $domainPrice,
+                    ];
+                }
 
-                $attachIds[] = $website->id;
+                if (!in_array($website->id, $attachedWebsiteIds, true)) {
+                    $attachedWebsiteIds[] = $website->id;
+                }
+
+                // K2: Alias domains — same as createInvoice
+                $aliases = Website::where('alias_of_id', $website->id)
+                    ->whereNull('deleted_at')
+                    ->where('is_registered_by_us', true)
+                    ->where('domain_sell_yearly', '>', 0)
+                    ->get();
+
+                foreach ($aliases as $alias) {
+                    // K4 (alias): Use alias own domain_expires_at for period string
+                    $aliasPeriod = $periodStr; // fallback to parent period
+                    if ($alias->domain_expires_at) {
+                        $aliasExpiry = \Carbon\Carbon::parse($alias->domain_expires_at);
+                        $aliasPeriod = $aliasExpiry->format('j. n. Y') . ' – ' . $aliasExpiry->copy()->addYear()->format('j. n. Y');
+                    }
+
+                    $items[] = [
+                        'website_id'  => $alias->id,
+                        'description' => "Doména {$alias->name} ({$aliasPeriod})",
+                        'quantity'    => 1,
+                        'unit'        => 'rok',
+                        'unit_price'  => (float) $alias->domain_sell_yearly,
+                        'total_price' => (float) $alias->domain_sell_yearly,
+                    ];
+
+                    if (!in_array($alias->id, $attachedWebsiteIds, true)) {
+                        $attachedWebsiteIds[] = $alias->id;
+                    }
+                }
             }
 
-            if (empty($items)) return null;
+            if (empty($items)) {
+                return null;
+            }
 
             $total = collect($items)->sum('total_price');
             $invoiceNumber = Invoice::getNextInvoiceNumber('6');
 
+            // S2+S3: Splatnost = nejbližší expirace, fallback 14 dní
+            $dueDate = $earliestExpiry
+                ? $earliestExpiry->toDateString()
+                : now()->addDays(14)->toDateString();
+
             $invoice = Invoice::create([
-                'customer_id' => $customer->id,
-                'invoice_number' => $invoiceNumber,
+                'customer_id'     => $customer->id,
+                'invoice_number'  => $invoiceNumber,
                 'variable_symbol' => $invoiceNumber,
-                'issue_date' => now()->toDateString(),
-                'due_date' => now()->addDays(14)->toDateString(),
-                'status' => 'vystavena',
-                'payment_method' => 'banka',
-                'total' => $total,
+                'issue_date'      => now()->toDateString(),
+                'due_date'        => $dueDate,
+                'status'          => 'vystavena',
+                'payment_method'  => 'banka',
+                'total'           => $total,
             ]);
 
             foreach ($items as $i => $item) {
                 $invoice->items()->create([
                     'description' => $item['description'],
-                    'quantity' => $item['quantity'],
-                    'unit' => $item['unit'],
-                    'unit_price' => $item['unit_price'],
+                    'quantity'    => $item['quantity'],
+                    'unit'        => $item['unit'],
+                    'unit_price'  => $item['unit_price'],
                     'total_price' => $item['total_price'],
-                    'sort_order' => $i,
+                    'sort_order'  => $i,
                 ]);
             }
 
-            // Attach all websites via pivot
-            foreach ($attachIds as $websiteId) {
-                $invoice->websites()->attach($websiteId, ['invoice_type' => 'hosting']);
+            // Attach all websites (parents + aliases) via pivot
+            foreach ($attachedWebsiteIds as $websiteId) {
+                $invoice->websites()->attach($websiteId, [
+                    'invoice_type' => 'hosting',
+                    'created_at'   => now(),
+                ]);
             }
 
             return $invoice;
         });
 
         if (!$invoice) {
-            return back()->with('error', 'Weby mají nulovou cenu — nelze vystavit fakturu.');
+            return back()->with('error', 'Weby mají nulovou cenu nebo všechny mají otevřenou fakturu — nelze vystavit fakturu.');
         }
 
         return redirect("/faktury/{$invoice->id}")

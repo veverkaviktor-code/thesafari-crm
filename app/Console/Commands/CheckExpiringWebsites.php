@@ -14,7 +14,7 @@ class CheckExpiringWebsites extends Command
 
     public function handle(): void
     {
-        $admin = User::where('role', 'admin')->first();
+        $admin = User::admin();
         if (!$admin) {
             $this->warn('No admin user found.');
             return;

@@ -162,7 +162,7 @@ class SyncFioTransactions extends Command
                 ->where('variable_symbol', $vs)
                 ->first();
 
-            if ($invoice && (float) $invoice->total === $amount) {
+            if ($invoice && abs((float) $invoice->total - $amount) < 0.01) {
                 $this->autoMatch($bankTransaction, $invoice, $admin);
                 return;
             }
@@ -182,7 +182,7 @@ class SyncFioTransactions extends Command
 
         // (c) Bez VS, ale unikátní shoda částky
         $byAmount = Invoice::whereIn('status', $unpaidStatuses)
-            ->whereRaw('CAST(total AS FLOAT) = ?', [$amount])
+            ->whereRaw('ABS(total - ?) < 0.01', [$amount])
             ->get();
 
         if ($byAmount->count() === 1) {

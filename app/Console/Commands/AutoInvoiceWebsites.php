@@ -214,9 +214,9 @@ class AutoInvoiceWebsites extends Command
                 continue;
             }
 
-            // Check no open invoice exists for this VPS
-            $hasOpenInvoice = Invoice::whereIn('status', ['vystavena', 'odeslana'])
-                ->where('notes', 'like', "%VPS {$vps->name}%")
+            // S1: Check no open invoice exists for this VPS (robustní FK check místo LIKE notes)
+            $hasOpenInvoice = Invoice::where('vps_server_id', $vps->id)
+                ->whereIn('status', ['vystavena', 'odeslana'])
                 ->exists();
 
             if ($hasOpenInvoice) {
@@ -237,15 +237,16 @@ class AutoInvoiceWebsites extends Command
                 $invoiceNumber = Invoice::getNextInvoiceNumber('6');
 
                 $invoice = Invoice::create([
-                    'customer_id' => $vps->customer_id,
+                    'customer_id'    => $vps->customer_id,
+                    'vps_server_id'  => $vps->id, // S1: FK pro robustní open invoice check a processPayment
                     'invoice_number' => $invoiceNumber,
                     'variable_symbol' => $invoiceNumber,
-                    'issue_date' => now()->toDateString(),
-                    'due_date' => $expiry->toDateString(),
-                    'status' => 'vystavena',
+                    'issue_date'     => now()->toDateString(),
+                    'due_date'       => $expiry->toDateString(),
+                    'status'         => 'vystavena',
                     'payment_method' => 'banka',
-                    'total' => $price,
-                    'notes' => "Automaticky vygenerovaná faktura za VPS {$vps->name}.",
+                    'total'          => $price,
+                    'notes'          => "Automaticky vygenerovaná faktura za VPS {$vps->name}.",
                 ]);
 
                 $invoice->items()->create([

@@ -38,6 +38,7 @@ class SendInvoiceReminders extends Command
             ->where('status', 'po_splatnosti')
             ->where('reminder_count', '<', 3)
             ->whereNotNull('due_date')
+            ->whereNotNull('sent_at') // K4: Upomínku posílat jen pokud byla faktura odeslána zákazníkovi
             ->get();
 
         foreach ($invoices as $invoice) {
