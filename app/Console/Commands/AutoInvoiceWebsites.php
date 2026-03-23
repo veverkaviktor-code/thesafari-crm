@@ -38,7 +38,6 @@ class AutoInvoiceWebsites extends Command
 
         $websites = Website::where('status', 'aktivni')
             ->whereNull('alias_of_id') // Skip aliases — covered by main website
-            ->where('auto_renew', true)
             ->where('auto_invoice', true)
             ->where('is_free', false)
             ->whereNotNull('hosting_expires_at')

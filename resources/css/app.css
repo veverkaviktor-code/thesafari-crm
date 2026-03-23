@@ -137,6 +137,10 @@
   body {
     @apply bg-background text-foreground;
     }
+  button, a, [role="button"], label[for], select, summary,
+  [type="button"], [type="submit"], [type="reset"] {
+    cursor: pointer;
+  }
 }
 
 /* Prevent iOS Safari auto-zoom on input focus (requires >= 16px) */

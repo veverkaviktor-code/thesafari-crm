@@ -14,6 +14,7 @@ class WebsiteCredentialController extends Controller
             'label' => 'required|string|max:255',
             'login' => 'nullable|string|max:255',
             'password' => 'nullable|string',
+            'email' => 'nullable|email|max:255',
             'notes' => 'nullable|string',
         ]);
 
@@ -31,6 +32,7 @@ class WebsiteCredentialController extends Controller
             'label' => 'required|string|max:255',
             'login' => 'nullable|string|max:255',
             'password' => 'nullable|string',
+            'email' => 'nullable|email|max:255',
             'notes' => 'nullable|string',
         ]);
 

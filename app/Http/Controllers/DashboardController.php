@@ -433,10 +433,9 @@ class DashboardController extends Controller
             ];
         }
 
-        // 7. Websites to manually invoice (auto_renew=true, auto_invoice=false, expiring soon)
+        // 7. Websites to manually invoice (auto_invoice=false, expiring soon)
         $manualInvoiceWebsites = Website::where('status', 'aktivni')
             ->whereNull('alerts_ignored_at')
-            ->where('auto_renew', true)
             ->where('auto_invoice', false)
             ->where('is_free', false)
             ->whereNotNull('hosting_expires_at')
@@ -565,9 +564,8 @@ class DashboardController extends Controller
         // Finanční přehled = jen zakázky (jednorázová práce)
         $completedOrders = Order::whereIn('status', ['hotovo', 'fakturovano'])->get();
         $orderRevenue = (float) $completedOrders->sum('price');
-        $orderCosts = (float) DB::table('order_costs')
-            ->whereIn('order_id', $completedOrders->pluck('id'))
-            ->sum('amount');
+        // Náklady ze VŠECH zakázek — jsou to reálně utracené peníze bez ohledu na stav zakázky
+        $orderCosts = (float) DB::table('order_costs')->sum('amount');
         $orderProfit = $orderRevenue - $orderCosts;
 
         // Zaplaceno (zaplacené faktury za zakázky)

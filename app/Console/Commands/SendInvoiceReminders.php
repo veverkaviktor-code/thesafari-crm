@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\CompanySetting;
+use App\Models\EmailLog;
 use App\Models\Invoice;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -60,11 +61,28 @@ class SendInvoiceReminders extends Command
             }
 
             try {
+                $subject = match ($nextReminder) {
+                    1 => "Karel hlásí — faktura č. {$invoice->invoice_number} visí na větvi",
+                    2 => "Upomínka — faktura č. {$invoice->invoice_number} ({$daysOverdue} dní po splatnosti)",
+                    3 => "Poslední upomínka — faktura č. {$invoice->invoice_number} — 7 dní do pozastavení služeb",
+                    default => "Upomínka — faktura č. {$invoice->invoice_number}",
+                };
+
                 $this->sendReminder($invoice, $company, $nextReminder, $daysOverdue);
 
                 $invoice->update([
                     'reminder_count' => $nextReminder,
                     'last_reminder_at' => now(),
+                ]);
+
+                EmailLog::create([
+                    'invoice_id'      => $invoice->id,
+                    'customer_id'     => $invoice->customer_id,
+                    'recipient_email' => $invoice->customer->email,
+                    'subject'         => $subject,
+                    'type'            => "reminder_{$nextReminder}",
+                    'status'          => 'sent',
+                    'sent_at'         => now(),
                 ]);
 
                 $sent++;
@@ -79,6 +97,18 @@ class SendInvoiceReminders extends Command
                 Log::error("Reminder failed for invoice #{$invoice->invoice_number}", [
                     'error' => $e->getMessage(),
                 ]);
+
+                EmailLog::create([
+                    'invoice_id'      => $invoice->id,
+                    'customer_id'     => $invoice->customer_id,
+                    'recipient_email' => $invoice->customer->email ?? '',
+                    'subject'         => "Upomínka č. {$nextReminder} — faktura {$invoice->invoice_number}",
+                    'type'            => "reminder_{$nextReminder}",
+                    'status'          => 'failed',
+                    'error_message'   => $e->getMessage(),
+                    'sent_at'         => now(),
+                ]);
+
                 $this->error("  Chyba: #{$invoice->invoice_number} — {$e->getMessage()}");
             }
         }

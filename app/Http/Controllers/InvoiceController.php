@@ -65,9 +65,22 @@ class InvoiceController extends Controller
             ->orderBy('created_at', 'asc')
             ->get(['id', 'description', 'created_at', 'properties']);
 
+        $emailLogs = \App\Models\EmailLog::where('invoice_id', $invoice->id)
+            ->orderBy('sent_at', 'desc')
+            ->get(['id', 'type', 'subject', 'recipient_email', 'status', 'error_message', 'sent_at']);
+
         return Inertia::render('Invoices/Show', [
             'invoice' => $invoice,
             'company' => CompanySetting::get(),
+            'emailLogs' => $emailLogs->map(fn ($log) => [
+                'id' => $log->id,
+                'type' => $log->type,
+                'subject' => $log->subject,
+                'recipient_email' => $log->recipient_email,
+                'status' => $log->status,
+                'error_message' => $log->error_message,
+                'sent_at' => $log->sent_at?->toIso8601String(),
+            ]),
             'activities' => $activities->map(fn ($a) => [
                 'id' => $a->id,
                 'description' => $a->description,

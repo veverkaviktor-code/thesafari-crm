@@ -87,17 +87,27 @@ class Invoice extends Model
             $year = now()->year;
             $prefix = $year . $series;
 
-            $lastInvoice = static::withTrashed()
-                ->where('invoice_number', 'LIKE', $prefix . '%')
-                ->orderByRaw("CAST(NULLIF(REGEXP_REPLACE(invoice_number, '[^0-9]', '', 'g'), '') AS INTEGER) DESC NULLS LAST")
+            // Atomic increment on sequence table — safe even after hard delete
+            $seq = DB::table('invoice_sequences')
+                ->where('prefix', $prefix)
                 ->lockForUpdate()
                 ->first();
 
-            if ($lastInvoice) {
-                return (string) ((int) $lastInvoice->invoice_number + 1);
+            if ($seq) {
+                $next = $seq->last_number + 1;
+                DB::table('invoice_sequences')
+                    ->where('prefix', $prefix)
+                    ->update(['last_number' => $next]);
+                return (string) $next;
             }
 
-            return $prefix . '001';
+            $firstNumber = (int) ($prefix . '001');
+            DB::table('invoice_sequences')->insert([
+                'prefix' => $prefix,
+                'last_number' => $firstNumber,
+            ]);
+
+            return (string) $firstNumber;
         });
     }
 

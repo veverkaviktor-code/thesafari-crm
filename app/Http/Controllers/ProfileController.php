@@ -31,7 +31,17 @@ class ProfileController extends Controller
             if ($user->avatar_path) {
                 Storage::disk('public')->delete($user->avatar_path);
             }
-            $user->avatar_path = $request->file('avatar')->store('avatars', 'public');
+
+            $file = $request->file('avatar');
+            $filename = pathinfo($file->hashName(), PATHINFO_FILENAME) . '.webp';
+            $image = imagecreatefromstring(file_get_contents($file->path()));
+            $tmpPath = sys_get_temp_dir() . '/' . $filename;
+            imagewebp($image, $tmpPath, 85);
+            imagedestroy($image);
+
+            Storage::disk('public')->putFileAs('avatars', new \Illuminate\Http\File($tmpPath), $filename);
+            unlink($tmpPath);
+            $user->avatar_path = 'avatars/' . $filename;
         }
 
         $user->save();

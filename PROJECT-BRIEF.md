@@ -99,7 +99,19 @@ Karel "Lenoch" (lenochod) = maskot fakturace. Obrázky v `storage/app/email-asse
 | 08:00 | `invoices:check-overdue` | Označení + notifikace overdue faktur |
 | 08:30 | `websites:check-expiring` | Notifikace expirujících webů (30/14/7d) |
 | 09:00 | `notifications:generate` | Notifikace (inactive estimates) |
+| 09:00 | `invoices:send-pre-reminders` | Připomínka 4 dny před splatností (Karel "visí na větvi") |
 | 09:30 | `invoices:send-reminders` | Email upomínky (3/10/21d po splatnosti, jen sent_at != NULL) |
+
+## Email flow (faktura)
+```
+Den 0:  Faktura odeslána zákazníkovi
+Den 10: Připomínka (4 dny před splatností) — 09:00
+Den 14: Splatnost
+Den 17: 1. upomínka (3 dny po splatnosti) — 09:30
+Den 24: 2. upomínka (10 dní po splatnosti) — 09:30
+Den 35: 3. upomínka — poslední (21 dní po splatnosti) — 09:30
+```
+Všechny emaily se logují do `email_logs` a zobrazují v timeline na detailu faktury.
 
 ## Statistiky projektu
 | Metrika | Hodnota |
@@ -108,7 +120,7 @@ Karel "Lenoch" (lenochod) = maskot fakturace. Obrázky v `storage/app/email-asse
 | Kontrolery | 32 |
 | React stránky | 34 |
 | React komponenty | 63 |
-| Migrace | 59 |
-| Console Commands | 7 |
-| Email šablony | 3 |
-| Verze | v1.2.1 |
+| Migrace | 61 |
+| Console Commands | 8 |
+| Email šablony | 4 |
+| Verze | v1.2.2 |

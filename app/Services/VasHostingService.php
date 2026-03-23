@@ -130,7 +130,6 @@ class VasHostingService
                 'register'   => false,
                 'transfer'   => false,
                 'sendEmail'  => false,
-                'phpVersion' => '8.3',
             ]);
 
             if ($response->successful()) {

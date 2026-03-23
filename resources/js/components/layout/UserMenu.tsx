@@ -11,6 +11,7 @@ import {
 interface AuthUser {
     name: string;
     email: string;
+    avatar_path: string | null;
 }
 
 export default function UserMenu() {
@@ -34,9 +35,17 @@ export default function UserMenu() {
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 rounded-lg p-1.5 transition-colors hover:bg-accent">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
-                        {initials}
-                    </div>
+                    {user?.avatar_path ? (
+                        <img
+                            src={`/storage/${user.avatar_path}`}
+                            alt={user?.name ?? ''}
+                            className="h-8 w-8 rounded-full object-cover"
+                        />
+                    ) : (
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+                            {initials}
+                        </div>
+                    )}
                     <span className="hidden text-sm font-medium text-foreground/70 md:block">
                         {user?.name ?? 'Uživatel'}
                     </span>

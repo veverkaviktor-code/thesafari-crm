@@ -88,6 +88,16 @@ interface Activity {
     };
 }
 
+interface EmailLogEntry {
+    id: number;
+    type: string;
+    subject: string;
+    recipient_email: string;
+    status: 'sent' | 'failed';
+    error_message: string | null;
+    sent_at: string | null;
+}
+
 interface Props {
     invoice: Invoice & { sent_at: string | null };
     company: {
@@ -101,6 +111,7 @@ interface Props {
     } | null;
     unmatchedTransactions: BankTransaction[];
     activities: Activity[];
+    emailLogs?: EmailLogEntry[];
 }
 
 const formatDate = (d: string) =>
@@ -125,7 +136,7 @@ interface TimelineItem {
     iconColor: string;
 }
 
-export default function Show({ invoice, company, unmatchedTransactions, activities }: Props) {
+export default function Show({ invoice, company, unmatchedTransactions, activities, emailLogs }: Props) {
     const co = company ?? {
         name: 'The Safari s.r.o.',
         ico: '',
@@ -234,7 +245,29 @@ export default function Show({ invoice, company, unmatchedTransactions, activiti
         });
     }
 
-    // f) Změny stavu z activity_log
+    // f) E-mail logy (odesláno, upomínky, poděkování)
+    const emailTypeLabels: Record<string, string> = {
+        invoice: 'Faktura odeslána e-mailem',
+        reminder_1: '1. upomínka odeslána',
+        reminder_2: '2. upomínka odeslána',
+        reminder_3: '3. upomínka (poslední) odeslána',
+        payment_thanks: 'Poděkování za úhradu odesláno',
+    };
+    (emailLogs ?? []).forEach((log) => {
+        const label = log.status === 'failed'
+            ? `${emailTypeLabels[log.type] ?? log.type} — SELHALO`
+            : emailTypeLabels[log.type] ?? log.subject;
+        timelineItems.push({
+            key: `email-${log.id}`,
+            date: log.sent_at ? new Date(log.sent_at) : new Date(),
+            label: `${label} → ${log.recipient_email}`,
+            icon: Mail,
+            dotColor: log.status === 'failed' ? 'bg-red-500' : 'bg-blue-500',
+            iconColor: log.status === 'failed' ? 'text-red-400' : 'text-blue-400',
+        });
+    });
+
+    // g) Změny stavu z activity_log
     activities.forEach((activity) => {
         const newStatus =
             activity.properties?.attributes?.['status'] as string | undefined;

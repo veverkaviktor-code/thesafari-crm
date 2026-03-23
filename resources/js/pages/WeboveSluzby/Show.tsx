@@ -62,6 +62,7 @@ interface WebsiteCredential {
     label: string;
     login: string;
     password: string | null;
+    email: string | null;
     notes: string | null;
     sort_order: number;
 }
@@ -174,9 +175,9 @@ interface Props {
 /* ─────── Config maps ─────── */
 
 const statusMap: Record<string, { label: string; variant: 'active' | 'inactive' | 'cancelled' }> = {
-    aktivni: { label: 'Aktivni', variant: 'active' },
+    aktivni: { label: 'Aktivní', variant: 'active' },
     pozastaveno: { label: 'Pozastaveno', variant: 'inactive' },
-    zruseno: { label: 'Zruseno', variant: 'cancelled' },
+    zruseno: { label: 'Zrušeno', variant: 'cancelled' },
 };
 
 const invoiceStatusConfig: Record<string, { label: string; className: string }> = {
@@ -194,13 +195,13 @@ const paymentStatusConfig: Record<string, { label: string; className: string }> 
 };
 
 const managementCycleLabels: Record<string, string> = {
-    quarterly: 'Ctvrtletne',
-    semi_annual: 'Pololetne',
-    annual: 'Rocne',
+    quarterly: 'Čtvrtletně',
+    semi_annual: 'Pololetně',
+    annual: 'Ročně',
 };
 
 const paymentMethodLabels: Record<string, string> = {
-    prevod: 'Prevodem',
+    prevod: 'Převodem',
     hotovost: 'Hotovost',
     karta: 'Kartou',
 };
@@ -208,11 +209,11 @@ const paymentMethodLabels: Record<string, string> = {
 type TabId = 'prehled' | 'domena' | 'hosting' | 'sprava' | 'pristupy';
 
 const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
-    { id: 'prehled', label: 'Prehled', icon: LayoutDashboard },
-    { id: 'domena', label: 'Domena', icon: Globe },
+    { id: 'prehled', label: 'Přehled', icon: LayoutDashboard },
+    { id: 'domena', label: 'Doména', icon: Globe },
     { id: 'hosting', label: 'Hosting', icon: HardDrive },
-    { id: 'sprava', label: 'Sprava', icon: Settings },
-    { id: 'pristupy', label: 'Pristupy', icon: KeyRound },
+    { id: 'sprava', label: 'Správa', icon: Settings },
+    { id: 'pristupy', label: 'Přístupy', icon: KeyRound },
 ];
 
 /* ─────── Small components ─────── */
@@ -273,14 +274,14 @@ function PasswordField({ password }: { password: string }) {
             <button
                 onClick={() => setVisible(!visible)}
                 className="rounded p-1 text-muted-foreground hover:text-foreground"
-                title={visible ? 'Skryt' : 'Zobrazit'}
+                title={visible ? 'Skrýt' : 'Zobrazit'}
             >
                 {visible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
             </button>
             <button
                 onClick={handleCopy}
                 className={`rounded p-1 transition-colors ${copied ? 'text-emerald-500' : 'text-muted-foreground hover:text-foreground'}`}
-                title={copied ? 'Zkopirovano!' : 'Kopirovat'}
+                title={copied ? 'Zkopírováno!' : 'Kopírovat'}
             >
                 {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
             </button>
@@ -294,7 +295,7 @@ function StorageBar({ used, quota }: { used: number; quota: number }) {
     return (
         <div>
             <div className="flex items-center justify-between text-sm mb-1.5">
-                <span className="text-muted-foreground">Uloziste</span>
+                <span className="text-muted-foreground">Úložiště</span>
                 <span className="text-foreground text-xs">{used} / {quota} MB</span>
             </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -339,13 +340,13 @@ function PaymentForm({ website, onClose }: { website: Website; onClose: () => vo
     return (
         <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-                <Label className="text-muted-foreground">Castka (Kc)</Label>
+                <Label className="text-muted-foreground">Částka (Kč)</Label>
                 <Input type="number" value={data.amount} onChange={(e) => setData('amount', e.target.value)} placeholder="0" className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground" />
                 {errors.amount && <p className="mt-1 text-xs text-red-400">{errors.amount}</p>}
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <Label className="text-muted-foreground">Obdobi od</Label>
+                    <Label className="text-muted-foreground">Období od</Label>
                     <Popover>
                         <PopoverTrigger asChild>
                             <Button variant="outline" className="mt-1.5 w-full justify-start text-left bg-muted border-border text-foreground hover:bg-muted">
@@ -360,7 +361,7 @@ function PaymentForm({ website, onClose }: { website: Website; onClose: () => vo
                     {errors.period_start && <p className="mt-1 text-xs text-red-400">{errors.period_start}</p>}
                 </div>
                 <div>
-                    <Label className="text-muted-foreground">Obdobi do</Label>
+                    <Label className="text-muted-foreground">Období do</Label>
                     <Popover>
                         <PopoverTrigger asChild>
                             <Button variant="outline" className="mt-1.5 w-full justify-start text-left bg-muted border-border text-foreground hover:bg-muted">
@@ -387,11 +388,11 @@ function PaymentForm({ website, onClose }: { website: Website; onClose: () => vo
             </div>
             {isPaid && (
                 <div>
-                    <Label className="text-muted-foreground">Zpusob platby</Label>
+                    <Label className="text-muted-foreground">Způsob platby</Label>
                     <Select value={data.payment_method} onValueChange={(v) => setData('payment_method', v)}>
                         <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground"><SelectValue /></SelectTrigger>
                         <SelectContent className="bg-card border-border">
-                            <SelectItem value="prevod">Prevodem</SelectItem>
+                            <SelectItem value="prevod">Převodem</SelectItem>
                             <SelectItem value="hotovost">Hotovost</SelectItem>
                             <SelectItem value="karta">Kartou</SelectItem>
                         </SelectContent>
@@ -399,14 +400,14 @@ function PaymentForm({ website, onClose }: { website: Website; onClose: () => vo
                 </div>
             )}
             <div>
-                <Label className="text-muted-foreground">Poznamka</Label>
+                <Label className="text-muted-foreground">Poznámka</Label>
                 <Textarea value={data.notes} onChange={(e) => setData('notes', e.target.value)} rows={2} className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground resize-none" />
             </div>
             <div className="flex items-center justify-end gap-3 pt-2">
-                <Button type="button" variant="ghost" onClick={onClose} className="text-muted-foreground hover:text-foreground">Zrusit</Button>
+                <Button type="button" variant="ghost" onClick={onClose} className="text-muted-foreground hover:text-foreground">Zrušit</Button>
                 <Separator orientation="vertical" className="h-6 bg-border" />
                 <Button type="submit" disabled={processing} className="bg-primary hover:bg-primary/80 text-white">
-                    {processing ? 'Ukladam...' : 'Ulozit platbu'}
+                    {processing ? 'Ukládám...' : 'Uložit platbu'}
                 </Button>
             </div>
         </form>
@@ -435,16 +436,16 @@ function TabPrehled({ website, paymentStats, onShowPaymentModal }: {
                 <div className="bg-card border border-border rounded-lg p-4 space-y-1">
                     <div className="flex items-center gap-2 mb-3">
                         <Globe className="h-4 w-4 text-amber-500" />
-                        <h3 className="text-sm font-semibold text-foreground">Domena</h3>
+                        <h3 className="text-sm font-semibold text-foreground">Doména</h3>
                     </div>
-                    <InfoRow label="Registrator">
+                    <InfoRow label="Registrátor">
                         {website.is_registered_by_us ? (
                             <span className="inline-flex items-center gap-1.5">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                <span className="text-emerald-400 font-medium">Vlastni</span>
+                                <span className="text-emerald-400 font-medium">Vlastní</span>
                             </span>
                         ) : (
-                            <span className="text-muted-foreground/60">Externi</span>
+                            <span className="text-muted-foreground/60">Externí</span>
                         )}
                     </InfoRow>
                     <InfoRow label="Expirace">
@@ -486,7 +487,7 @@ function TabPrehled({ website, paymentStats, onShowPaymentModal }: {
                     {website.admin_url && (
                         <InfoRow label="Admin URL">
                             <a href={website.admin_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
-                                Otevrit <ExternalLink className="h-3 w-3" />
+                                Otevřít <ExternalLink className="h-3 w-3" />
                             </a>
                         </InfoRow>
                     )}
@@ -620,17 +621,17 @@ function TabPrehled({ website, paymentStats, onShowPaymentModal }: {
             <div className="bg-card border border-border rounded-lg overflow-hidden">
                 <SectionHeader
                     icon={ReceiptText}
-                    title="Platebni historie"
+                    title="Platební historie"
                     count={paymentStats.payments_count}
                     action={
                         <Button size="sm" onClick={onShowPaymentModal} className="bg-primary hover:bg-primary/80 text-white h-7 px-3 text-xs">
                             <Plus className="h-3.5 w-3.5 mr-1" />
-                            Nova platba
+                            Nová platba
                         </Button>
                     }
                 />
                 {website.payments.length === 0 ? (
-                    <div className="px-5 py-8 text-center text-sm text-muted-foreground">Zadne platby</div>
+                    <div className="px-5 py-8 text-center text-sm text-muted-foreground">Žádné platby</div>
                 ) : (
                     <div className="divide-y divide-border">
                         {website.payments.map((payment) => (
@@ -740,7 +741,7 @@ function TabPrehled({ website, paymentStats, onShowPaymentModal }: {
             {/* Poznamky */}
             {website.notes && (
                 <div className="bg-card border border-border rounded-lg px-5 py-4">
-                    <h3 className="text-sm font-semibold text-foreground mb-2">Poznamky</h3>
+                    <h3 className="text-sm font-semibold text-foreground mb-2">Poznámky</h3>
                     <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{website.notes}</p>
                 </div>
             )}
@@ -755,19 +756,19 @@ function TabDomena({ website }: { website: Website }) {
         <div className="space-y-4">
             {/* Registrace */}
             <div className="bg-card border border-border rounded-lg overflow-hidden">
-                <SectionHeader icon={Globe} title="Registrace domeny" />
+                <SectionHeader icon={Globe} title="Registrace domény" />
                 <div className="px-5 py-4 space-y-1">
-                    <InfoRow label="Registrator">
+                    <InfoRow label="Registrátor">
                         {website.is_registered_by_us ? (
                             <span className="inline-flex items-center gap-1.5">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                <span className="text-emerald-400 font-medium">Vlastni</span>
+                                <span className="text-emerald-400 font-medium">Vlastní</span>
                             </span>
                         ) : (
-                            <span className="text-muted-foreground/60">Externi</span>
+                            <span className="text-muted-foreground/60">Externí</span>
                         )}
                     </InfoRow>
-                    <InfoRow label="Expirace domeny">
+                    <InfoRow label="Expirace domény">
                         {website.domain_expires_at ? (
                             <div className="flex items-center gap-2">
                                 <span className="text-sm">{format(new Date(website.domain_expires_at), 'd. M. yyyy', { locale: cs })}</span>
@@ -810,7 +811,7 @@ function TabDomena({ website }: { website: Website }) {
                 <SectionHeader icon={Link2} title="Aliasy" count={website.aliases?.length ?? 0} />
                 <div className="px-5 py-4">
                     {(!website.aliases || website.aliases.length === 0) ? (
-                        <p className="text-sm text-muted-foreground">Zadne aliasy</p>
+                        <p className="text-sm text-muted-foreground">Žádné aliasy</p>
                     ) : (
                         <div className="space-y-2">
                             {website.aliases.map((alias) => (
@@ -836,7 +837,7 @@ function TabDomena({ website }: { website: Website }) {
             {/* Sync info */}
             {website.synced_at && (
                 <p className="text-xs text-muted-foreground/50 px-1">
-                    Posledni sync: {format(new Date(website.synced_at), 'd. M. yyyy HH:mm', { locale: cs })}
+                    Poslední sync: {format(new Date(website.synced_at), 'd. M. yyyy HH:mm', { locale: cs })}
                 </p>
             )}
         </div>
@@ -864,13 +865,13 @@ function TabHosting({ website }: { website: Website }) {
             });
             const data = await response.json();
             if (response.ok) {
-                setActivateResult({ success: true, message: data.message ?? 'Hosting aktivovan.' });
+                setActivateResult({ success: true, message: data.message ?? 'Hosting aktivován.' });
                 setTimeout(() => router.post('/webove-sluzby/sync', {}, { preserveState: false }), 1500);
             } else {
                 setActivateResult({ success: false, message: data.message ?? 'Aktivace selhala.' });
             }
         } catch {
-            setActivateResult({ success: false, message: 'Sitova chyba.' });
+            setActivateResult({ success: false, message: 'Síťová chyba.' });
         } finally {
             setActivatingHosting(false);
         }
@@ -933,7 +934,7 @@ function TabHosting({ website }: { website: Website }) {
             ) : (
                 <div className="bg-card border border-border rounded-lg px-5 py-8 text-center">
                     <HardDrive className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
-                    <p className="text-sm text-muted-foreground mb-4">Tento web nema aktivni hosting</p>
+                    <p className="text-sm text-muted-foreground mb-4">Tento web nemá aktivní hosting</p>
                     <Button
                         onClick={handleActivateHosting}
                         disabled={activatingHosting}
@@ -950,7 +951,7 @@ function TabHosting({ website }: { website: Website }) {
                 </div>
             )}
 
-            {/* Activate hosting button always available if hosting exists (for re-sync) */}
+            {/* Sync button when hosting already exists on server */}
             {hasHosting && (
                 <div className="flex items-center gap-3">
                     <Button
@@ -958,10 +959,10 @@ function TabHosting({ website }: { website: Website }) {
                         size="sm"
                         onClick={handleActivateHosting}
                         disabled={activatingHosting}
-                        className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 border border-emerald-500/25"
+                        className="text-muted-foreground hover:text-foreground hover:bg-accent border border-border"
                     >
                         {activatingHosting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                        Znovu aktivovat hosting
+                        Synchronizovat hosting
                     </Button>
                     {activateResult && (
                         <span className={`text-xs ${activateResult.success ? 'text-emerald-400' : 'text-red-400'}`}>
@@ -984,30 +985,30 @@ function TabSprava({ website }: { website: Website }) {
         <div className="space-y-4">
             {plan ? (
                 <div className="bg-card border border-border rounded-lg overflow-hidden">
-                    <SectionHeader icon={Settings} title="Balicek spravy" />
+                    <SectionHeader icon={Settings} title="Balíček správy" />
                     <div className="px-5 py-4 space-y-1">
-                        <InfoRow label="Balicek">
+                        <InfoRow label="Balíček">
                             <span className="font-semibold text-foreground">{plan.name}</span>
                         </InfoRow>
-                        <InfoRow label="Mesicni cena">
-                            <span className="font-medium">{formatCurrency(monthlyPrice)}/mes</span>
+                        <InfoRow label="Měsíční cena">
+                            <span className="font-medium">{formatCurrency(monthlyPrice)}/měs</span>
                         </InfoRow>
                         {website.management_cycle && (
-                            <InfoRow label="Fakturacni cyklus">
+                            <InfoRow label="Fakturační cyklus">
                                 <span>{managementCycleLabels[website.management_cycle] ?? website.management_cycle}</span>
                             </InfoRow>
                         )}
-                        <InfoRow label="Auto-fakturace spravy">
+                        <InfoRow label="Auto-fakturace správy">
                             <span className={website.auto_invoice_management ? 'text-emerald-400 font-medium' : 'text-muted-foreground'}>
                                 {website.auto_invoice_management ? 'Ano' : 'Ne'}
                             </span>
                         </InfoRow>
                         <Separator className="bg-border !my-3" />
-                        <InfoRow label="Rocni vyse">
+                        <InfoRow label="Roční výše">
                             <span className="font-semibold text-foreground">{formatCurrency(monthlyPrice * 12)}/rok</span>
                         </InfoRow>
                         {website.management_cycle && (
-                            <InfoRow label="Fakturacni castka">
+                            <InfoRow label="Fakturační částka">
                                 <span className="font-medium text-foreground">
                                     {website.management_cycle === 'quarterly' && formatCurrency(monthlyPrice * 3)}
                                     {website.management_cycle === 'semi_annual' && formatCurrency(monthlyPrice * 6)}
@@ -1021,8 +1022,8 @@ function TabSprava({ website }: { website: Website }) {
             ) : (
                 <div className="bg-card border border-border rounded-lg px-5 py-8 text-center">
                     <Settings className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
-                    <p className="text-sm text-muted-foreground mb-2">Bez spravy webu</p>
-                    <p className="text-xs text-muted-foreground/60">Nastavte balicek pres tlacitko Upravit.</p>
+                    <p className="text-sm text-muted-foreground mb-2">Bez správy webu</p>
+                    <p className="text-xs text-muted-foreground/60">Nastavte balíček přes tlačítko Upravit.</p>
                 </div>
             )}
         </div>
@@ -1043,6 +1044,33 @@ function TabPristupy({ website }: { website: Website }) {
     );
 }
 
+function CopyCredentialButton({ credential, adminUrl }: { credential: WebsiteCredential; adminUrl: string | null }) {
+    const [copied, setCopied] = useState(false);
+
+    function handleCopy() {
+        const lines: string[] = [];
+        lines.push(`Přístup: ${credential.label}`);
+        if (adminUrl) lines.push(`URL: ${adminUrl}`);
+        if (credential.login) lines.push(`Login: ${credential.login}`);
+        if (credential.password) lines.push(`Heslo: ${credential.password}`);
+        if (credential.email) lines.push(`E-mail: ${credential.email}`);
+
+        navigator.clipboard.writeText(lines.join('\n'));
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    }
+
+    return (
+        <button
+            onClick={handleCopy}
+            className={`rounded p-1.5 transition-colors ${copied ? 'text-emerald-500' : 'text-muted-foreground hover:bg-background hover:text-foreground'}`}
+            title={copied ? 'Zkopírováno!' : 'Kopírovat přístupy'}
+        >
+            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+        </button>
+    );
+}
+
 /* ─────── Credentials Section with CRUD ─────── */
 
 function CredentialsSection({ websiteId, credentials, adminUrl }: {
@@ -1059,7 +1087,7 @@ function CredentialsSection({ websiteId, credentials, adminUrl }: {
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
                 <div className="flex items-center gap-2">
                     <Shield className="h-4 w-4 text-muted-foreground" />
-                    <h2 className="text-sm font-semibold text-foreground">Pristupove udaje</h2>
+                    <h2 className="text-sm font-semibold text-foreground">Přístupové údaje</h2>
                     {credentials.length > 0 && (
                         <span className="text-xs text-muted-foreground">({credentials.length})</span>
                     )}
@@ -1070,7 +1098,7 @@ function CredentialsSection({ websiteId, credentials, adminUrl }: {
                         className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
                     >
                         <Plus className="h-3.5 w-3.5" />
-                        Pridat
+                        Přidat
                     </button>
                 )}
             </div>
@@ -1080,7 +1108,7 @@ function CredentialsSection({ websiteId, credentials, adminUrl }: {
                     <div className="flex items-center justify-between py-1.5 mb-2">
                         <span className="text-sm text-muted-foreground">Admin URL</span>
                         <a href={adminUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
-                            Otevrit <ExternalLink className="h-3 w-3" />
+                            Otevřít <ExternalLink className="h-3 w-3" />
                         </a>
                     </div>
                 )}
@@ -1094,7 +1122,7 @@ function CredentialsSection({ websiteId, credentials, adminUrl }: {
                 )}
 
                 {credentials.length === 0 && !showForm && !adminUrl && (
-                    <p className="text-sm text-muted-foreground py-2">Zadne pristupove udaje</p>
+                    <p className="text-sm text-muted-foreground py-2">Žádné přístupové údaje</p>
                 )}
 
                 <div className="space-y-2">
@@ -1115,6 +1143,7 @@ function CredentialsSection({ websiteId, credentials, adminUrl }: {
                                         <span className="text-xs font-medium text-foreground">{cred.label}</span>
                                     </div>
                                     <div className="flex shrink-0 gap-0.5">
+                                        <CopyCredentialButton credential={cred} adminUrl={adminUrl} />
                                         <button onClick={() => setEditingId(cred.id)} className="rounded p-1.5 text-muted-foreground hover:bg-background hover:text-foreground" title="Upravit">
                                             <Pencil className="h-3.5 w-3.5" />
                                         </button>
@@ -1131,6 +1160,12 @@ function CredentialsSection({ websiteId, credentials, adminUrl }: {
                                     <div className="flex items-center justify-between py-0.5">
                                         <span className="text-xs text-muted-foreground">Heslo</span>
                                         <PasswordField password={cred.password} />
+                                    </div>
+                                )}
+                                {cred.email && (
+                                    <div className="flex items-center justify-between py-0.5">
+                                        <span className="text-xs text-muted-foreground">E-mail</span>
+                                        <span className="text-sm text-foreground">{cred.email}</span>
                                     </div>
                                 )}
                                 {cred.notes && (
@@ -1151,8 +1186,8 @@ function CredentialsSection({ websiteId, credentials, adminUrl }: {
                         setDeleteId(null);
                     }
                 }}
-                title="Smazat pristup"
-                message="Opravdu chcete smazat tyto pristupove udaje?"
+                title="Smazat přístup"
+                message="Opravdu chcete smazat tyto přístupové údaje?"
             />
         </div>
     );
@@ -1174,6 +1209,7 @@ function CredentialForm({
         label: credential?.label ?? '',
         login: credential?.login ?? '',
         password: '',
+        email: credential?.email ?? '',
         notes: credential?.notes ?? '',
     });
 
@@ -1190,8 +1226,8 @@ function CredentialForm({
         <form onSubmit={handleSubmit} className="rounded-lg border border-border bg-accent p-3 mb-2 space-y-3">
             <div className="grid grid-cols-2 gap-3">
                 <div>
-                    <Label className="text-xs text-muted-foreground">Nazev *</Label>
-                    <Input value={form.data.label} onChange={(e) => form.setData('label', e.target.value)} placeholder="napr. WP admin" className="h-8 text-sm bg-background" />
+                    <Label className="text-xs text-muted-foreground">Název *</Label>
+                    <Input value={form.data.label} onChange={(e) => form.setData('label', e.target.value)} placeholder="např. WP admin" className="h-8 text-sm bg-background" />
                     {form.errors.label && <p className="text-xs text-red-400 mt-0.5">{form.errors.label}</p>}
                 </div>
                 <div>
@@ -1201,18 +1237,22 @@ function CredentialForm({
             </div>
             <div className="grid grid-cols-2 gap-3">
                 <div>
-                    <Label className="text-xs text-muted-foreground">Heslo {isEdit && <span className="text-muted-foreground/50">(prazdne = beze zmeny)</span>}</Label>
+                    <Label className="text-xs text-muted-foreground">Heslo {isEdit && <span className="text-muted-foreground/50">(prázdné = beze změny)</span>}</Label>
                     <Input type="text" value={form.data.password} onChange={(e) => form.setData('password', e.target.value)} placeholder={isEdit ? '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022' : 'heslo'} className="h-8 text-sm bg-background" />
                 </div>
                 <div>
-                    <Label className="text-xs text-muted-foreground">Poznamka</Label>
-                    <Input value={form.data.notes} onChange={(e) => form.setData('notes', e.target.value)} placeholder="volitelne" className="h-8 text-sm bg-background" />
+                    <Label className="text-xs text-muted-foreground">E-mail</Label>
+                    <Input type="email" value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} placeholder="email@doména.cz" className="h-8 text-sm bg-background" />
                 </div>
             </div>
+            <div>
+                <Label className="text-xs text-muted-foreground">Poznámka</Label>
+                <Input value={form.data.notes} onChange={(e) => form.setData('notes', e.target.value)} placeholder="volitelné" className="h-8 text-sm bg-background" />
+            </div>
             <div className="flex justify-end gap-2">
-                <button type="button" onClick={onCancel} className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">Zrusit</button>
+                <button type="button" onClick={onCancel} className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">Zrušit</button>
                 <button type="submit" disabled={form.processing} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/80 disabled:opacity-50">
-                    {form.processing ? 'Ukladam...' : isEdit ? 'Ulozit' : 'Pridat'}
+                    {form.processing ? 'Ukládám...' : isEdit ? 'Uložit' : 'Přidat'}
                 </button>
             </div>
         </form>
@@ -1231,7 +1271,7 @@ function EmailAccountsSection({ websiteId, emailAccounts }: { websiteId: number;
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
                 <div className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-muted-foreground" />
-                    <h2 className="text-sm font-semibold text-foreground">E-mailove schranky</h2>
+                    <h2 className="text-sm font-semibold text-foreground">E-mailové schránky</h2>
                     {emailAccounts.length > 0 && (
                         <span className="text-xs text-muted-foreground">({emailAccounts.length})</span>
                     )}
@@ -1257,7 +1297,7 @@ function EmailAccountsSection({ websiteId, emailAccounts }: { websiteId: number;
                 )}
 
                 {emailAccounts.length === 0 && !showForm && (
-                    <p className="text-sm text-muted-foreground py-2">Zadne e-mailove schranky</p>
+                    <p className="text-sm text-muted-foreground py-2">Žádné e-mailové schránky</p>
                 )}
 
                 <div className="space-y-2">
@@ -1348,7 +1388,7 @@ function EmailAccountForm({
                     {form.errors.email && <p className="text-xs text-red-400 mt-0.5">{form.errors.email}</p>}
                 </div>
                 <div>
-                    <Label className="text-xs text-muted-foreground">Heslo {isEdit && <span className="text-muted-foreground/50">(prazdne = beze zmeny)</span>}</Label>
+                    <Label className="text-xs text-muted-foreground">Heslo {isEdit && <span className="text-muted-foreground/50">(prázdné = beze změny)</span>}</Label>
                     <Input type="text" value={form.data.password} onChange={(e) => form.setData('password', e.target.value)} placeholder={isEdit ? '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022' : 'heslo'} className="h-8 text-sm bg-background" />
                 </div>
             </div>
@@ -1358,14 +1398,14 @@ function EmailAccountForm({
                     <Input type="number" value={form.data.quota_mb} onChange={(e) => form.setData('quota_mb', parseInt(e.target.value) || 3072)} className="h-8 text-sm bg-background" />
                 </div>
                 <div>
-                    <Label className="text-xs text-muted-foreground">Poznamka</Label>
+                    <Label className="text-xs text-muted-foreground">Poznámka</Label>
                     <Input type="text" value={form.data.notes} onChange={(e) => form.setData('notes', e.target.value)} placeholder="napr. hlavni schranka" className="h-8 text-sm bg-background" />
                 </div>
             </div>
             <div className="flex justify-end gap-2">
-                <button type="button" onClick={onCancel} className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">Zrusit</button>
+                <button type="button" onClick={onCancel} className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">Zrušit</button>
                 <button type="submit" disabled={form.processing} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/80 disabled:opacity-50">
-                    {form.processing ? 'Ukladam...' : isEdit ? 'Ulozit' : 'Pridat'}
+                    {form.processing ? 'Ukládám...' : isEdit ? 'Uložit' : 'Přidat'}
                 </button>
             </div>
         </form>

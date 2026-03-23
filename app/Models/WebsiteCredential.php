@@ -16,6 +16,7 @@ class WebsiteCredential extends Model
         'label',
         'login',
         'password',
+        'email',
         'notes',
         'sort_order',
     ];
