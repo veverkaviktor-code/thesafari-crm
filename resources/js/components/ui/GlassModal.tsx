@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useRef } from 'react';
+import { type ReactNode, useEffect, useRef, useCallback } from 'react';
 import { X } from 'lucide-react';
 
 interface GlassModalProps {
@@ -20,16 +20,19 @@ export default function GlassModal({
 }: GlassModalProps) {
     const overlayRef = useRef<HTMLDivElement>(null);
     const dialogRef = useRef<HTMLDivElement>(null);
+    const onCloseRef = useRef(onClose);
+    onCloseRef.current = onClose;
 
+    // Escape key + body overflow — stable ref avoids re-runs on onClose identity change
     useEffect(() => {
         if (!open) return;
         const handleEscape = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onClose();
+            if (e.key === 'Escape') onCloseRef.current();
         };
         document.addEventListener('keydown', handleEscape);
         document.body.style.overflow = 'hidden';
 
-        // Auto-focus na první focusable element
+        // Auto-focus first element only on open (not on every re-render)
         const timer = setTimeout(() => {
             const first = dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE)?.[0];
             first?.focus();
@@ -40,7 +43,7 @@ export default function GlassModal({
             document.body.style.overflow = '';
             clearTimeout(timer);
         };
-    }, [open, onClose]);
+    }, [open]);
 
     if (!open) return null;
 

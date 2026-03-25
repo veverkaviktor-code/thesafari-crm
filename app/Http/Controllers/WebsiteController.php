@@ -69,7 +69,11 @@ class WebsiteController extends Controller
                 if (count($vals) === 1) $q->where('is_registered_by_us', $vals[0] === '1');
             })
             ->when($request->input('filter_server'), fn ($q, $v) => $q->whereIn('server', explode(',', $v)))
-            ->when($request->input('filter_management_plan'), fn ($q, $v) => $q->whereIn('management_plan_id', explode(',', $v)));
+            ->when($request->input('filter_management_plan'), fn ($q, $v) => $q->whereIn('management_plan_id', explode(',', $v)))
+            ->when($request->filled('filter_auto_invoice'), function ($q) use ($request) {
+                $vals = explode(',', $request->input('filter_auto_invoice'));
+                if (count($vals) === 1) $q->where('auto_invoice', $vals[0] === '1');
+            });
 
         $allowedSorts = ['name', 'hosting_expires_at', 'domain_expires_at', 'sell_yearly', 'cost_yearly', 'status', 'server', 'created_at', 'storage_used_mb'];
         $sortBy = $request->input('sort_by');
@@ -144,6 +148,10 @@ class WebsiteController extends Controller
         $stats = [
             'total_websites'   => $ours()->where('status', 'aktivni')->count(),
             'total_aliases'    => $ours()->where('status', 'aktivni')->whereNotNull('alias_of_id')->count(),
+            'expiring_soon_count' => $ours()->where('status', 'aktivni')
+                                    ->whereNotNull('hosting_expires_at')
+                                    ->where('hosting_expires_at', '>=', now())
+                                    ->where('hosting_expires_at', '<=', now()->addDays(30))->count(),
             'expired_count'    => $ours()->where('status', 'aktivni')
                                     ->whereNotNull('hosting_expires_at')->where('hosting_expires_at', '<', now())->count(),
             'total_vps'        => VpsServer::active()->count(),
@@ -151,8 +159,9 @@ class WebsiteController extends Controller
                                 + WebsitePayment::overdue()->count(),
             'unpaid_amount'    => (float) WebsitePayment::whereIn('status', ['nezaplaceno', 'po_splatnosti'])->sum('amount'),
             'arr_hosting'      => (float) $ours()->where('status', 'aktivni')
-                                    ->selectRaw("COALESCE(SUM(COALESCE(NULLIF(sell_yearly, 0), 0)), 0) as rev")
-                                    ->value('rev'),
+                                    ->where('is_free', false)
+                                    ->whereNull('alias_of_id')
+                                    ->sum('sell_yearly'),
             'external_count'   => Website::where('is_external', true)->where('status', 'aktivni')->count(),
             // Billing overview: expired websites that need invoicing
             'to_invoice_count' => $ours()->where('status', 'aktivni')
@@ -188,7 +197,7 @@ class WebsiteController extends Controller
             'filters'       => $request->only([
                 'search', 'tab', 'status', 'sort_by', 'sort_dir', 'payment_status', 'expiry_filter',
                 'filter_customer', 'filter_status', 'filter_auto_renew', 'filter_external',
-                'filter_registered', 'filter_server', 'filter_management_plan',
+                'filter_registered', 'filter_server', 'filter_management_plan', 'filter_auto_invoice',
             ]),
         ]);
     }
@@ -318,6 +327,16 @@ class WebsiteController extends Controller
 
     public function update(Request $request, Website $website)
     {
+        // Quick toggle from detail page (only auto_invoice or auto_invoice_management)
+        if ($request->has('auto_invoice') && !$request->has('name')) {
+            $website->update(['auto_invoice' => (bool) $request->input('auto_invoice')]);
+            return redirect("/webove-sluzby/{$website->id}")->with('success', 'Auto-fakturace aktualizována.');
+        }
+        if ($request->has('auto_invoice_management') && !$request->has('name')) {
+            $website->update(['auto_invoice_management' => (bool) $request->input('auto_invoice_management')]);
+            return redirect("/webove-sluzby/{$website->id}")->with('success', 'Auto-fakturace správy aktualizována.');
+        }
+
         $validated = $request->validate([
             'customer_id'            => 'nullable|exists:customers,id',
             'name'                   => "required|string|max:255|unique:websites,name,{$website->id}",
@@ -576,10 +595,14 @@ class WebsiteController extends Controller
             $total = collect($items)->sum('total_price');
             $invoiceNumber = Invoice::getNextInvoiceNumber('6');
 
-            // S3: Splatnost = datum expirace hostingu, fallback 14 dní
-            $dueDate = $website->hosting_expires_at
-                ? \Carbon\Carbon::parse($website->hosting_expires_at)->toDateString()
-                : now()->addDays(14)->toDateString();
+            // S3: Splatnost = datum expirace hostingu, min 14 dní od vystavení
+            $minDue = now()->addDays(14);
+            if ($website->hosting_expires_at) {
+                $expiry = \Carbon\Carbon::parse($website->hosting_expires_at);
+                $dueDate = $expiry->greaterThan($minDue) ? $expiry->toDateString() : $minDue->toDateString();
+            } else {
+                $dueDate = $minDue->toDateString();
+            }
 
             $invoice = Invoice::create([
                 'customer_id'     => $website->customer_id,
@@ -605,7 +628,7 @@ class WebsiteController extends Controller
 
             // Attach all websites (parent + aliases) via pivot
             foreach ($websiteIds as $wId) {
-                $invoice->websites()->attach($wId, ['invoice_type' => 'hosting']);
+                $invoice->websites()->attach($wId, ['invoice_type' => 'hosting', 'created_at' => now()]);
             }
 
             return $invoice;
@@ -738,10 +761,13 @@ class WebsiteController extends Controller
             $total = collect($items)->sum('total_price');
             $invoiceNumber = Invoice::getNextInvoiceNumber('6');
 
-            // S2+S3: Splatnost = nejbližší expirace, fallback 14 dní
-            $dueDate = $earliestExpiry
-                ? $earliestExpiry->toDateString()
-                : now()->addDays(14)->toDateString();
+            // S2+S3: Splatnost = nejbližší expirace, min 14 dní od vystavení
+            $minDue = now()->addDays(14);
+            if ($earliestExpiry) {
+                $dueDate = $earliestExpiry->greaterThan($minDue) ? $earliestExpiry->toDateString() : $minDue->toDateString();
+            } else {
+                $dueDate = $minDue->toDateString();
+            }
 
             $invoice = Invoice::create([
                 'customer_id'     => $customer->id,
@@ -902,10 +928,10 @@ class WebsiteController extends Controller
                         }
 
                         if ($website) {
-                            // Set server if not already set
-                            if (empty($website->server)) {
-                                $data['server'] = 'sss06.vas-server.cz';
-                            }
+                            $data['server'] = 'sss06.vas-server.cz';
+                            // Also set hosting_server_id from VPS servers table
+                            $sss06Vps = VpsServer::where('name', 'sss06.vas-server.cz')->value('id');
+                            if ($sss06Vps) $data['hosting_server_id'] = $sss06Vps;
                             $website->update($data);
                             $updated++;
                         } else {
@@ -937,7 +963,7 @@ class WebsiteController extends Controller
 
                         $data = [
                             'server'           => $serverName,
-                            'storage_quota_mb' => null,
+                            'storage_quota_mb' => 4096, // VPS Centrum API doesn't return quota, but all have 4096 MB
                             'synced_at'        => now(),
                         ];
 
@@ -955,6 +981,9 @@ class WebsiteController extends Controller
                         }
 
                         if ($website) {
+                            // Also set hosting_server_id from VPS servers table
+                            $vpsId = VpsServer::where('name', $serverName)->value('id');
+                            if ($vpsId) $data['hosting_server_id'] = $vpsId;
                             $website->update($data);
                             $updated++;
                         } else {
@@ -987,6 +1016,20 @@ class WebsiteController extends Controller
     }
 
     /**
+     * Show pending domains awaiting approval.
+     */
+    public function pending()
+    {
+        $pendingItems = SyncPending::orderBy('discovered_at', 'desc')->get();
+        $customers = Customer::orderBy('name')->get(['id', 'name']);
+
+        return Inertia::render('WeboveSluzby/Pending', [
+            'pendingItems' => $pendingItems,
+            'customers' => $customers,
+        ]);
+    }
+
+    /**
      * Approve a pending domain — create Website from sync_pending data.
      */
     public function approvePending(Request $request)
@@ -998,11 +1041,20 @@ class WebsiteController extends Controller
 
         $pendingItem = SyncPending::where('domain_name', $validated['domain_name'])->firstOrFail();
 
+        // Map source to full server name
+        $server = match ($pendingItem->source) {
+            'sss06' => 'sss06.vas-server.cz',
+            'ond08' => 'ond08.vas-server.cz',
+            'thaimassage' => 'thaimassage-server.cz',
+            default => null, // 'portal' = domain registration only, no hosting server
+        };
+
         Website::create([
             'name' => $pendingItem->domain_name,
             'status' => 'aktivni',
             'auto_invoice' => false,
             'customer_id' => $validated['customer_id'] ?? null,
+            'server' => $server,
         ]);
 
         $pendingItem->delete();

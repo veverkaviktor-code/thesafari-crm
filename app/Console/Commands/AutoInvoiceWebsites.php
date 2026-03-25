@@ -159,7 +159,9 @@ class AutoInvoiceWebsites extends Command
                     'invoice_number' => $invoiceNumber,
                     'variable_symbol' => $invoiceNumber,
                     'issue_date' => now()->toDateString(),
-                    'due_date' => $earliestExpiry->toDateString(),
+                    'due_date' => $earliestExpiry->greaterThan(now()->addDays(14))
+                        ? $earliestExpiry->toDateString()
+                        : now()->addDays(14)->toDateString(),
                     'status' => 'vystavena',
                     'payment_method' => 'banka',
                     'total' => $total,

@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect } from 'react';
+import { type FormEvent, useEffect, useState, useRef } from 'react';
 import { type InertiaFormProps, router } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
@@ -119,6 +119,27 @@ function FormSection({ icon: Icon, title, children }: { icon: React.ElementType;
     );
 }
 
+/**
+ * Parse Czech date string (e.g. "27.1.2027", "27. 1. 2027", "27/1/2027")
+ * Returns ISO date string (yyyy-MM-dd) or null if invalid.
+ */
+function parseCzechDate(input: string): string | null {
+    const cleaned = input.replace(/\s/g, '');
+    const match = cleaned.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})$/);
+    if (!match) return null;
+
+    const day = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10);
+    const year = parseInt(match[3], 10);
+
+    if (month < 1 || month > 12 || day < 1 || day > 31 || year < 2000 || year > 2100) return null;
+
+    const date = new Date(year, month - 1, day);
+    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null;
+
+    return format(date, 'yyyy-MM-dd');
+}
+
 function DatePickerField({
     label,
     value,
@@ -132,40 +153,106 @@ function DatePickerField({
     onClear?: () => void;
     error?: string;
 }) {
+    const [textValue, setTextValue] = useState('');
+    const [isTyping, setIsTyping] = useState(false);
+    const [parseError, setParseError] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    // Sync text field when value changes externally (calendar pick, clear)
+    useEffect(() => {
+        if (!isTyping) {
+            setTextValue(value ? format(new Date(value), 'd. M. yyyy', { locale: cs }) : '');
+            setParseError(false);
+        }
+    }, [value, isTyping]);
+
+    const handleTextChange = (text: string) => {
+        setIsTyping(true);
+        setTextValue(text);
+        setParseError(false);
+
+        if (text.trim() === '') {
+            onClear?.();
+            return;
+        }
+
+        const parsed = parseCzechDate(text);
+        if (parsed) {
+            onChange(parsed);
+            setParseError(false);
+        }
+    };
+
+    const handleBlur = () => {
+        setIsTyping(false);
+        if (textValue.trim() && !parseCzechDate(textValue)) {
+            setParseError(true);
+        } else {
+            setParseError(false);
+            // Re-format to nice Czech format
+            if (value) {
+                setTextValue(format(new Date(value), 'd. M. yyyy', { locale: cs }));
+            }
+        }
+    };
+
     return (
         <div>
             <Label className="text-muted-foreground">{label}</Label>
-            <Popover>
-                <PopoverTrigger asChild>
-                    <Button
-                        variant="outline"
-                        className="mt-1.5 w-full justify-start text-left bg-muted border-border text-foreground hover:bg-muted"
-                    >
-                        <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span className="flex-1 truncate">
-                            {value ? format(new Date(value), 'd. M. yyyy', { locale: cs }) : 'Bez expirace'}
-                        </span>
-                        {value && onClear && (
-                            <span
-                                role="button"
-                                className="ml-1 rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-accent"
-                                onClick={(e) => { e.stopPropagation(); onClear(); }}
-                                title="Bez expirace"
-                            >
-                                <X className="h-3.5 w-3.5" />
-                            </span>
-                        )}
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 bg-card border-border">
-                    <Calendar
-                        mode="single"
-                        selected={value ? new Date(value) : undefined}
-                        onSelect={(d) => d && onChange(format(d, 'yyyy-MM-dd'))}
-                        locale={cs}
+            <div className="mt-1.5 flex gap-1.5">
+                <div className="relative flex-1">
+                    <Input
+                        ref={inputRef}
+                        value={textValue}
+                        placeholder="27. 1. 2027"
+                        className={`bg-muted border-border text-foreground pr-8 ${parseError ? 'border-red-500 focus-visible:ring-red-500/50' : ''}`}
+                        onFocus={() => setIsTyping(true)}
+                        onChange={(e) => handleTextChange(e.target.value)}
+                        onBlur={handleBlur}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                (e.target as HTMLInputElement).blur();
+                            }
+                        }}
                     />
-                </PopoverContent>
-            </Popover>
+                    {value && onClear && (
+                        <span
+                            role="button"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer"
+                            onClick={() => { onClear(); setTextValue(''); setParseError(false); }}
+                            title="Bez expirace"
+                        >
+                            <X className="h-3.5 w-3.5" />
+                        </span>
+                    )}
+                </div>
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="shrink-0 bg-muted border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+                        >
+                            <CalendarIcon className="h-4 w-4" />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-card border-border">
+                        <Calendar
+                            mode="single"
+                            selected={value ? new Date(value) : undefined}
+                            onSelect={(d) => {
+                                if (d) {
+                                    setIsTyping(false);
+                                    onChange(format(d, 'yyyy-MM-dd'));
+                                }
+                            }}
+                            locale={cs}
+                        />
+                    </PopoverContent>
+                </Popover>
+            </div>
+            {parseError && <p className="mt-1 text-xs text-red-400">Neplatné datum — použij formát d.M.rrrr</p>}
             {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
         </div>
     );
@@ -224,7 +311,7 @@ export default function WebsiteForm({
                             <SelectItem value="none">Bez zákazníka</SelectItem>
                             {customers.map((c) => (
                                 <SelectItem key={c.id} value={String(c.id)}>
-                                    {c.company || c.name}
+                                    {c.name}{c.company && c.company !== c.name ? ` (${c.company})` : ''}
                                 </SelectItem>
                             ))}
                         </SelectContent>

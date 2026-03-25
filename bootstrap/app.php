@@ -18,7 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('fio:sync')->hourly()->between('8:00', '20:00');
         $schedule->command('invoices:check-overdue')->dailyAt('08:00');
         $schedule->command('websites:check-expiring')->dailyAt('08:30');
-        $schedule->command('notifications:generate')->dailyAt('09:00');
+        $schedule->command('notifications:generate')->dailyAt('08:55');
         $schedule->command('invoices:send-pre-reminders')->dailyAt('09:00');
         $schedule->command('invoices:send-reminders')->dailyAt('09:30');
         $schedule->command('model:prune')->dailyAt('03:00');

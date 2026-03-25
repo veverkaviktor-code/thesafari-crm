@@ -94,7 +94,7 @@ class FinanceController extends Controller
         $unpaidTotal = $unpaidInvoices + $unpaidWebPayments;
 
         // MRR calculation — simplified: always sell_yearly / 12 + management plan
-        $ownWebsites = Website::where('status', 'aktivni')->where('is_external', false)->where('is_free', false)->with('managementPlan')->get();
+        $ownWebsites = Website::where('status', 'aktivni')->where('is_external', false)->where('is_free', false)->whereNull('alias_of_id')->with('managementPlan')->get();
         $mrrCalc = fn($website) =>
             (float) ($website->sell_yearly ?: 0) / 12
             + ($website->managementPlan?->price_monthly ?? 0);
@@ -109,7 +109,7 @@ class FinanceController extends Controller
             'profit' => round($profit),
             'unpaid_total' => round($unpaidTotal),
             'unpaid_invoices' => round($unpaidInvoices),
-            'unpaid_web_payments' => round($unpaidWebPayments),
+            'unpaid_sub_payments' => round($unpaidWebPayments),
             'mrr' => $mrr,
             'arr' => $arr,
         ];

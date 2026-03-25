@@ -182,8 +182,8 @@ const statusMap: Record<string, { label: string; variant: 'active' | 'inactive' 
 
 const invoiceStatusConfig: Record<string, { label: string; className: string }> = {
     vystavena: { label: 'Vystavena', className: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
-    odeslana: { label: 'Odeslana', className: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
-    zaplacena: { label: 'Zaplacena', className: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
+    odeslana: { label: 'Odeslána', className: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
+    zaplacena: { label: 'Zaplacená', className: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
     po_splatnosti: { label: 'Po splatnosti', className: 'bg-red-500/20 text-red-400 border-red-500/30' },
     storno: { label: 'Storno', className: 'bg-muted text-muted-foreground border-border' },
 };
@@ -617,7 +617,7 @@ function TabPrehled({ website, paymentStats, onShowPaymentModal }: {
                 </div>
             </div>
 
-            {/* Platebni historie */}
+            {/* Platební historie */}
             <div className="bg-card border border-border rounded-lg overflow-hidden">
                 <SectionHeader
                     icon={ReceiptText}
@@ -738,7 +738,7 @@ function TabPrehled({ website, paymentStats, onShowPaymentModal }: {
                 </div>
             )}
 
-            {/* Poznamky */}
+            {/* Poznámky */}
             {website.notes && (
                 <div className="bg-card border border-border rounded-lg px-5 py-4">
                     <h3 className="text-sm font-semibold text-foreground mb-2">Poznámky</h3>
