@@ -39,7 +39,6 @@ class AutoInvoiceHostings extends Command
         $hostings = Hosting::where('status', 'aktivni')
             ->where('auto_invoice', true)
             ->where('is_free', false)
-            ->where('is_external', false)
             ->whereNotNull('expires_at')
             ->where('expires_at', '>', now())
             ->where('expires_at', '<=', now()->addDays(30))

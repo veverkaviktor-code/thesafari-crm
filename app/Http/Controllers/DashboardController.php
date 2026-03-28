@@ -61,7 +61,6 @@ class DashboardController extends Controller
     {
         // Hosting MRR
         $ownHostings = Hosting::where('status', 'aktivni')
-            ->where('is_external', false)
             ->where('is_free', false)
             ->with('managementPlan')
             ->get();

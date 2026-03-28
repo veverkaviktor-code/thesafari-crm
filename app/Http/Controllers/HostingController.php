@@ -53,10 +53,6 @@ class HostingController extends Controller
             // Column filters — all support comma-separated multi-values
             ->when($request->input('filter_customer'), fn ($q, $v) => $q->whereIn('customer_id', explode(',', $v)))
             ->when($request->input('filter_status'), fn ($q, $v) => $q->whereIn('status', explode(',', $v)))
-            ->when($request->filled('filter_external'), function ($q) use ($request) {
-                $vals = explode(',', $request->input('filter_external'));
-                if (count($vals) === 1) $q->where('is_external', $vals[0] === '1');
-            })
             ->when($request->input('filter_server'), fn ($q, $v) => $q->whereIn('server', explode(',', $v)))
             ->when($request->input('filter_management_plan'), fn ($q, $v) => $q->whereIn('management_plan_id', explode(',', $v)))
             ->when($request->filled('filter_auto_invoice'), function ($q) use ($request) {
@@ -106,32 +102,28 @@ class HostingController extends Controller
             ->paginate($perPage, ['*'], 'payments_page')
             ->withQueryString();
 
-        // Stats: only count our own hostings (not external)
-        $ours = fn () => Hosting::where('is_external', false);
-
         $stats = [
-            'total_hostings'   => $ours()->where('status', 'aktivni')->count(),
-            'expiring_soon_count' => $ours()->where('status', 'aktivni')
+            'total_hostings'   => Hosting::where('status', 'aktivni')->count(),
+            'expiring_soon_count' => Hosting::where('status', 'aktivni')
                                     ->whereNotNull('expires_at')
                                     ->where('expires_at', '>=', now())
                                     ->where('expires_at', '<=', now()->addDays(30))->count(),
-            'expired_count'    => $ours()->where('status', 'aktivni')
+            'expired_count'    => Hosting::where('status', 'aktivni')
                                     ->whereNotNull('expires_at')->where('expires_at', '<', now())->count(),
             'unpaid_count'     => HostingPayment::unpaid()->count()
                                 + HostingPayment::overdue()->count(),
             'unpaid_amount'    => (float) HostingPayment::whereIn('status', ['nezaplaceno', 'po_splatnosti'])->sum('amount'),
-            'arr_hosting'      => (float) $ours()->where('status', 'aktivni')
+            'arr_hosting'      => (float) Hosting::where('status', 'aktivni')
                                     ->where('is_free', false)
                                     ->sum('sell_yearly'),
-            'external_count'   => Hosting::where('is_external', true)->where('status', 'aktivni')->count(),
-            'to_invoice_count' => $ours()->where('status', 'aktivni')
+            'to_invoice_count' => Hosting::where('status', 'aktivni')
                                     ->whereNotNull('expires_at')
                                     ->where('expires_at', '<', now())
                                     ->where('is_free', false)
                                     ->whereDoesntHave('payments', fn ($q) => $q->where('status', 'zaplaceno')
                                         ->where('period_end', '>=', now()->subYear()))
                                     ->count(),
-            'to_invoice_amount' => (float) $ours()->where('status', 'aktivni')
+            'to_invoice_amount' => (float) Hosting::where('status', 'aktivni')
                                     ->whereNotNull('expires_at')
                                     ->where('expires_at', '<', now())
                                     ->where('is_free', false)
@@ -155,7 +147,7 @@ class HostingController extends Controller
             'filterOptions' => ['servers' => $serverOptions],
             'filters'       => $request->only([
                 'search', 'tab', 'status', 'sort_by', 'sort_dir', 'payment_status', 'expiry_filter',
-                'filter_customer', 'filter_status', 'filter_external',
+                'filter_customer', 'filter_status',
                 'filter_server', 'filter_management_plan', 'filter_auto_invoice',
             ]),
         ]);
@@ -227,7 +219,6 @@ class HostingController extends Controller
             'auto_invoice'           => 'boolean',
             'auto_invoice_management' => 'boolean',
             'is_free'                => 'boolean',
-            'is_external'            => 'boolean',
             'sell_yearly'            => 'nullable|numeric|min:0',
             'cost_yearly'            => 'nullable|numeric|min:0',
             'admin_url'              => 'nullable|string|max:500',
@@ -293,7 +284,6 @@ class HostingController extends Controller
             'auto_invoice'           => 'boolean',
             'auto_invoice_management' => 'boolean',
             'is_free'                => 'boolean',
-            'is_external'            => 'boolean',
             'sell_yearly'            => 'nullable|numeric|min:0',
             'cost_yearly'            => 'nullable|numeric|min:0',
             'admin_url'              => 'nullable|string|max:500',
@@ -341,7 +331,7 @@ class HostingController extends Controller
         $validated = $request->validate([
             'ids' => 'required|array|min:1',
             'ids.*' => 'exists:hostings,id',
-            'action' => 'required|in:set_free,unset_free,set_status,set_customer,clear_expiry,set_external,unset_external,set_management_plan,set_auto_invoice,unset_auto_invoice',
+            'action' => 'required|in:set_free,unset_free,set_status,set_customer,clear_expiry,set_management_plan,set_auto_invoice,unset_auto_invoice',
             'value' => 'nullable|string',
         ]);
 
@@ -355,8 +345,6 @@ class HostingController extends Controller
                 : null,
             'set_customer' => $this->bulkSetCustomer($validated['ids'], $validated['value'] ?: null),
             'clear_expiry' => $hostings->update(['expires_at' => null]),
-            'set_external' => $hostings->update(['is_external' => true]),
-            'unset_external' => $hostings->update(['is_external' => false]),
             'set_management_plan' => $hostings->update([
                 'management_plan_id' => $validated['value'] === 'none' ? null : $validated['value'],
             ]),
@@ -521,7 +509,6 @@ class HostingController extends Controller
         $hostings = Hosting::where('customer_id', $customer->id)
             ->where('status', 'aktivni')
             ->where('is_free', false)
-            ->where('is_external', false)
             ->get();
 
         if ($hostings->isEmpty()) {

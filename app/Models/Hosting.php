@@ -30,7 +30,6 @@ class Hosting extends Model
         'synced_at',
         'auto_invoice',
         'is_free',
-        'is_external',
         'sell_yearly',
         'cost_yearly',
         'alerts_ignored_at',
@@ -58,7 +57,6 @@ class Hosting extends Model
             'auto_invoice' => 'boolean',
             'auto_invoice_management' => 'boolean',
             'is_free' => 'boolean',
-            'is_external' => 'boolean',
             'sell_yearly' => 'decimal:2',
             'cost_yearly' => 'decimal:2',
         ];

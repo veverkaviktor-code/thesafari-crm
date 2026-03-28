@@ -76,7 +76,6 @@ class FinanceController extends Controller
 
         // Hosting costs (pro-rated to period)
         $hostingCostsYearly = (float) Hosting::where('status', 'aktivni')
-            ->where('is_external', false)
             ->where('is_free', false)
             ->sum('cost_yearly');
         $hostingCosts = $months ? $hostingCostsYearly * $months / 12 : $hostingCostsYearly;
@@ -102,7 +101,7 @@ class FinanceController extends Controller
 
         // MRR calculation
         $ownHostings = Hosting::where('status', 'aktivni')
-            ->where('is_external', false)
+
             ->where('is_free', false)
             ->with('managementPlan')
             ->get();
@@ -182,7 +181,7 @@ class FinanceController extends Controller
 
         // Hosting ARR
         $ownHostings = Hosting::where('status', 'aktivni')
-            ->where('is_external', false)
+
             ->where('is_free', false)
             ->with('managementPlan')
             ->get();
@@ -363,7 +362,7 @@ class FinanceController extends Controller
     {
         // Hosting MRR
         $ownHostings = Hosting::where('status', 'aktivni')
-            ->where('is_external', false)
+
             ->where('is_free', false)
             ->with('managementPlan')
             ->get();
@@ -438,7 +437,7 @@ class FinanceController extends Controller
 
         // Expiring soon (hostings + domains combined)
         $expiringHostings = Hosting::where('status', 'aktivni')
-            ->where('is_external', false)
+
             ->whereNotNull('expires_at')
             ->where('expires_at', '>=', now())
             ->where('expires_at', '<=', now()->addDays(30))
