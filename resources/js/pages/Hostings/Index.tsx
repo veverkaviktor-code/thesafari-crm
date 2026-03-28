@@ -71,8 +71,8 @@ interface Hosting {
     sell_yearly: number;
     cost_yearly: number;
     admin_url: string | null;
-    hosting_expires_at: string | null;
-    hosting_server_id: number | null;
+    expires_at: string | null;
+    vps_server_id: number | null;
     management_plan_id: number | null;
     management_plan: ManagementPlan | null;
     management_cycle: string | null;
@@ -82,7 +82,7 @@ interface Hosting {
     ip_address: string | null;
     alerts_ignored_at: string | null;
     customer: { id: number; name: string; company: string | null } | null;
-    hosting_server: { id: number; name: string } | null;
+    vps_server: { id: number; name: string } | null;
     credentials: { id: number; label: string }[];
     email_accounts: { id: number; email: string }[];
     domains_count: number;
@@ -450,7 +450,7 @@ export default function HostingsIndex({
             filterKey: 'filter_server',
             filterOptions: serverFilterOpts,
             render: (h: Hosting) => {
-                const serverName = h.hosting_server?.name || h.server;
+                const serverName = h.vps_server?.name || h.server;
                 return serverName ? (
                     <span className="text-muted-foreground text-xs font-mono">{serverName}</span>
                 ) : (
@@ -459,12 +459,12 @@ export default function HostingsIndex({
             },
         },
         {
-            key: 'hosting_expires_at' as const,
+            key: 'expires_at' as const,
             label: 'Expirace',
             sortable: true,
-            render: (h: Hosting) => h.hosting_expires_at ? (
-                <span className={`text-xs font-medium ${expirationStyle(h.hosting_expires_at)}`}>
-                    {format(new Date(h.hosting_expires_at), 'd. M. yyyy', { locale: cs })}
+            render: (h: Hosting) => h.expires_at ? (
+                <span className={`text-xs font-medium ${expirationStyle(h.expires_at)}`}>
+                    {format(new Date(h.expires_at), 'd. M. yyyy', { locale: cs })}
                 </span>
             ) : (
                 <span className="text-xs text-muted-foreground/50">—</span>

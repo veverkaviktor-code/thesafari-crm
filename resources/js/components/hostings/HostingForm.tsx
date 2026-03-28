@@ -36,8 +36,8 @@ export interface HostingFormData {
     sell_yearly: string;
     cost_yearly: string;
     admin_url: string;
-    hosting_expires_at: string;
-    hosting_server_id: string;
+    expires_at: string;
+    server_id: string;
     management_plan_id: string;
     management_cycle: string;
     storage_quota_mb: string;
@@ -56,8 +56,8 @@ export const defaultHostingData: HostingFormData = {
     sell_yearly: '',
     cost_yearly: '',
     admin_url: '',
-    hosting_expires_at: '',
-    hosting_server_id: '',
+    expires_at: '',
+    server_id: '',
     management_plan_id: '',
     management_cycle: '',
     storage_quota_mb: '',
@@ -355,8 +355,8 @@ export default function HostingForm({
                     <div>
                         <Label className="text-muted-foreground">Server</Label>
                         <Select
-                            value={data.hosting_server_id || 'none'}
-                            onValueChange={(v) => setData('hosting_server_id', v === 'none' ? '' : v)}
+                            value={data.server_id || 'none'}
+                            onValueChange={(v) => setData('server_id', v === 'none' ? '' : v)}
                         >
                             <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
                                 <SelectValue placeholder="Bez hostingu" />
@@ -383,10 +383,10 @@ export default function HostingForm({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <DatePickerField
                         label="Expirace hostingu"
-                        value={data.hosting_expires_at}
-                        onChange={(d) => setData('hosting_expires_at', d)}
-                        onClear={() => setData('hosting_expires_at', '')}
-                        error={errors.hosting_expires_at}
+                        value={data.expires_at}
+                        onChange={(d) => setData('expires_at', d)}
+                        onClear={() => setData('expires_at', '')}
+                        error={errors.expires_at}
                     />
                     <div>
                         <Label className="text-muted-foreground">Úložiště kvóta (MB)</Label>

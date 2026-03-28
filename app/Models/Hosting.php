@@ -104,7 +104,7 @@ class Hosting extends Model
         return $this->hasMany(HostingCredential::class);
     }
 
-    public function server(): BelongsTo
+    public function vpsServer(): BelongsTo
     {
         return $this->belongsTo(VpsServer::class, 'server_id');
     }

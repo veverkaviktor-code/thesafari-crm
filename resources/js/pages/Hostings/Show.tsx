@@ -126,7 +126,7 @@ interface Hosting {
     sell_yearly: number;
     cost_yearly: number;
     admin_url: string | null;
-    hosting_expires_at: string | null;
+    expires_at: string | null;
     ip_address: string | null;
     storage_quota_mb: number;
     storage_used_mb: number;
@@ -137,7 +137,7 @@ interface Hosting {
     monthly_revenue: number;
     total_annual_revenue: number;
     customer: { id: number; name: string; company: string | null } | null;
-    hosting_server: { id: number; name: string } | null;
+    vps_server: { id: number; name: string } | null;
     management_plan: ManagementPlan | null;
     management_cycle: string | null;
     credentials: HostingCredential[];
@@ -437,7 +437,7 @@ function TabPrehled({ hosting }: { hosting: Hosting }) {
         }
     };
 
-    const hasHosting = !!(hosting.hosting_server || hosting.server);
+    const hasHosting = !!(hosting.vps_server || hosting.server);
     const managementMonthly = hosting.management_plan ? Number(hosting.management_plan.price_monthly) : 0;
     const managementYearly = managementMonthly * 12;
 
@@ -450,15 +450,15 @@ function TabPrehled({ hosting }: { hosting: Hosting }) {
                     {hasHosting ? (
                         <>
                             <InfoRow label="Server">
-                                {hosting.hosting_server ? (
-                                    <span className="font-medium">{hosting.hosting_server.name}</span>
+                                {hosting.vps_server ? (
+                                    <span className="font-medium">{hosting.vps_server.name}</span>
                                 ) : hosting.server ? (
                                     <span className="font-mono text-xs">{hosting.server}</span>
                                 ) : null}
                             </InfoRow>
                             <InfoRow label="Expirace">
-                                {hosting.hosting_expires_at ? (
-                                    <ExpirationBadge expiresAt={hosting.hosting_expires_at} />
+                                {hosting.expires_at ? (
+                                    <ExpirationBadge expiresAt={hosting.expires_at} />
                                 ) : (
                                     <span className="text-muted-foreground/50">&mdash;</span>
                                 )}

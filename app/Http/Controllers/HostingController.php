@@ -23,7 +23,7 @@ class HostingController extends Controller
         $perPage = min((int) ($request->input('per_page') ?: 50), 100);
 
         $query = Hosting::query()
-            ->with(['customer:id,name,company', 'server', 'managementPlan', 'credentials', 'emailAccounts'])
+            ->with(['customer:id,name,company', 'vpsServer', 'managementPlan', 'credentials', 'emailAccounts'])
             ->withCount('domains')
             ->when($request->input('search'), function ($q, $term) {
                 $q->where(function ($sub) use ($term) {
@@ -121,7 +121,7 @@ class HostingController extends Controller
             'unpaid_count'     => HostingPayment::unpaid()->count()
                                 + HostingPayment::overdue()->count(),
             'unpaid_amount'    => (float) HostingPayment::whereIn('status', ['nezaplaceno', 'po_splatnosti'])->sum('amount'),
-            'arr'              => (float) $ours()->where('status', 'aktivni')
+            'arr_hosting'      => (float) $ours()->where('status', 'aktivni')
                                     ->where('is_free', false)
                                     ->sum('sell_yearly'),
             'external_count'   => Hosting::where('is_external', true)->where('status', 'aktivni')->count(),
@@ -172,7 +172,7 @@ class HostingController extends Controller
             'invoices' => fn ($q) => $q->orderBy('issue_date', 'desc'),
             'emailAccounts',
             'credentials',
-            'server',
+            'vpsServer',
             'managementPlan',
         ]);
 

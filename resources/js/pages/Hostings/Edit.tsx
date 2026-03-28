@@ -38,8 +38,8 @@ interface Hosting {
     sell_yearly: number;
     cost_yearly: number;
     admin_url: string | null;
-    hosting_expires_at: string | null;
-    hosting_server_id: number | null;
+    expires_at: string | null;
+    server_id: number | null;
     management_plan_id: number | null;
     management_cycle: string | null;
     storage_quota_mb: number;
@@ -67,8 +67,8 @@ export default function HostingsEdit({ hosting, customers, vpsServers, managemen
         sell_yearly: String(hosting.sell_yearly || ''),
         cost_yearly: String(hosting.cost_yearly || ''),
         admin_url: hosting.admin_url || '',
-        hosting_expires_at: hosting.hosting_expires_at || '',
-        hosting_server_id: hosting.hosting_server_id ? String(hosting.hosting_server_id) : '',
+        expires_at: hosting.expires_at || '',
+        server_id: hosting.server_id ? String(hosting.server_id) : '',
         management_plan_id: hosting.management_plan_id ? String(hosting.management_plan_id) : '',
         management_cycle: hosting.management_cycle || '',
         storage_quota_mb: String(hosting.storage_quota_mb || ''),
