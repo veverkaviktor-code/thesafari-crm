@@ -1,14 +1,16 @@
 import { Link } from '@inertiajs/react';
-import { Globe, Server, AlertTriangle, Clock, HardDrive, ArrowRight } from 'lucide-react';
+import { AtSign, Globe, Server, AlertTriangle, Clock, HardDrive, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface ExpiringWebsite {
+interface ExpiringItem {
     id: number;
     name: string;
-    hosting_expires_at: string;
+    type: 'hosting' | 'domain';
+    expires_at: string;
     days: number;
     urgency: string;
     customer_name: string | null;
+    link: string;
 }
 
 interface StorageByServer {
@@ -17,19 +19,20 @@ interface StorageByServer {
     total_mb: number;
 }
 
-interface WebsiteStats {
-    active_websites: number;
-    total_aliases: number;
-    expiring_soon: number;
-    expired: number;
+interface ServicesStats {
+    active_hostings: number;
+    active_domains: number;
+    expiring_hostings: number;
+    expiring_domains: number;
+    expired_hostings: number;
     unpaid_payments: number;
     total_storage_mb: number;
     storage_by_server: StorageByServer[];
-    expiring: ExpiringWebsite[];
+    expiring: ExpiringItem[];
 }
 
 interface Props {
-    stats: WebsiteStats;
+    stats: ServicesStats;
 }
 
 function formatStorage(mb: number): string {
@@ -40,21 +43,24 @@ function formatStorage(mb: number): string {
 const urgencyConfig: Record<string, { className: string }> = {
     critical: { className: 'bg-red-500/10 text-red-500 border-red-500/20' },
     warning: { className: 'bg-amber-500/10 text-amber-500 border-amber-500/20' },
+    notice: { className: 'bg-amber-500/10 text-amber-500 border-amber-500/20' },
     ok: { className: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' },
 };
 
 export default function WebsiteOverview({ stats }: Props) {
+    const totalExpiring = stats.expiring_hostings + stats.expiring_domains;
+
     return (
         <div className="rounded-xl border border-border bg-card p-5">
             <div className="mb-4 flex items-center justify-between">
                 <div>
-                    <h3 className="text-sm font-semibold text-foreground/90">Webové služby — Domény & Hostingy</h3>
+                    <h3 className="text-sm font-semibold text-foreground/90">Webové služby</h3>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                        {stats.active_websites} aktivních webů{stats.total_aliases > 0 ? ` · ${stats.total_aliases} aliasů` : ''}
+                        {stats.active_hostings} hostingů · {stats.active_domains} domén
                     </p>
                 </div>
                 <Link
-                    href="/webove-sluzby"
+                    href="/hostingy"
                     className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
                 >
                     Správa
@@ -64,19 +70,19 @@ export default function WebsiteOverview({ stats }: Props) {
 
             {/* Mini stat pills */}
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <MiniStat icon={Globe} label="Weby" value={stats.active_websites} color="text-blue-400" />
-                <MiniStat icon={Server} label="Aliasy" value={stats.total_aliases} color="text-emerald-400" />
+                <MiniStat icon={Server} label="Hostingy" value={stats.active_hostings} color="text-blue-400" />
+                <MiniStat icon={AtSign} label="Domény" value={stats.active_domains} color="text-emerald-400" />
                 <MiniStat
                     icon={Clock}
                     label="Expiruje brzy"
-                    value={stats.expiring_soon}
-                    color={stats.expiring_soon > 0 ? 'text-amber-500' : 'text-muted-foreground'}
+                    value={totalExpiring}
+                    color={totalExpiring > 0 ? 'text-amber-500' : 'text-muted-foreground'}
                 />
                 <MiniStat
                     icon={AlertTriangle}
                     label="Po expiraci"
-                    value={stats.expired}
-                    color={stats.expired > 0 ? 'text-red-500' : 'text-muted-foreground'}
+                    value={stats.expired_hostings}
+                    color={stats.expired_hostings > 0 ? 'text-red-500' : 'text-muted-foreground'}
                 />
             </div>
 
@@ -107,7 +113,7 @@ export default function WebsiteOverview({ stats }: Props) {
                                         {formatStorage(srv.total_mb)}
                                     </span>
                                     <span className="w-10 text-right text-muted-foreground/60">
-                                        {srv.count}×
+                                        {srv.count}x
                                     </span>
                                 </div>
                             );
@@ -116,27 +122,29 @@ export default function WebsiteOverview({ stats }: Props) {
                 </div>
             )}
 
-            {/* Expiring subscriptions */}
+            {/* Expiring services */}
             {stats.expiring.length > 0 && (
                 <div className="mt-4 border-t border-border pt-3">
                     <p className="text-xs font-medium text-muted-foreground mb-2">Blížící se expirace</p>
                     <div className="space-y-1.5">
-                        {stats.expiring.map((sub) => {
-                            const urgency = urgencyConfig[sub.urgency] ?? urgencyConfig.ok;
+                        {stats.expiring.map((item) => {
+                            const urgency = urgencyConfig[item.urgency] ?? urgencyConfig.ok;
+                            const TypeIcon = item.type === 'hosting' ? Server : AtSign;
+                            const iconColor = item.type === 'hosting' ? 'text-blue-400' : 'text-emerald-400';
                             return (
                                 <Link
-                                    key={sub.id}
-                                    href={`/webove-sluzby/${sub.id}`}
+                                    key={`${item.type}-${item.id}`}
+                                    href={item.link}
                                     className="flex items-center gap-2 rounded-lg bg-accent/40 px-3 py-2 transition-colors hover:bg-accent"
                                 >
-                                    <Globe className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+                                    <TypeIcon className={cn('h-3.5 w-3.5 shrink-0', iconColor)} />
                                     <div className="min-w-0 flex-1">
                                         <p className="truncate text-xs font-medium text-foreground/80">
-                                            {sub.name}
+                                            {item.name}
                                         </p>
-                                        {sub.customer_name && (
+                                        {item.customer_name && (
                                             <p className="text-[10px] text-muted-foreground truncate">
-                                                {sub.customer_name}
+                                                {item.customer_name} · {item.type === 'hosting' ? 'Hosting' : 'Doména'}
                                             </p>
                                         )}
                                     </div>
@@ -146,7 +154,7 @@ export default function WebsiteOverview({ stats }: Props) {
                                             urgency.className,
                                         )}
                                     >
-                                        {sub.days} dní
+                                        {item.days} dní
                                     </span>
                                 </Link>
                             );

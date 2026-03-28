@@ -23,7 +23,7 @@ interface CalendarEvent {
     id: number;
     title: string;
     date: string;
-    type: 'task' | 'website' | 'invoice';
+    type: 'task' | 'hosting' | 'domain' | 'website' | 'invoice';
     priority?: string;
     subtype?: string;
     total?: number;
@@ -37,12 +37,16 @@ interface CalendarGridProps {
 const DOT_COLORS: Record<CalendarEvent['type'], string> = {
     task: 'bg-amber-500',
     invoice: 'bg-blue-500',
+    hosting: 'bg-blue-400',
+    domain: 'bg-emerald-500',
     website: 'bg-emerald-500',
 };
 
 const EVENT_TYPE_LABELS: Record<CalendarEvent['type'], string> = {
     task: 'Úkol',
     invoice: 'Faktura',
+    hosting: 'Hosting',
+    domain: 'Doména',
     website: 'Webová služba',
 };
 
@@ -186,8 +190,12 @@ export default function CalendarGrid({ events, onTaskClick }: CalendarGridProps)
                                                     onTaskClick(ev.id);
                                                 } else if (ev.type === 'invoice') {
                                                     router.visit(`/faktury/${ev.id}`);
+                                                } else if (ev.type === 'hosting') {
+                                                    router.visit(`/hostingy/${ev.id}`);
+                                                } else if (ev.type === 'domain') {
+                                                    router.visit(`/domeny/${ev.id}`);
                                                 } else if (ev.type === 'website') {
-                                                    router.visit(`/webove-sluzby/${ev.id}`);
+                                                    router.visit(`/hostingy/${ev.id}`);
                                                 }
                                             }}
                                             className="flex w-full items-start gap-2 rounded-md p-1.5 text-left text-sm transition-colors hover:bg-accent cursor-pointer"

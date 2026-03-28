@@ -56,7 +56,8 @@ interface Props {
     };
     calendarEvents: {
         tasks: CalendarEvent[];
-        websites: CalendarEvent[];
+        hostings: CalendarEvent[];
+        domains: CalendarEvent[];
         invoices: CalendarEvent[];
     };
     filters: {
@@ -75,10 +76,11 @@ interface Props {
         title: string;
         subtitle: string;
         link: string;
+        hosting_id?: number;
         website_id?: number;
     }[];
     ignoredAlerts?: {
-        website_id: number;
+        hosting_id: number;
         name: string;
         type: string;
         ignored_at: string;
@@ -117,7 +119,8 @@ export default function PlannerIndex({ tasks, calendarEvents, filters, customers
 
     const allCalendarEvents: CalendarEvent[] = [
         ...calendarEvents.tasks,
-        ...calendarEvents.websites,
+        ...calendarEvents.hostings,
+        ...calendarEvents.domains,
         ...calendarEvents.invoices,
     ];
 

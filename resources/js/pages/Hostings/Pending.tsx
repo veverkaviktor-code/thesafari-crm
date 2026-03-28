@@ -17,7 +17,6 @@ const sourceToServer: Record<string, string> = {
     sss06: 'sss06.vas-server.cz',
     ond08: 'ond08.vas-server.cz',
     thaimassage: 'thaimassage-server.cz',
-    portal: 'Pouze doména (registrace)',
 };
 
 interface PendingItem {
@@ -43,7 +42,7 @@ export default function Pending({ pendingItems, customers }: Props) {
 
     const handleApprove = (domainName: string) => {
         setProcessing(domainName);
-        router.post('/webove-sluzby/ke-schvaleni/approve', {
+        router.post('/hostingy/ke-schvaleni/approve', {
             domain_name: domainName,
             customer_id: selectedCustomers[domainName] || null,
         }, {
@@ -54,7 +53,7 @@ export default function Pending({ pendingItems, customers }: Props) {
 
     const handleIgnore = (domainName: string) => {
         setProcessing(domainName);
-        router.post('/webove-sluzby/ke-schvaleni/ignore', {
+        router.post('/hostingy/ke-schvaleni/ignore', {
             domain_name: domainName,
         }, {
             preserveState: false,
@@ -65,7 +64,7 @@ export default function Pending({ pendingItems, customers }: Props) {
     return (
         <AuthenticatedLayout
             breadcrumbs={[
-                { label: 'Webové služby', href: '/webove-sluzby' },
+                { label: 'Hostingy', href: '/hostingy' },
                 { label: 'Ke schválení' },
             ]}
         >
@@ -74,12 +73,12 @@ export default function Pending({ pendingItems, customers }: Props) {
                     <div>
                         <h2 className="text-lg font-semibold">Ke schválení</h2>
                         <p className="text-sm text-muted-foreground">
-                            Nové domény nalezené při sync z API — schvalte nebo ignorujte.
+                            Nové hostingy nalezené při sync z API — schvalte nebo ignorujte.
                         </p>
                     </div>
                     <Button
                         variant="ghost"
-                        onClick={() => router.visit('/webove-sluzby')}
+                        onClick={() => router.visit('/hostingy')}
                         className="border border-border"
                     >
                         <ArrowLeft className="h-4 w-4 mr-2" />
@@ -90,7 +89,7 @@ export default function Pending({ pendingItems, customers }: Props) {
                 {pendingItems.length === 0 ? (
                     <div className="rounded-lg border border-border bg-card p-12 text-center">
                         <Globe className="h-10 w-10 mx-auto mb-3 text-muted-foreground/50" />
-                        <p className="text-muted-foreground">Žádné domény ke schválení</p>
+                        <p className="text-muted-foreground">Žádné hostingy ke schválení</p>
                     </div>
                 ) : (
                     <div className="rounded-lg border border-border bg-card">

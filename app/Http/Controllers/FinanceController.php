@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Domain;
+use App\Models\Hosting;
+use App\Models\HostingPayment;
 use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\OrderCost;
-use App\Models\Website;
-use App\Models\WebsitePayment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -61,46 +62,60 @@ class FinanceController extends Controller
         if ($from) $orderQuery->where('created_at', '>=', $from);
         $orderRevenue = (float) $orderQuery->sum('price');
 
-        // Website payments (paid)
-        $webPayQuery = WebsitePayment::where('status', 'zaplaceno');
-        if ($from) $webPayQuery->where('paid_at', '>=', $from);
-        $paidWebPayments = (float) $webPayQuery->sum('amount');
+        // Hosting payments (paid)
+        $hostingPayQuery = HostingPayment::where('status', 'zaplaceno');
+        if ($from) $hostingPayQuery->where('paid_at', '>=', $from);
+        $paidHostingPayments = (float) $hostingPayQuery->sum('amount');
 
-        $totalRevenue = $orderRevenue + $paidWebPayments;
+        $totalRevenue = $orderRevenue + $paidHostingPayments;
 
         // Order costs
         $costQuery = DB::table('order_costs');
         if ($from) $costQuery->where('created_at', '>=', $from);
         $orderCosts = (float) $costQuery->sum('amount');
 
-        // Website costs (pro-rated to period)
-        $webCostsYearly = (float) Website::where('status', 'aktivni')
+        // Hosting costs (pro-rated to period)
+        $hostingCostsYearly = (float) Hosting::where('status', 'aktivni')
             ->where('is_external', false)
             ->where('is_free', false)
             ->sum('cost_yearly');
-        $webCosts = $months ? $webCostsYearly * $months / 12 : $webCostsYearly;
+        $hostingCosts = $months ? $hostingCostsYearly * $months / 12 : $hostingCostsYearly;
+
+        // Domain costs (pro-rated to period)
+        $domainCostsYearly = (float) Domain::where('status', 'aktivni')
+            ->where('is_registered_by_us', true)
+            ->sum('cost_yearly');
+        $domainCosts = $months ? $domainCostsYearly * $months / 12 : $domainCostsYearly;
 
         // VPS costs (pro-rated to period)
         $vpsCostsYearly = (float) \App\Models\VpsServer::active()->sum('price_yearly');
         $vpsCosts = $months ? $vpsCostsYearly * $months / 12 : $vpsCostsYearly;
 
-        $totalCosts = $orderCosts + $webCosts + $vpsCosts;
+        $totalCosts = $orderCosts + $hostingCosts + $domainCosts + $vpsCosts;
 
         $profit = $totalRevenue - $totalCosts;
 
         // Unpaid total
         $unpaidInvoices = (float) Invoice::whereIn('status', ['vystavena', 'odeslana', 'po_splatnosti'])->sum('total');
-        $unpaidWebPayments = (float) WebsitePayment::whereIn('status', ['nezaplaceno', 'po_splatnosti'])->sum('amount');
-        $unpaidTotal = $unpaidInvoices + $unpaidWebPayments;
+        $unpaidHostingPayments = (float) HostingPayment::whereIn('status', ['nezaplaceno', 'po_splatnosti'])->sum('amount');
+        $unpaidTotal = $unpaidInvoices + $unpaidHostingPayments;
 
-        // MRR calculation — simplified: always sell_yearly / 12 + management plan
-        $ownWebsites = Website::where('status', 'aktivni')->where('is_external', false)->where('is_free', false)->whereNull('alias_of_id')->with('managementPlan')->get();
-        $mrrCalc = fn($website) =>
-            (float) ($website->sell_yearly ?: 0) / 12
-            + ($website->managementPlan?->price_monthly ?? 0);
-        $totalMRR = $ownWebsites->sum($mrrCalc);
+        // MRR calculation
+        $ownHostings = Hosting::where('status', 'aktivni')
+            ->where('is_external', false)
+            ->where('is_free', false)
+            ->with('managementPlan')
+            ->get();
+
+        $hostingMrr = $ownHostings->sum(fn ($h) => (float) ($h->sell_yearly ?: 0) / 12);
+        $mgmtMrr = $ownHostings->sum(fn ($h) => $h->managementPlan?->price_monthly ?? 0);
+        $domainMrr = (float) Domain::where('status', 'aktivni')
+            ->where('is_registered_by_us', true)
+            ->where('sell_yearly', '>', 0)
+            ->sum('sell_yearly') / 12;
         $vpsMRR = (float) \App\Models\VpsServer::active()->sum('price_yearly') / 12;
-        $mrr = round($totalMRR + $vpsMRR);
+
+        $mrr = round($hostingMrr + $domainMrr + $mgmtMrr + $vpsMRR);
         $arr = $mrr * 12;
 
         return [
@@ -109,7 +124,7 @@ class FinanceController extends Controller
             'profit' => round($profit),
             'unpaid_total' => round($unpaidTotal),
             'unpaid_invoices' => round($unpaidInvoices),
-            'unpaid_sub_payments' => round($unpaidWebPayments),
+            'unpaid_sub_payments' => round($unpaidHostingPayments),
             'mrr' => $mrr,
             'arr' => $arr,
         ];
@@ -134,8 +149,8 @@ class FinanceController extends Controller
             ->pluck('costs', 'month')
             ->toArray();
 
-        // Paid website payments by month
-        $webRevenue = WebsitePayment::where('status', 'zaplaceno')
+        // Paid hosting payments by month
+        $hostingRevenue = HostingPayment::where('status', 'zaplaceno')
             ->where('paid_at', '>=', $startDate)
             ->selectRaw("TO_CHAR(paid_at, 'YYYY-MM') as month, SUM(amount) as revenue")
             ->groupByRaw("TO_CHAR(paid_at, 'YYYY-MM')")
@@ -146,7 +161,7 @@ class FinanceController extends Controller
         $current = $startDate->copy();
         while ($current->lte(now())) {
             $key = $current->format('Y-m');
-            $rev = (float) ($revenue[$key] ?? 0) + (float) ($webRevenue[$key] ?? 0);
+            $rev = (float) ($revenue[$key] ?? 0) + (float) ($hostingRevenue[$key] ?? 0);
             $cost = (float) ($costs[$key] ?? 0);
             $data[] = [
                 'month' => $monthNames[$current->month - 1] . ' ' . $current->format("'y"),
@@ -165,23 +180,30 @@ class FinanceController extends Controller
         // Orders (one-time work)
         $orderTotal = (float) Order::whereIn('status', ['hotovo', 'fakturovano'])->sum('price');
 
-        // Website ARR — simplified: sell_yearly + management plan * 12
-        $ownWebsites = Website::where('status', 'aktivni')
+        // Hosting ARR
+        $ownHostings = Hosting::where('status', 'aktivni')
             ->where('is_external', false)
             ->where('is_free', false)
             ->with('managementPlan')
             ->get();
 
-        $websiteARR = $ownWebsites->sum(fn($w) =>
-            (float) ($w->sell_yearly ?: 0)
-            + ($w->managementPlan?->price_monthly ?? 0) * 12
+        $hostingARR = $ownHostings->sum(fn($h) =>
+            (float) ($h->sell_yearly ?: 0)
+            + ($h->managementPlan?->price_monthly ?? 0) * 12
         );
+
+        // Domain ARR
+        $domainARR = (float) Domain::where('status', 'aktivni')
+            ->where('is_registered_by_us', true)
+            ->where('sell_yearly', '>', 0)
+            ->sum('sell_yearly');
 
         $vpsARR = (float) \App\Models\VpsServer::active()->sum('price_yearly');
 
         return [
             ['label' => 'Zakázky', 'value' => round($orderTotal), 'color' => 'var(--chart-1)'],
-            ['label' => 'Weby', 'value' => round($websiteARR), 'color' => 'var(--chart-2)'],
+            ['label' => 'Hostingy', 'value' => round($hostingARR), 'color' => 'var(--chart-2)'],
+            ['label' => 'Domény', 'value' => round($domainARR), 'color' => 'var(--chart-3)'],
             ['label' => 'VPS', 'value' => round($vpsARR), 'color' => 'var(--chart-5)'],
         ];
     }
@@ -239,8 +261,8 @@ class FinanceController extends Controller
             ->pluck('amount', 'month')
             ->toArray();
 
-        // Cash IN: paid website payments by paid_at
-        $webIncome = WebsitePayment::where('status', 'zaplaceno')
+        // Cash IN: paid hosting payments by paid_at
+        $hostingIncome = HostingPayment::where('status', 'zaplaceno')
             ->whereNotNull('paid_at')
             ->where('paid_at', '>=', $startDate)
             ->selectRaw("TO_CHAR(paid_at, 'YYYY-MM') as month, SUM(amount) as amount")
@@ -262,7 +284,7 @@ class FinanceController extends Controller
 
         while ($current->lte(now())) {
             $key = $current->format('Y-m');
-            $income = (float) ($invoiceIncome[$key] ?? 0) + (float) ($webIncome[$key] ?? 0);
+            $income = (float) ($invoiceIncome[$key] ?? 0) + (float) ($hostingIncome[$key] ?? 0);
             $expenses = (float) ($orderExpenses[$key] ?? 0);
             $net = $income - $expenses;
             $cumulative += $net;
@@ -282,7 +304,6 @@ class FinanceController extends Controller
 
     private function getDetailedReceivables(): array
     {
-        // Unpaid invoices
         $fromInvoices = Invoice::whereIn('status', ['vystavena', 'odeslana', 'po_splatnosti'])
             ->with('customer:id,name,company')
             ->get()
@@ -299,7 +320,6 @@ class FinanceController extends Controller
                 'link' => "/faktury/{$inv->id}",
             ]);
 
-        // Completed orders without invoice
         $fromOrders = Order::whereIn('status', ['hotovo', 'fakturovano'])
             ->whereDoesntHave('invoice')
             ->where('price', '>', 0)
@@ -317,24 +337,23 @@ class FinanceController extends Controller
                 'link' => "/zakazky/{$order->id}",
             ]);
 
-        // Unpaid website payments
-        $fromWebsites = WebsitePayment::whereIn('status', ['nezaplaceno', 'po_splatnosti'])
-            ->with(['website.customer:id,name,company'])
+        $fromHostings = HostingPayment::whereIn('status', ['nezaplaceno', 'po_splatnosti'])
+            ->with(['hosting.customer:id,name,company'])
             ->get()
             ->map(fn($pay) => [
                 'id' => $pay->id,
-                'customer_name' => $pay->website?->customer?->company ?: $pay->website?->customer?->name ?? 'Neznámý',
-                'type' => 'website',
-                'label' => $pay->website?->name ?? 'Web',
+                'customer_name' => $pay->hosting?->customer?->company ?: $pay->hosting?->customer?->name ?? 'Neznámý',
+                'type' => 'hosting',
+                'label' => $pay->hosting?->name ?? 'Hosting',
                 'amount' => (float) $pay->amount,
                 'status' => $pay->status,
                 'due_date' => $pay->period_end?->toDateString(),
                 'days_overdue' => $pay->period_end && $pay->period_end->lt(now())
                     ? (int) now()->diffInDays($pay->period_end) : null,
-                'link' => "/webove-sluzby/{$pay->website_id}",
+                'link' => "/hostingy/{$pay->hosting_id}",
             ]);
 
-        return $fromInvoices->concat($fromOrders)->concat($fromWebsites)
+        return $fromInvoices->concat($fromOrders)->concat($fromHostings)
             ->sortByDesc('days_overdue')
             ->values()
             ->toArray();
@@ -342,33 +361,64 @@ class FinanceController extends Controller
 
     private function getMrrDetail(): array
     {
-        $ownWebsites = Website::where('status', 'aktivni')
+        // Hosting MRR
+        $ownHostings = Hosting::where('status', 'aktivni')
             ->where('is_external', false)
             ->where('is_free', false)
             ->with('managementPlan')
             ->get();
 
-        // Simplified: always sell_yearly / 12 + management plan
-        $revenueCalc = fn($website) =>
-            (float) ($website->sell_yearly ?: 0) / 12
-            + ($website->managementPlan?->price_monthly ?? 0);
-
-        $costCalc = fn($website) => (float) $website->cost_yearly / 12;
-
-        $monthlyRevenue = $ownWebsites->sum($revenueCalc);
-        $monthlyCost = $ownWebsites->sum($costCalc);
+        $hostingRevenue = $ownHostings->sum(fn ($h) => (float) ($h->sell_yearly ?: 0) / 12);
+        $hostingCost = $ownHostings->sum(fn ($h) => (float) $h->cost_yearly / 12);
 
         $detail = [];
         $detail[] = [
-            'type' => 'websites',
-            'label' => 'Weby',
-            'count' => $ownWebsites->count(),
-            'mrr' => round($monthlyRevenue),
-            'arr' => round($monthlyRevenue * 12),
-            'costs_monthly' => round($monthlyCost),
-            'costs_annual' => round($monthlyCost * 12),
-            'margin_monthly' => round($monthlyRevenue - $monthlyCost),
-            'margin_annual' => round(($monthlyRevenue - $monthlyCost) * 12),
+            'type' => 'hostings',
+            'label' => 'Hostingy',
+            'count' => $ownHostings->count(),
+            'mrr' => round($hostingRevenue),
+            'arr' => round($hostingRevenue * 12),
+            'costs_monthly' => round($hostingCost),
+            'costs_annual' => round($hostingCost * 12),
+            'margin_monthly' => round($hostingRevenue - $hostingCost),
+            'margin_annual' => round(($hostingRevenue - $hostingCost) * 12),
+        ];
+
+        // Domain MRR
+        $ownDomains = Domain::where('status', 'aktivni')
+            ->where('is_registered_by_us', true)
+            ->where('sell_yearly', '>', 0)
+            ->get();
+
+        $domainRevenue = $ownDomains->sum(fn ($d) => (float) $d->sell_yearly / 12);
+        $domainCost = $ownDomains->sum(fn ($d) => (float) $d->cost_yearly / 12);
+
+        $detail[] = [
+            'type' => 'domains',
+            'label' => 'Domény',
+            'count' => $ownDomains->count(),
+            'mrr' => round($domainRevenue),
+            'arr' => round($domainRevenue * 12),
+            'costs_monthly' => round($domainCost),
+            'costs_annual' => round($domainCost * 12),
+            'margin_monthly' => round($domainRevenue - $domainCost),
+            'margin_annual' => round(($domainRevenue - $domainCost) * 12),
+        ];
+
+        // Management MRR
+        $mgmtRevenue = $ownHostings->sum(fn ($h) => $h->managementPlan?->price_monthly ?? 0);
+        $mgmtCount = $ownHostings->filter(fn ($h) => $h->management_plan_id !== null)->count();
+
+        $detail[] = [
+            'type' => 'management',
+            'label' => 'Správa',
+            'count' => $mgmtCount,
+            'mrr' => round($mgmtRevenue),
+            'arr' => round($mgmtRevenue * 12),
+            'costs_monthly' => 0,
+            'costs_annual' => 0,
+            'margin_monthly' => round($mgmtRevenue),
+            'margin_annual' => round($mgmtRevenue * 12),
         ];
 
         // VPS
@@ -386,23 +436,48 @@ class FinanceController extends Controller
             'margin_annual' => 0,
         ];
 
-        // Expiring soon
-        $expiringSoon = Website::where('status', 'aktivni')
+        // Expiring soon (hostings + domains combined)
+        $expiringHostings = Hosting::where('status', 'aktivni')
             ->where('is_external', false)
-            ->whereNotNull('hosting_expires_at')
-            ->where('hosting_expires_at', '>=', now())
-            ->where('hosting_expires_at', '<=', now()->addDays(30))
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '>=', now())
+            ->where('expires_at', '<=', now()->addDays(30))
             ->with('customer:id,name')
-            ->orderBy('hosting_expires_at')
+            ->orderBy('expires_at')
             ->get()
-            ->map(fn($w) => [
-                'id' => $w->id,
-                'name' => $w->name,
-                'hosting_expires_at' => $w->hosting_expires_at->toDateString(),
-                'days' => $w->daysUntilExpiry(),
-                'customer_name' => $w->customer?->name,
-                'mrr' => round($revenueCalc($w)),
-            ])
+            ->map(fn($h) => [
+                'id' => $h->id,
+                'name' => $h->name,
+                'type' => 'hosting',
+                'expires_at' => $h->expires_at->toDateString(),
+                'days' => $h->daysUntilExpiry(),
+                'customer_name' => $h->customer?->name,
+                'mrr' => round((float) ($h->sell_yearly ?: 0) / 12),
+                'link' => "/hostingy/{$h->id}",
+            ]);
+
+        $expiringDomains = Domain::where('status', 'aktivni')
+            ->where('is_registered_by_us', true)
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '>=', now())
+            ->where('expires_at', '<=', now()->addDays(30))
+            ->with('customer:id,name')
+            ->orderBy('expires_at')
+            ->get()
+            ->map(fn($d) => [
+                'id' => $d->id,
+                'name' => $d->name,
+                'type' => 'domain',
+                'expires_at' => $d->expires_at->toDateString(),
+                'days' => $d->daysUntilExpiry(),
+                'customer_name' => $d->customer?->name,
+                'mrr' => round((float) ($d->sell_yearly ?: 0) / 12),
+                'link' => "/domeny/{$d->id}",
+            ]);
+
+        $expiringSoon = $expiringHostings->concat($expiringDomains)
+            ->sortBy('days')
+            ->values()
             ->toArray();
 
         // Totals

@@ -4,7 +4,7 @@ import { ArrowLeft, Trash2 } from 'lucide-react';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import { Button } from '@/components/ui/button';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
-import WebsiteForm, { type WebsiteFormData } from '@/components/webove-sluzby/WebsiteForm';
+import HostingForm, { type HostingFormData } from '@/components/hostings/HostingForm';
 
 interface Customer {
     id: number;
@@ -24,12 +24,7 @@ interface ManagementPlanOption {
     is_active: boolean;
 }
 
-interface AliasOption {
-    id: number;
-    name: string;
-}
-
-interface Website {
+interface Hosting {
     id: number;
     customer_id: number | null;
     name: string;
@@ -37,74 +32,61 @@ interface Website {
     status: string;
     notes: string | null;
     starts_at: string | null;
-    is_registered_by_us: boolean;
     auto_invoice: boolean;
     auto_invoice_management: boolean;
     is_free: boolean;
     sell_yearly: number;
     cost_yearly: number;
-    domain_sell_yearly: number;
-    domain_cost_yearly: number;
-    hosting_sell_yearly: number;
-    hosting_cost_yearly: number;
     admin_url: string | null;
-    domain_expires_at: string | null;
     hosting_expires_at: string | null;
     hosting_server_id: number | null;
-    alias_of_id: number | null;
     management_plan_id: number | null;
     management_cycle: string | null;
     storage_quota_mb: number;
 }
 
 interface Props {
-    website: Website;
+    hosting: Hosting;
     customers: Customer[];
     vpsServers: VpsServerOption[];
     managementPlans: ManagementPlanOption[];
-    aliasOptions: AliasOption[];
 }
 
-export default function WeboveSluzbyEdit({ website, customers, vpsServers, managementPlans, aliasOptions }: Props) {
+export default function HostingsEdit({ hosting, customers, vpsServers, managementPlans }: Props) {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const form = useForm<WebsiteFormData>({
-        customer_id: website.customer_id ? String(website.customer_id) : '',
-        name: website.name,
-        server: website.server || '',
-        status: website.status,
-        notes: website.notes || '',
-        starts_at: website.starts_at || '',
-        is_registered_by_us: website.is_registered_by_us ?? true,
-        auto_invoice: website.auto_invoice ?? true,
-        auto_invoice_management: website.auto_invoice_management ?? false,
-        is_free: website.is_free ?? false,
-        domain_sell_yearly: String(website.domain_sell_yearly || ''),
-        domain_cost_yearly: String(website.domain_cost_yearly || ''),
-        hosting_sell_yearly: String(website.hosting_sell_yearly || ''),
-        hosting_cost_yearly: String(website.hosting_cost_yearly || ''),
-        admin_url: website.admin_url || '',
-        domain_expires_at: website.domain_expires_at || '',
-        hosting_expires_at: website.hosting_expires_at || '',
-        hosting_server_id: website.hosting_server_id ? String(website.hosting_server_id) : '',
-        alias_of_id: website.alias_of_id ? String(website.alias_of_id) : '',
-        management_plan_id: website.management_plan_id ? String(website.management_plan_id) : '',
-        management_cycle: website.management_cycle || '',
-        storage_quota_mb: String(website.storage_quota_mb || ''),
+    const form = useForm<HostingFormData>({
+        customer_id: hosting.customer_id ? String(hosting.customer_id) : '',
+        name: hosting.name,
+        server: hosting.server || '',
+        status: hosting.status,
+        notes: hosting.notes || '',
+        starts_at: hosting.starts_at || '',
+        auto_invoice: hosting.auto_invoice ?? true,
+        auto_invoice_management: hosting.auto_invoice_management ?? false,
+        is_free: hosting.is_free ?? false,
+        sell_yearly: String(hosting.sell_yearly || ''),
+        cost_yearly: String(hosting.cost_yearly || ''),
+        admin_url: hosting.admin_url || '',
+        hosting_expires_at: hosting.hosting_expires_at || '',
+        hosting_server_id: hosting.hosting_server_id ? String(hosting.hosting_server_id) : '',
+        management_plan_id: hosting.management_plan_id ? String(hosting.management_plan_id) : '',
+        management_cycle: hosting.management_cycle || '',
+        storage_quota_mb: String(hosting.storage_quota_mb || ''),
     });
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
-        form.put(`/webove-sluzby/${website.id}`);
+        form.put(`/hostingy/${hosting.id}`);
     };
 
     const handleDelete = () => setShowDeleteConfirm(true);
 
     return (
         <AuthenticatedLayout
-            title={`Upravit: ${website.name}`}
+            title={`Upravit: ${hosting.name}`}
             breadcrumbs={[
-                { label: 'Webové služby', href: '/webove-sluzby' },
-                { label: website.name, href: `/webove-sluzby/${website.id}` },
+                { label: 'Hostingy', href: '/hostingy' },
+                { label: hosting.name, href: `/hostingy/${hosting.id}` },
                 { label: 'Upravit' },
             ]}
         >
@@ -112,7 +94,7 @@ export default function WeboveSluzbyEdit({ website, customers, vpsServers, manag
                 <div className="flex items-center justify-between mb-4">
                     <Button
                         variant="ghost"
-                        onClick={() => router.visit(`/webove-sluzby/${website.id}`)}
+                        onClick={() => router.visit(`/hostingy/${hosting.id}`)}
                         className="text-muted-foreground hover:text-foreground"
                     >
                         <ArrowLeft className="h-4 w-4 mr-2" />
@@ -129,24 +111,23 @@ export default function WeboveSluzbyEdit({ website, customers, vpsServers, manag
                 </div>
 
                 <div className="bg-card rounded-xl border border-border p-6">
-                    <WebsiteForm
+                    <HostingForm
                         form={form}
                         onSubmit={handleSubmit}
                         submitLabel="Uložit změny"
                         customers={customers}
                         vpsServers={vpsServers}
                         managementPlans={managementPlans}
-                        aliasOptions={aliasOptions}
-                        onCancel={() => router.visit(`/webove-sluzby/${website.id}`)}
+                        onCancel={() => router.visit(`/hostingy/${hosting.id}`)}
                     />
                 </div>
             </div>
             <ConfirmDialog
                 open={showDeleteConfirm}
                 onClose={() => setShowDeleteConfirm(false)}
-                onConfirm={() => router.delete(`/webove-sluzby/${website.id}`)}
-                title="Smazat web"
-                message={`Opravdu chcete smazat "${website.name}"?`}
+                onConfirm={() => router.delete(`/hostingy/${hosting.id}`)}
+                title="Smazat hosting"
+                message={`Opravdu chcete smazat "${hosting.name}"?`}
             />
         </AuthenticatedLayout>
     );

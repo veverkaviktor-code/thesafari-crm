@@ -35,7 +35,7 @@ interface Props {
         total: number;
         hosting: number;
         domain: number;
-        service: number;
+        management: number;
         vps: number;
         count: number;
         costs_monthly: number;
@@ -57,30 +57,34 @@ interface Props {
         title: string;
         subtitle: string;
         link: string;
+        hosting_id?: number;
         website_id?: number;
     }[];
     ignoredAlerts?: {
-        website_id: number;
+        hosting_id: number;
         name: string;
         type: string;
         ignored_at: string;
         link: string;
     }[];
-    websiteStats?: {
-        active_websites: number;
-        total_aliases: number;
-        expiring_soon: number;
-        expired: number;
+    servicesStats?: {
+        active_hostings: number;
+        active_domains: number;
+        expiring_hostings: number;
+        expiring_domains: number;
+        expired_hostings: number;
         unpaid_payments: number;
         total_storage_mb: number;
         storage_by_server: { server: string; count: number; total_mb: number }[];
         expiring: {
             id: number;
             name: string;
-            hosting_expires_at: string;
+            type: 'hosting' | 'domain';
+            expires_at: string;
             days: number;
             urgency: string;
             customer_name: string | null;
+            link: string;
         }[];
     };
     recentActivity?: {
@@ -122,9 +126,9 @@ interface Props {
     }[];
 }
 
-export default function Dashboard({ stats, mrr, revenueByDivision, revenueData, recentTickets, alerts, ignoredAlerts, recentActivity, websiteStats, taskStats, financialSummary, receivables }: Props) {
+export default function Dashboard({ stats, mrr, revenueByDivision, revenueData, recentTickets, alerts, ignoredAlerts, recentActivity, servicesStats, taskStats, financialSummary, receivables }: Props) {
     const s = stats ?? { active_orders: 0, unpaid_amount: 0, open_tickets: 0, upcoming_deadlines: 0 };
-    const mrrData = mrr ?? { total: 0, hosting: 0, domain: 0, service: 0, vps: 0, count: 0, costs_monthly: 0, margin_monthly: 0, arr_total: 0, costs_annual: 0, margin_annual: 0 };
+    const mrrData = mrr ?? { total: 0, hosting: 0, domain: 0, management: 0, vps: 0, count: 0, costs_monthly: 0, margin_monthly: 0, arr_total: 0, costs_annual: 0, margin_annual: 0 };
 
     const activities: Activity[] = (recentActivity ?? []).map((a) => ({
         id: a.id,
@@ -201,7 +205,7 @@ export default function Dashboard({ stats, mrr, revenueByDivision, revenueData, 
 
                 {/* Row 3: Neniweb + Attention alerts */}
                 <div className="grid gap-6 lg:grid-cols-2">
-                    {websiteStats && <WebsiteOverview stats={websiteStats} />}
+                    {servicesStats && <WebsiteOverview stats={servicesStats} />}
                     <AttentionAlerts alerts={alerts} ignoredAlerts={ignoredAlerts} />
                 </div>
 

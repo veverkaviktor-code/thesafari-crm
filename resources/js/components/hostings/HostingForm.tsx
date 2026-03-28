@@ -23,51 +23,41 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 
-export interface WebsiteFormData {
+export interface HostingFormData {
     customer_id: string;
     name: string;
     server: string;
     status: string;
     notes: string;
     starts_at: string;
-    is_registered_by_us: boolean;
     auto_invoice: boolean;
     auto_invoice_management: boolean;
     is_free: boolean;
-    domain_sell_yearly: string;
-    domain_cost_yearly: string;
-    hosting_sell_yearly: string;
-    hosting_cost_yearly: string;
+    sell_yearly: string;
+    cost_yearly: string;
     admin_url: string;
-    domain_expires_at: string;
     hosting_expires_at: string;
     hosting_server_id: string;
-    alias_of_id: string;
     management_plan_id: string;
     management_cycle: string;
     storage_quota_mb: string;
 }
 
-export const defaultWebsiteData: WebsiteFormData = {
+export const defaultHostingData: HostingFormData = {
     customer_id: '',
     name: '',
     server: '',
     status: 'aktivni',
     notes: '',
     starts_at: format(new Date(), 'yyyy-MM-dd'),
-    is_registered_by_us: true,
     auto_invoice: false,
     auto_invoice_management: false,
     is_free: false,
-    domain_sell_yearly: '',
-    domain_cost_yearly: '',
-    hosting_sell_yearly: '',
-    hosting_cost_yearly: '',
+    sell_yearly: '',
+    cost_yearly: '',
     admin_url: '',
-    domain_expires_at: '',
     hosting_expires_at: '',
     hosting_server_id: '',
-    alias_of_id: '',
     management_plan_id: '',
     management_cycle: '',
     storage_quota_mb: '',
@@ -91,19 +81,13 @@ interface ManagementPlanOption {
     is_active: boolean;
 }
 
-interface AliasOption {
-    id: number;
-    name: string;
-}
-
-interface WebsiteFormProps {
-    form: InertiaFormProps<WebsiteFormData>;
+interface HostingFormProps {
+    form: InertiaFormProps<HostingFormData>;
     onSubmit: (e: FormEvent) => void;
     submitLabel: string;
     customers: Customer[];
     vpsServers?: VpsServerOption[];
     managementPlans?: ManagementPlanOption[];
-    aliasOptions?: AliasOption[];
     onCancel?: () => void;
 }
 
@@ -258,32 +242,31 @@ function DatePickerField({
     );
 }
 
-export default function WebsiteForm({
+export default function HostingForm({
     form,
     onSubmit,
     submitLabel,
     customers,
     vpsServers = [],
     managementPlans = [],
-    aliasOptions = [],
     onCancel,
-}: WebsiteFormProps) {
+}: HostingFormProps) {
     const { data, setData, errors, processing } = form;
 
     const handleCancel = () => {
         if (onCancel) {
             onCancel();
         } else {
-            router.visit('/webove-sluzby');
+            router.visit('/hostingy');
         }
     };
 
     return (
         <form onSubmit={onSubmit} className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* ═══════ LEFT COLUMN ═══════ */}
+            {/* LEFT COLUMN */}
             <div className="space-y-6">
-            {/* ═══════ Základní údaje ═══════ */}
+            {/* Základní údaje */}
             <FormSection icon={Globe} title="Základní údaje">
                 {/* Name */}
                 <div>
@@ -362,58 +345,11 @@ export default function WebsiteForm({
                     />
                 </div>
             </FormSection>
-
-            <Separator className="bg-border" />
-
-            {/* ═══════ Doména ═══════ */}
-            <FormSection icon={Globe} title="Doména">
-                <div className="flex items-center gap-3 pt-2">
-                    <Switch
-                        checked={data.is_registered_by_us}
-                        onCheckedChange={(v) => setData('is_registered_by_us', v)}
-                    />
-                    <Label className="text-muted-foreground">Registrátor u nás</Label>
-                </div>
-
-                <DatePickerField
-                    label="Expirace domény"
-                    value={data.domain_expires_at}
-                    onChange={(d) => setData('domain_expires_at', d)}
-                    onClear={() => setData('domain_expires_at', '')}
-                    error={errors.domain_expires_at}
-                />
-
-                {data.is_registered_by_us && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <Label className="text-muted-foreground">Roční náklad domény (Kč)</Label>
-                            <Input
-                                type="number"
-                                value={data.domain_cost_yearly}
-                                onChange={(e) => setData('domain_cost_yearly', e.target.value)}
-                                placeholder="200"
-                                className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
-                            />
-                            {errors.domain_cost_yearly && <p className="mt-1 text-xs text-red-400">{errors.domain_cost_yearly}</p>}
-                        </div>
-                        <div>
-                            <Label className="text-muted-foreground">Prodejní cena domény (Kč)</Label>
-                            <Input
-                                type="number"
-                                value={data.domain_sell_yearly}
-                                onChange={(e) => setData('domain_sell_yearly', e.target.value)}
-                                placeholder="300"
-                                className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
-                            />
-                            {errors.domain_sell_yearly && <p className="mt-1 text-xs text-red-400">{errors.domain_sell_yearly}</p>}
-                        </div>
-                    </div>
-                )}
-            </FormSection>
             </div>
-            {/* ═══════ RIGHT COLUMN ═══════ */}
+
+            {/* RIGHT COLUMN */}
             <div className="space-y-6">
-            {/* ═══════ Hosting ═══════ */}
+            {/* Hosting */}
             <FormSection icon={HardDrive} title="Hosting">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -470,29 +406,29 @@ export default function WebsiteForm({
                             <Label className="text-muted-foreground">Roční náklad hostingu (Kč)</Label>
                             <Input
                                 type="number"
-                                value={data.hosting_cost_yearly}
-                                onChange={(e) => setData('hosting_cost_yearly', e.target.value)}
+                                value={data.cost_yearly}
+                                onChange={(e) => setData('cost_yearly', e.target.value)}
                                 placeholder="363"
                                 className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
                             />
-                            {errors.hosting_cost_yearly && <p className="mt-1 text-xs text-red-400">{errors.hosting_cost_yearly}</p>}
+                            {errors.cost_yearly && <p className="mt-1 text-xs text-red-400">{errors.cost_yearly}</p>}
                         </div>
                         <div>
                             <Label className="text-muted-foreground">Prodejní cena hostingu (Kč)</Label>
                             <Input
                                 type="number"
-                                value={data.hosting_sell_yearly}
-                                onChange={(e) => setData('hosting_sell_yearly', e.target.value)}
+                                value={data.sell_yearly}
+                                onChange={(e) => setData('sell_yearly', e.target.value)}
                                 placeholder="2050"
                                 className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
                             />
-                            {errors.hosting_sell_yearly && <p className="mt-1 text-xs text-red-400">{errors.hosting_sell_yearly}</p>}
+                            {errors.sell_yearly && <p className="mt-1 text-xs text-red-400">{errors.sell_yearly}</p>}
                         </div>
                     </div>
                 )}
             </FormSection>
 
-            {/* ═══════ Správa webu ═══════ */}
+            {/* Správa webu */}
             {managementPlans.length > 0 && (
                 <FormSection icon={Settings} title="Správa webu">
                     <div>
@@ -534,35 +470,10 @@ export default function WebsiteForm({
                 </FormSection>
             )}
 
-            {/* ═══════ Alias ═══════ */}
-            {aliasOptions.length > 0 && (
-                <FormSection icon={Globe} title="Alias">
-                    <div>
-                        <Label className="text-muted-foreground">Alias webu (nadřazený web)</Label>
-                        <Select
-                            value={data.alias_of_id || 'none'}
-                            onValueChange={(v) => setData('alias_of_id', v === 'none' ? '' : v)}
-                        >
-                            <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
-                                <SelectValue placeholder="Žádný (samostatný web)" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-card border-border">
-                                <SelectItem value="none">Žádný (samostatný web)</SelectItem>
-                                {aliasOptions.map((opt) => (
-                                    <SelectItem key={opt.id} value={String(opt.id)}>
-                                        {opt.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </FormSection>
-            )}
-
             </div>
             </div>
 
-            {/* ═══════ Actions ═══════ */}
+            {/* Actions */}
             <div className="flex items-center justify-end gap-3 pt-2">
                 <Button
                     type="button"

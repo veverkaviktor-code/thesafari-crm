@@ -68,12 +68,16 @@ interface Invoice {
     };
     order: { id: number; title: string } | null;
     items: InvoiceItem[];
-    websites?: Array<{
+    hostings?: Array<{
+        id: number;
+        name: string;
+        expires_at: string | null;
+    }>;
+    domains?: Array<{
         id: number;
         name: string;
         is_registered_by_us: boolean;
-        hosting_expires_at: string | null;
-        domain_expires_at: string | null;
+        expires_at: string | null;
     }>;
     bank_transaction?: BankTransaction;
 }
@@ -581,28 +585,43 @@ export default function Show({ invoice, company, unmatchedTransactions, activiti
                         </>
                     )}
 
-                    {/* Linked websites */}
-                    {invoice.websites && invoice.websites.length > 0 && (
+                    {/* Linked services */}
+                    {((invoice.hostings && invoice.hostings.length > 0) || (invoice.domains && invoice.domains.length > 0)) && (
                         <>
                             <Separator className="my-6 bg-border" />
                             <div>
-                                <p className="text-xs text-muted-foreground mb-2">Weby:</p>
-                                {invoice.websites.map((sub) => (
-                                    <div key={sub.id} className="flex items-center gap-2 text-sm mb-1">
-                                        <span>{sub.is_registered_by_us ? '🌐' : '🖥️'}</span>
+                                <p className="text-xs text-muted-foreground mb-2">Služby:</p>
+                                {invoice.hostings?.map((hosting) => (
+                                    <div key={`h-${hosting.id}`} className="flex items-center gap-2 text-sm mb-1">
+                                        <span className="text-blue-400">H</span>
                                         <Link
-                                            href={`/webove-sluzby/${sub.id}`}
+                                            href={`/hostingy/${hosting.id}`}
                                             className="text-primary hover:underline"
                                         >
-                                            {sub.name}
+                                            {hosting.name}
                                         </Link>
                                         <span className="text-muted-foreground text-xs">
-                                            — {sub.is_registered_by_us ? 'hosting + doména' : 'hosting'}
-                                            {sub.hosting_expires_at && ` (exp. ${new Date(sub.hosting_expires_at).toLocaleDateString('cs-CZ')})`}
+                                            -- Hosting
+                                            {hosting.expires_at && ` (exp. ${new Date(hosting.expires_at).toLocaleDateString('cs-CZ')})`}
                                         </span>
                                     </div>
                                 ))}
-                                {invoice.status === 'zaplacena' && invoice.websites.some(s => s.is_registered_by_us) && (
+                                {invoice.domains?.map((domain) => (
+                                    <div key={`d-${domain.id}`} className="flex items-center gap-2 text-sm mb-1">
+                                        <span className="text-emerald-400">D</span>
+                                        <Link
+                                            href={`/domeny/${domain.id}`}
+                                            className="text-primary hover:underline"
+                                        >
+                                            {domain.name}
+                                        </Link>
+                                        <span className="text-muted-foreground text-xs">
+                                            -- {domain.is_registered_by_us ? 'Naše doména' : 'Doména zákazníka'}
+                                            {domain.expires_at && ` (exp. ${new Date(domain.expires_at).toLocaleDateString('cs-CZ')})`}
+                                        </span>
+                                    </div>
+                                ))}
+                                {invoice.status === 'zaplacena' && invoice.domains?.some(d => d.is_registered_by_us) && (
                                     <a
                                         href="https://portal.vas-hosting.cz"
                                         target="_blank"

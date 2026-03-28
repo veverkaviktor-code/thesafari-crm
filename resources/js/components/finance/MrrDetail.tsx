@@ -22,6 +22,7 @@ interface ExpiringSub {
     days: number;
     customer_name: string;
     mrr: number;
+    link: string;
 }
 
 interface MrrTotals {
@@ -127,14 +128,14 @@ export default function MrrDetail({ data }: Props) {
                     <div className="space-y-2 max-h-[200px] overflow-y-auto">
                         {expiring_soon.map((sub) => (
                             <button
-                                key={sub.id}
-                                onClick={() => router.visit(`/webove-sluzby/${sub.id}`)}
+                                key={`${sub.type}-${sub.id}`}
+                                onClick={() => router.visit(sub.link)}
                                 className="w-full flex items-center justify-between rounded-lg border border-border p-2.5 text-left transition-colors hover:bg-accent"
                             >
                                 <div>
                                     <p className="text-sm font-medium text-foreground">{sub.name}</p>
                                     <p className="text-xs text-muted-foreground">
-                                        {sub.customer_name} · {sub.type === 'hosting' ? 'Hosting' : sub.type === 'domena' ? 'Doména' : 'Služba'}
+                                        {sub.customer_name} · {sub.type === 'hosting' ? 'Hosting' : sub.type === 'domain' ? 'Doména' : 'Služba'}
                                     </p>
                                 </div>
                                 <div className="text-right">

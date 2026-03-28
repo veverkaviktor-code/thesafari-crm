@@ -1,18 +1,22 @@
 import { useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import {
+    AtSign,
     Bell,
     Calculator,
     CalendarCheck,
+    ChevronDown,
     ChevronLeft,
     ChevronRight,
     ClipboardList,
     ExternalLink,
     FileText,
     Globe,
+    HardDrive,
     LayoutDashboard,
     MessageSquare,
     ScrollText,
+    Server,
     Settings,
     TrendingUp,
     Users,
@@ -32,14 +36,34 @@ interface NavItem {
     external?: boolean;
 }
 
-const mainNav: NavItem[] = [
+interface NavGroup {
+    label: string;
+    icon: React.ElementType;
+    children: NavItem[];
+}
+
+type NavEntry = NavItem | NavGroup;
+
+function isNavGroup(entry: NavEntry): entry is NavGroup {
+    return 'children' in entry;
+}
+
+const mainNav: NavEntry[] = [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { label: 'Zákazníci', href: '/zakaznici', icon: Users },
     { label: 'Zakázky', href: '/zakazky', icon: ClipboardList },
     { label: 'Faktury', href: '/faktury', icon: FileText },
     { label: 'Finance', href: '/finance', icon: TrendingUp },
     { label: 'Zprávy', href: '/zpravy', icon: MessageSquare },
-    { label: 'Webové služby', href: '/webove-sluzby', icon: Globe },
+    {
+        label: 'Webové služby',
+        icon: Globe,
+        children: [
+            { label: 'Domény', href: '/domeny', icon: AtSign },
+            { label: 'Hostingy', href: '/hostingy', icon: Server },
+            { label: 'VPS', href: '/vps', icon: HardDrive },
+        ],
+    },
     { label: 'Kalkulátor', href: '/kalkulator', icon: Calculator },
     { label: 'To Do', href: '/planovac', icon: CalendarCheck },
     { label: 'Notifikace', href: '/notifikace', icon: Bell },
@@ -63,6 +87,9 @@ export default function Sidebar() {
         if (href === '/dashboard') return url === '/dashboard' || url === '/';
         return url.startsWith(href);
     };
+
+    const isGroupActive = (group: NavGroup) =>
+        group.children.some((child) => isActive(child.href));
 
     return (
         <TooltipProvider>
@@ -107,15 +134,29 @@ export default function Sidebar() {
 
                 {/* Main navigation */}
                 <nav className="flex-1 space-y-0.5 overflow-hidden px-3 py-4">
-                    {mainNav.map((item) => (
-                        <NavLink
-                            key={item.href}
-                            item={item}
-                            active={isActive(item.href)}
-                            collapsed={collapsed}
-                            badge={item.href === '/notifikace' ? unreadCount : item.href === '/zpravy' ? newTicketsCount : 0}
-                        />
-                    ))}
+                    {mainNav.map((entry) => {
+                        if (isNavGroup(entry)) {
+                            return (
+                                <CollapsibleNavGroup
+                                    key={entry.label}
+                                    group={entry}
+                                    collapsed={collapsed}
+                                    isActive={isActive}
+                                    isGroupActive={isGroupActive(entry)}
+                                />
+                            );
+                        }
+                        const item = entry as NavItem;
+                        return (
+                            <NavLink
+                                key={item.href}
+                                item={item}
+                                active={isActive(item.href)}
+                                collapsed={collapsed}
+                                badge={item.href === '/notifikace' ? unreadCount : item.href === '/zpravy' ? newTicketsCount : 0}
+                            />
+                        );
+                    })}
                 </nav>
 
                 {/* Bottom section */}
@@ -132,6 +173,106 @@ export default function Sidebar() {
                 </div>
             </aside>
         </TooltipProvider>
+    );
+}
+
+function CollapsibleNavGroup({
+    group,
+    collapsed,
+    isActive,
+    isGroupActive,
+}: {
+    group: NavGroup;
+    collapsed: boolean;
+    isActive: (href: string) => boolean;
+    isGroupActive: boolean;
+}) {
+    const [open, setOpen] = useState(isGroupActive);
+    const Icon = group.icon;
+
+    // When sidebar is collapsed, show tooltip with children links
+    if (collapsed) {
+        return (
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <button
+                        onClick={() => setOpen(!open)}
+                        className={cn(
+                            'group relative flex h-9 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors',
+                            isGroupActive
+                                ? 'bg-accent text-foreground'
+                                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                        )}
+                    >
+                        {isGroupActive && (
+                            <span className="absolute -left-3 top-1.5 h-5 w-0.5 rounded-r bg-primary" />
+                        )}
+                        <span className="shrink-0">
+                            <Icon className="h-4 w-4" />
+                        </span>
+                    </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" sideOffset={8} className="space-y-1 p-2">
+                    <p className="text-xs font-semibold text-muted-foreground mb-1">{group.label}</p>
+                    {group.children.map((child) => (
+                        <Link
+                            key={child.href}
+                            href={child.href}
+                            className={cn(
+                                'flex items-center gap-2 rounded px-2 py-1 text-xs transition-colors',
+                                isActive(child.href)
+                                    ? 'bg-accent text-foreground font-medium'
+                                    : 'text-muted-foreground hover:text-foreground hover:bg-accent',
+                            )}
+                        >
+                            <child.icon className="h-3 w-3" />
+                            {child.label}
+                        </Link>
+                    ))}
+                </TooltipContent>
+            </Tooltip>
+        );
+    }
+
+    return (
+        <div>
+            <button
+                onClick={() => setOpen(!open)}
+                className={cn(
+                    'group relative flex h-9 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors',
+                    isGroupActive
+                        ? 'bg-accent text-foreground'
+                        : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                )}
+            >
+                {isGroupActive && (
+                    <span className="absolute -left-3 top-1.5 h-5 w-0.5 rounded-r bg-primary" />
+                )}
+                <span className="shrink-0">
+                    <Icon className="h-4 w-4" />
+                </span>
+                <span className="flex flex-1 items-center justify-between whitespace-nowrap">
+                    {group.label}
+                    <ChevronDown className={cn(
+                        'h-3 w-3 text-muted-foreground transition-transform duration-200',
+                        open && 'rotate-180',
+                    )} />
+                </span>
+            </button>
+            {open && (
+                <div className="mt-0.5 space-y-0.5 pl-4">
+                    {group.children.map((child) => (
+                        <NavLink
+                            key={child.href}
+                            item={child}
+                            active={isActive(child.href)}
+                            collapsed={false}
+                            badge={0}
+                        />
+                    ))}
+                </div>
+            )}
+        </div>
     );
 }
 

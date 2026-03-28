@@ -3,6 +3,7 @@ import { Link, router } from '@inertiajs/react';
 import {
     AlertTriangle,
     ArrowRight,
+    AtSign,
     Bell,
     BellOff,
     Calendar,
@@ -11,6 +12,7 @@ import {
     CreditCard,
     FileText,
     Globe,
+    Server,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -20,11 +22,13 @@ export interface Alert {
     title: string;
     subtitle: string;
     link: string;
+    hosting_id?: number;
+    /** @deprecated kept for backward compat with old alerts */
     website_id?: number;
 }
 
 export interface IgnoredAlert {
-    website_id: number;
+    hosting_id: number;
     name: string;
     type: string;
     ignored_at: string;
@@ -35,7 +39,9 @@ const iconMap: Record<string, { icon: typeof AlertTriangle; color: string }> = {
     order:        { icon: FileText,      color: 'text-amber-500' },
     invoice:      { icon: CreditCard,    color: 'text-red-500' },
     deadline:     { icon: Calendar,      color: 'text-orange-500' },
-    website: { icon: Globe,         color: 'text-primary' },
+    hosting:      { icon: Server,        color: 'text-blue-400' },
+    domain:       { icon: AtSign,        color: 'text-emerald-400' },
+    website:      { icon: Globe,         color: 'text-primary' },
     payment:      { icon: CreditCard,    color: 'text-rose-500' },
 };
 
@@ -64,21 +70,24 @@ export default function AttentionAlerts({ alerts, ignoredAlerts, defaultVisible 
     const visibleItems = expanded ? items : items.slice(0, defaultVisible);
     const hasMore = items.length > defaultVisible;
 
+    const getAlertId = (alert: Alert) => alert.hosting_id ?? alert.website_id;
+
     const handleIgnore = (e: React.MouseEvent, alert: Alert) => {
         e.preventDefault();
         e.stopPropagation();
-        if (!alert.website_id) return;
+        const alertId = getAlertId(alert);
+        if (!alertId) return;
 
-        setProcessingId(alert.website_id);
-        router.post(`/webove-sluzby/${alert.website_id}/toggle-ignore`, {}, {
+        setProcessingId(alertId);
+        router.post(`/hostingy/${alertId}/toggle-ignore`, {}, {
             preserveScroll: true,
             preserveState: true,
             onSuccess: () => {
-                const removed = items.find(a => a.website_id === alert.website_id);
-                setItems(prev => prev.filter(a => a.website_id !== alert.website_id));
+                const removed = items.find(a => getAlertId(a) === alertId);
+                setItems(prev => prev.filter(a => getAlertId(a) !== alertId));
                 if (removed) {
                     setIgnored(prev => [{
-                        website_id: removed.website_id!,
+                        hosting_id: alertId,
                         name: removed.title.split(' — ')[0].split(' expiruje')[0],
                         type: removed.subtitle.split(' ·')[0],
                         ignored_at: 'Právě teď',
@@ -92,12 +101,12 @@ export default function AttentionAlerts({ alerts, ignoredAlerts, defaultVisible 
     };
 
     const handleRestore = (ignoredAlert: IgnoredAlert) => {
-        setProcessingId(ignoredAlert.website_id);
-        router.post(`/webove-sluzby/${ignoredAlert.website_id}/toggle-ignore`, {}, {
+        setProcessingId(ignoredAlert.hosting_id);
+        router.post(`/hostingy/${ignoredAlert.hosting_id}/toggle-ignore`, {}, {
             preserveScroll: true,
             preserveState: true,
             onSuccess: () => {
-                setIgnored(prev => prev.filter(a => a.website_id !== ignoredAlert.website_id));
+                setIgnored(prev => prev.filter(a => a.hosting_id !== ignoredAlert.hosting_id));
                 setProcessingId(null);
             },
             onError: () => setProcessingId(null),
@@ -123,9 +132,9 @@ export default function AttentionAlerts({ alerts, ignoredAlerts, defaultVisible 
                 {visibleItems.map((alert, i) => {
                     const config = iconMap[alert.icon] ?? iconMap.order;
                     const Icon = config.icon;
-                    const isProcessing = processingId === alert.website_id;
+                    const isProcessing = processingId === getAlertId(alert);
                     return (
-                        <div key={alert.website_id ?? `alert-${i}`} className="relative group">
+                        <div key={getAlertId(alert) ?? `alert-${i}`} className="relative group">
                             <Link
                                 href={alert.link}
                                 className={cn(
@@ -150,7 +159,7 @@ export default function AttentionAlerts({ alerts, ignoredAlerts, defaultVisible 
                                 </div>
                                 <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                             </Link>
-                            {alert.website_id && (
+                            {getAlertId(alert) && (
                                 <button
                                     onClick={(e) => handleIgnore(e, alert)}
                                     title="Ignorovat upozornění"
@@ -202,10 +211,10 @@ export default function AttentionAlerts({ alerts, ignoredAlerts, defaultVisible 
                     {showIgnored && (
                         <div className="mt-2 max-h-[240px] space-y-1.5 overflow-y-auto overflow-x-hidden">
                             {ignored.map((item) => {
-                                const isProcessing = processingId === item.website_id;
+                                const isProcessing = processingId === item.hosting_id;
                                 return (
                                     <div
-                                        key={item.website_id}
+                                        key={item.hosting_id}
                                         className={cn(
                                             'flex items-center gap-3 rounded-lg border border-border/50 bg-accent/30 p-2.5 text-muted-foreground',
                                             isProcessing && 'opacity-50',

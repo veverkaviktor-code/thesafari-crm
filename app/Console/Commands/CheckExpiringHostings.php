@@ -2,15 +2,15 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Hosting;
 use App\Models\User;
-use App\Models\Website;
-use App\Notifications\WebsiteExpiring;
+use App\Notifications\HostingExpiring;
 use Illuminate\Console\Command;
 
-class CheckExpiringWebsites extends Command
+class CheckExpiringHostings extends Command
 {
-    protected $signature = 'websites:check-expiring';
-    protected $description = 'Notify admin about expiring websites (30/14/7 days)';
+    protected $signature = 'hostings:check-expiring';
+    protected $description = 'Notify admin about expiring hostings (30/14/7 days)';
 
     public function handle(): void
     {
@@ -23,29 +23,26 @@ class CheckExpiringWebsites extends Command
         $notified = 0;
 
         foreach ([30, 14, 7] as $days) {
-            $expiring = Website::where('status', 'aktivni')
-                ->whereBetween('hosting_expires_at', [
+            $expiring = Hosting::where('status', 'aktivni')
+                ->whereBetween('expires_at', [
                     now()->addDays($days)->startOfDay(),
                     now()->addDays($days)->endOfDay(),
                 ])
                 ->where(function ($q) use ($days) {
-                    // Avoid duplicate notifications
                     $q->whereNull('last_expiry_notified_at')
                       ->orWhere('last_expiry_notified_at', '<', now()->subDays($days === 30 ? 20 : ($days === 14 ? 10 : 5)));
                 })
                 ->with('customer')
                 ->get();
 
-            foreach ($expiring as $website) {
-                $admin->notify(new WebsiteExpiring($website, $days));
+            foreach ($expiring as $hosting) {
+                $admin->notify(new HostingExpiring($hosting, $days));
 
-                $website->update(['last_expiry_notified_at' => now()]);
+                $hosting->update(['last_expiry_notified_at' => now()]);
                 $notified++;
             }
         }
 
-        // Note: Status changes are managed manually by the user — no automatic status updates.
-
-        $this->info("Notified {$notified} expiring websites.");
+        $this->info("Notified {$notified} expiring hostings.");
     }
 }

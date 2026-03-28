@@ -1,6 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { router } from '@inertiajs/react';
-import { FileText, Package, Server, ChevronRight, File as FileIcon } from 'lucide-react';
+import { AtSign, FileText, HardDrive, Package, Server, ChevronRight, File as FileIcon } from 'lucide-react';
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
 import AttachmentList, { type AttachmentData } from '@/components/AttachmentList';
 
@@ -22,13 +22,19 @@ interface Invoice {
     due_date: string;
 }
 
-interface Website {
+interface HostingItem {
+    id: number;
+    name: string;
+    status: string;
+    expires_at: string | null;
+}
+
+interface DomainItem {
     id: number;
     name: string;
     status: string;
     is_registered_by_us: boolean;
-    hosting_expires_at: string | null;
-    domain_expires_at: string | null;
+    expires_at: string | null;
 }
 
 interface VpsServer {
@@ -44,7 +50,8 @@ type OrderAttachment = AttachmentData & { order_id: number; order_title: string 
 interface Props {
     orders: Order[];
     invoices: Invoice[];
-    websites: Website[];
+    hostings: HostingItem[];
+    domains: DomainItem[];
     vpsServers: VpsServer[];
     orderAttachments: OrderAttachment[];
 }
@@ -75,15 +82,11 @@ const invoiceStatusConfig: Record<string, { label: string; className: string }> 
     storno: { label: 'Storno', className: 'bg-gray-500/15 text-muted-foreground border-gray-500/25' },
 };
 
-const websiteStatusConfig: Record<string, { label: string; className: string }> = {
+const serviceStatusConfig: Record<string, { label: string; className: string }> = {
     aktivni: { label: 'Aktivní', className: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' },
     pozastaveno: { label: 'Pozastaveno', className: 'bg-amber-500/15 text-amber-400 border-amber-500/25' },
     zruseno: { label: 'Zrušeno', className: 'bg-red-500/15 text-red-400 border-red-500/25' },
 };
-
-function getWebsiteLabel(w: Website): string {
-    return w.is_registered_by_us ? 'Hosting + doména' : 'Hosting';
-}
 
 function Badge({ label, className }: { label: string; className: string }) {
     return (
@@ -113,8 +116,8 @@ function EmptyState({ icon: Icon, message }: { icon: React.ElementType; message:
     );
 }
 
-export default function CustomerTabs({ orders, invoices, websites, vpsServers, orderAttachments }: Props) {
-    const totalServices = websites.length + vpsServers.length;
+export default function CustomerTabs({ orders, invoices, hostings, domains, vpsServers, orderAttachments }: Props) {
+    const totalServices = hostings.length + domains.length + vpsServers.length;
 
     return (
         <div className="grid gap-4 lg:grid-cols-4">
@@ -251,27 +254,62 @@ export default function CustomerTabs({ orders, invoices, websites, vpsServers, o
                                     />
                                 </div>
                             ))}
-                            {websites.map((sub) => {
-                                const statusInfo = websiteStatusConfig[sub.status];
+                            {hostings.map((hosting) => {
+                                const statusInfo = serviceStatusConfig[hosting.status];
                                 return (
                                     <Link
-                                        key={sub.id}
-                                        href={`/webove-sluzby/${sub.id}`}
+                                        key={`h-${hosting.id}`}
+                                        href={`/hostingy/${hosting.id}`}
                                         className="group flex items-center justify-between rounded-lg border border-border bg-accent/50 p-3 transition-colors hover:bg-accent"
                                     >
-                                        <div>
-                                            <p className="text-sm font-medium text-foreground">
-                                                {sub.name}
-                                            </p>
-                                            <p className="text-xs text-muted-foreground">
-                                                {getWebsiteLabel(sub)}
-                                                {sub.hosting_expires_at && (
-                                                    <>
-                                                        {' '}&middot; do{' '}
-                                                        {new Date(sub.hosting_expires_at).toLocaleDateString('cs-CZ')}
-                                                    </>
-                                                )}
-                                            </p>
+                                        <div className="flex items-center gap-2">
+                                            <Server className="h-4 w-4 text-blue-400 shrink-0" />
+                                            <div>
+                                                <p className="text-sm font-medium text-foreground">
+                                                    {hosting.name}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Hosting
+                                                    {hosting.expires_at && (
+                                                        <>
+                                                            {' '}&middot; do{' '}
+                                                            {new Date(hosting.expires_at).toLocaleDateString('cs-CZ')}
+                                                        </>
+                                                    )}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {statusInfo && <Badge {...statusInfo} />}
+                                            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                                        </div>
+                                    </Link>
+                                );
+                            })}
+                            {domains.map((domain) => {
+                                const statusInfo = serviceStatusConfig[domain.status];
+                                return (
+                                    <Link
+                                        key={`d-${domain.id}`}
+                                        href={`/domeny/${domain.id}`}
+                                        className="group flex items-center justify-between rounded-lg border border-border bg-accent/50 p-3 transition-colors hover:bg-accent"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <AtSign className="h-4 w-4 text-emerald-400 shrink-0" />
+                                            <div>
+                                                <p className="text-sm font-medium text-foreground">
+                                                    {domain.name}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {domain.is_registered_by_us ? 'Naše doména' : 'Doména zákazníka'}
+                                                    {domain.expires_at && (
+                                                        <>
+                                                            {' '}&middot; do{' '}
+                                                            {new Date(domain.expires_at).toLocaleDateString('cs-CZ')}
+                                                        </>
+                                                    )}
+                                                </p>
+                                            </div>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             {statusInfo && <Badge {...statusInfo} />}

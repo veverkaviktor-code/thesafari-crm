@@ -88,6 +88,7 @@ interface MrrDetailData {
         days: number;
         customer_name: string;
         mrr: number;
+        link: string;
     }[];
     totals: {
         mrr: number;

@@ -3,10 +3,10 @@ import { useForm, router } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import { Button } from '@/components/ui/button';
-import WebsiteForm, {
-    defaultWebsiteData,
-    type WebsiteFormData,
-} from '@/components/webove-sluzby/WebsiteForm';
+import HostingForm, {
+    defaultHostingData,
+    type HostingFormData,
+} from '@/components/hostings/HostingForm';
 
 interface Customer {
     id: number;
@@ -26,40 +26,34 @@ interface ManagementPlanOption {
     is_active: boolean;
 }
 
-interface AliasOption {
-    id: number;
-    name: string;
-}
-
 interface Props {
     customers: Customer[];
     vpsServers: VpsServerOption[];
     managementPlans: ManagementPlanOption[];
-    aliasOptions: AliasOption[];
 }
 
-export default function WeboveSluzbyCreate({ customers, vpsServers, managementPlans, aliasOptions }: Props) {
-    const form = useForm<WebsiteFormData>({
-        ...defaultWebsiteData,
+export default function HostingsCreate({ customers, vpsServers, managementPlans }: Props) {
+    const form = useForm<HostingFormData>({
+        ...defaultHostingData,
     });
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
-        form.post('/webove-sluzby');
+        form.post('/hostingy');
     };
 
     return (
         <AuthenticatedLayout
-            title="Nový web"
+            title="Nový hosting"
             breadcrumbs={[
-                { label: 'Webové služby', href: '/webove-sluzby' },
-                { label: 'Nový web' },
+                { label: 'Hostingy', href: '/hostingy' },
+                { label: 'Nový hosting' },
             ]}
         >
             <div className="p-6 max-w-2xl mx-auto">
                 <Button
                     variant="ghost"
-                    onClick={() => router.visit('/webove-sluzby')}
+                    onClick={() => router.visit('/hostingy')}
                     className="text-muted-foreground hover:text-foreground mb-4"
                 >
                     <ArrowLeft className="h-4 w-4 mr-2" />
@@ -67,15 +61,14 @@ export default function WeboveSluzbyCreate({ customers, vpsServers, managementPl
                 </Button>
 
                 <div className="bg-card rounded-xl border border-border p-6">
-                    <WebsiteForm
+                    <HostingForm
                         form={form}
                         onSubmit={handleSubmit}
                         submitLabel="Uložit"
                         customers={customers}
                         vpsServers={vpsServers}
                         managementPlans={managementPlans}
-                        aliasOptions={aliasOptions}
-                        onCancel={() => router.visit('/webove-sluzby')}
+                        onCancel={() => router.visit('/hostingy')}
                     />
                 </div>
             </div>

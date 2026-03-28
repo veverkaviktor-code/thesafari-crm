@@ -2,12 +2,36 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Website;
+use App\Models\Customer;
+use App\Models\Hosting;
 use App\Models\VpsServer;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class VpsServerController extends Controller
 {
+    public function index()
+    {
+        $vpsServers = VpsServer::with('customer')
+            ->withCount('hostings')
+            ->get()
+            ->map(function ($server) {
+                $server->storage_used_mb = (int) Hosting::where('server_id', $server->id)
+                    ->where('status', 'aktivni')
+                    ->sum('storage_used_mb');
+                return $server;
+            });
+
+        $customers = Customer::orderBy('name')
+            ->select('id', 'name', 'company')
+            ->get();
+
+        return Inertia::render('Vps/Index', [
+            'vpsServers' => $vpsServers,
+            'customers' => $customers,
+        ]);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -56,24 +80,24 @@ class VpsServerController extends Controller
 
     public function destroy(VpsServer $vp)
     {
-        // Unlink all websites from this VPS before soft-deleting
-        Website::where('hosting_server_id', $vp->id)->update(['hosting_server_id' => null]);
+        // Unlink all hostings from this VPS before soft-deleting
+        Hosting::where('server_id', $vp->id)->update(['server_id' => null]);
         $vp->delete();
 
         return back()->with('success', 'VPS server smazán.');
     }
 
     /**
-     * Semi-auto sync: Create VPS records from unique 'server' values on websites,
-     * then assign websites to their VPS by matching the server field.
+     * Semi-auto sync: Create VPS records from unique 'server' values on hostings,
+     * then assign hostings to their VPS by matching the server field.
      */
     public function syncFromHostings()
     {
         $created  = 0;
         $assigned = 0;
 
-        // Get unique server hostnames from active websites
-        $serverNames = Website::where('status', '!=', 'zruseno')
+        // Get unique server hostnames from active hostings
+        $serverNames = Hosting::where('status', '!=', 'zruseno')
             ->whereNotNull('server')
             ->where('server', '!=', '')
             ->distinct()
@@ -95,15 +119,15 @@ class VpsServerController extends Controller
                 $created++;
             }
 
-            // Assign all websites with this server name to this VPS
-            $count = Website::where('server', $serverName)
-                ->whereNull('hosting_server_id')
-                ->update(['hosting_server_id' => $vps->id]);
+            // Assign all hostings with this server name to this VPS
+            $count = Hosting::where('server', $serverName)
+                ->whereNull('server_id')
+                ->update(['server_id' => $vps->id]);
 
             $assigned += $count;
         }
 
-        $msg = "VPS sync dokončen: {$created} nových serverů, {$assigned} webů přiřazeno.";
+        $msg = "VPS sync dokončen: {$created} nových serverů, {$assigned} hostingů přiřazeno.";
 
         return back()->with('success', $msg);
     }

@@ -28,13 +28,18 @@ interface Props {
         notes: string | null;
         tags: string[];
         created_at: string;
-        websites: {
+        hostings: {
+            id: number;
+            name: string;
+            status: string;
+            expires_at: string | null;
+        }[];
+        domains: {
             id: number;
             name: string;
             status: string;
             is_registered_by_us: boolean;
-            hosting_expires_at: string | null;
-            domain_expires_at: string | null;
+            expires_at: string | null;
         }[];
     };
     stats: {
@@ -114,7 +119,8 @@ export default function Show({
                 <CustomerTabs
                     orders={orders ?? []}
                     invoices={invoices ?? []}
-                    websites={customer.websites ?? []}
+                    hostings={customer.hostings ?? []}
+                    domains={customer.domains ?? []}
                     vpsServers={vpsServers ?? []}
                     orderAttachments={orderAttachments ?? []}
                 />

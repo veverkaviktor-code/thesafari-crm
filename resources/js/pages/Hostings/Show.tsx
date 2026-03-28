@@ -3,7 +3,7 @@ import { router, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import GlassModal from '@/components/ui/GlassModal';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
-import ExpirationBadge from '@/components/webove-sluzby/ExpirationBadge';
+import ExpirationBadge from '@/components/shared/ExpirationBadge';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -57,7 +57,7 @@ import {
 
 /* ─────── Types ─────── */
 
-interface WebsiteCredential {
+interface HostingCredential {
     id: number;
     label: string;
     login: string;
@@ -77,7 +77,7 @@ interface EmailAccount {
 
 interface Payment {
     id: number;
-    website_id: number;
+    hosting_id: number;
     amount: number;
     period_start: string;
     period_end: string;
@@ -103,37 +103,29 @@ interface ManagementPlan {
     price_monthly: number | string;
 }
 
-interface AliasWebsite {
+interface Domain {
     id: number;
     name: string;
-    domain_sell_yearly: number;
-    domain_cost_yearly: number;
-    hosting_expires_at: string | null;
-    domain_expires_at: string | null;
+    registrar: string | null;
     is_registered_by_us: boolean;
+    expires_at: string | null;
+    sell_yearly: number;
+    cost_yearly: number;
 }
 
-interface Website {
+interface Hosting {
     id: number;
     name: string;
     server: string | null;
     status: string;
     notes: string | null;
     starts_at: string | null;
-    is_registered_by_us: boolean;
-    auto_renew: boolean;
     auto_invoice: boolean;
     auto_invoice_management: boolean;
     is_free: boolean;
-    is_external: boolean;
     sell_yearly: number;
     cost_yearly: number;
-    domain_sell_yearly: number;
-    domain_cost_yearly: number;
-    hosting_sell_yearly: number;
-    hosting_cost_yearly: number;
     admin_url: string | null;
-    domain_expires_at: string | null;
     hosting_expires_at: string | null;
     ip_address: string | null;
     storage_quota_mb: number;
@@ -146,14 +138,13 @@ interface Website {
     total_annual_revenue: number;
     customer: { id: number; name: string; company: string | null } | null;
     hosting_server: { id: number; name: string } | null;
-    alias_of: { id: number; name: string } | null;
-    aliases: AliasWebsite[];
     management_plan: ManagementPlan | null;
     management_cycle: string | null;
-    credentials: WebsiteCredential[];
+    credentials: HostingCredential[];
     email_accounts: EmailAccount[];
     payments: Payment[];
     invoices: Invoice[];
+    domains: Domain[];
 }
 
 interface Customer {
@@ -163,7 +154,7 @@ interface Customer {
 }
 
 interface Props {
-    website: Website;
+    hosting: Hosting;
     paymentStats: {
         total_paid: number;
         total_unpaid: number;
@@ -206,14 +197,13 @@ const paymentMethodLabels: Record<string, string> = {
     karta: 'Kartou',
 };
 
-type TabId = 'prehled' | 'domena' | 'hosting' | 'sprava' | 'pristupy';
+type TabId = 'prehled' | 'sprava' | 'pristupy' | 'platby';
 
 const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
     { id: 'prehled', label: 'Přehled', icon: LayoutDashboard },
-    { id: 'domena', label: 'Doména', icon: Globe },
-    { id: 'hosting', label: 'Hosting', icon: HardDrive },
     { id: 'sprava', label: 'Správa', icon: Settings },
     { id: 'pristupy', label: 'Přístupy', icon: KeyRound },
+    { id: 'platby', label: 'Platby & Faktury', icon: DollarSign },
 ];
 
 /* ─────── Small components ─────── */
@@ -316,8 +306,8 @@ interface PaymentFormData {
     notes: string;
 }
 
-function PaymentForm({ website, onClose }: { website: Website; onClose: () => void }) {
-    const defaultAmount = String(website.sell_yearly || '');
+function PaymentForm({ hosting, onClose }: { hosting: Hosting; onClose: () => void }) {
+    const defaultAmount = String(hosting.sell_yearly || '');
     const defaultPeriodStart = format(new Date(), 'yyyy-MM-dd');
     const defaultPeriodEnd = format(addYears(new Date(), 1), 'yyyy-MM-dd');
 
@@ -332,7 +322,7 @@ function PaymentForm({ website, onClose }: { website: Website; onClose: () => vo
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
-        post(`/webove-sluzby/${website.id}/platby`, { onSuccess: () => onClose() });
+        post(`/hostingy/${hosting.id}/platby`, { onSuccess: () => onClose() });
     };
 
     const isPaid = data.status === 'zaplaceno';
@@ -414,94 +404,169 @@ function PaymentForm({ website, onClose }: { website: Website; onClose: () => vo
     );
 }
 
-/* ─────── Tab: Prehled ─────── */
+/* ─────── Tab: Přehled (merged from old Přehled + Hosting) ─────── */
 
-function TabPrehled({ website, paymentStats, onShowPaymentModal }: {
-    website: Website;
-    paymentStats: Props['paymentStats'];
-    onShowPaymentModal: () => void;
-}) {
-    const handleMarkPaid = (paymentId: number) => {
-        router.put(`/webove-sluzby/${website.id}/platby/${paymentId}/zaplaceno`, {});
+function TabPrehled({ hosting }: { hosting: Hosting }) {
+    const [activatingHosting, setActivatingHosting] = useState(false);
+    const [activateResult, setActivateResult] = useState<{ success: boolean; message: string } | null>(null);
+
+    const handleActivateHosting = async () => {
+        setActivatingHosting(true);
+        setActivateResult(null);
+        try {
+            const response = await fetch('/hostingy/activate-domain', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-XSRF-TOKEN': decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? ''),
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ domain_name: hosting.name }),
+            });
+            const data = await response.json();
+            if (response.ok) {
+                setActivateResult({ success: true, message: data.message ?? 'Hosting synchronizován.' });
+                setTimeout(() => router.reload(), 1500);
+            } else {
+                setActivateResult({ success: false, message: data.message ?? 'Synchronizace selhala.' });
+            }
+        } catch {
+            setActivateResult({ success: false, message: 'Síťová chyba.' });
+        } finally {
+            setActivatingHosting(false);
+        }
     };
 
-    const managementMonthly = website.management_plan ? Number(website.management_plan.price_monthly) : 0;
+    const hasHosting = !!(hosting.hosting_server || hosting.server);
+    const managementMonthly = hosting.management_plan ? Number(hosting.management_plan.price_monthly) : 0;
     const managementYearly = managementMonthly * 12;
 
     return (
         <div className="space-y-4">
-            {/* Domain + Hosting summary cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Card: Domena */}
-                <div className="bg-card border border-border rounded-lg p-4 space-y-1">
-                    <div className="flex items-center gap-2 mb-3">
-                        <Globe className="h-4 w-4 text-amber-500" />
-                        <h3 className="text-sm font-semibold text-foreground">Doména</h3>
-                    </div>
-                    <InfoRow label="Registrátor">
-                        {website.is_registered_by_us ? (
-                            <span className="inline-flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                <span className="text-emerald-400 font-medium">Vlastní</span>
-                            </span>
-                        ) : (
-                            <span className="text-muted-foreground/60">Externí</span>
-                        )}
-                    </InfoRow>
-                    <InfoRow label="Expirace">
-                        {website.domain_expires_at ? (
-                            <ExpirationBadge expiresAt={website.domain_expires_at} />
-                        ) : (
-                            <span className="text-muted-foreground/50">Nenastaveno</span>
-                        )}
-                    </InfoRow>
-                </div>
-
-                {/* Card: Hosting */}
-                <div className="bg-card border border-border rounded-lg p-4 space-y-1">
-                    <div className="flex items-center gap-2 mb-3">
-                        <HardDrive className="h-4 w-4 text-sky-400" />
-                        <h3 className="text-sm font-semibold text-foreground">Hosting</h3>
-                    </div>
-                    <InfoRow label="Server">
-                        {website.hosting_server ? (
-                            <span className="font-medium">{website.hosting_server.name}</span>
-                        ) : website.server ? (
-                            <span className="font-mono text-xs">{website.server}</span>
-                        ) : (
-                            <span className="text-muted-foreground/50">Bez hostingu</span>
-                        )}
-                    </InfoRow>
-                    <InfoRow label="Expirace">
-                        {website.hosting_expires_at ? (
-                            <ExpirationBadge expiresAt={website.hosting_expires_at} />
-                        ) : (
-                            <span className="text-muted-foreground/50">&mdash;</span>
-                        )}
-                    </InfoRow>
-                    {website.storage_quota_mb > 0 && (
-                        <div className="py-1.5">
-                            <StorageBar used={website.storage_used_mb} quota={website.storage_quota_mb} />
+            {/* Server card */}
+            <div className="bg-card border border-border rounded-lg overflow-hidden">
+                <SectionHeader icon={Server} title="Server" />
+                <div className="px-5 py-4 space-y-1">
+                    {hasHosting ? (
+                        <>
+                            <InfoRow label="Server">
+                                {hosting.hosting_server ? (
+                                    <span className="font-medium">{hosting.hosting_server.name}</span>
+                                ) : hosting.server ? (
+                                    <span className="font-mono text-xs">{hosting.server}</span>
+                                ) : null}
+                            </InfoRow>
+                            <InfoRow label="Expirace">
+                                {hosting.hosting_expires_at ? (
+                                    <ExpirationBadge expiresAt={hosting.hosting_expires_at} />
+                                ) : (
+                                    <span className="text-muted-foreground/50">&mdash;</span>
+                                )}
+                            </InfoRow>
+                            {hosting.storage_quota_mb > 0 && (
+                                <div className="py-1.5">
+                                    <StorageBar used={hosting.storage_used_mb} quota={hosting.storage_quota_mb} />
+                                </div>
+                            )}
+                            {hosting.admin_url && (
+                                <InfoRow label="Admin URL">
+                                    <a href={hosting.admin_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
+                                        Otevřít <ExternalLink className="h-3 w-3" />
+                                    </a>
+                                </InfoRow>
+                            )}
+                            {hosting.synced_at && (
+                                <InfoRow label="Poslední sync">
+                                    <span className="text-xs">{format(new Date(hosting.synced_at), 'd. M. yyyy HH:mm', { locale: cs })}</span>
+                                </InfoRow>
+                            )}
+                        </>
+                    ) : (
+                        <div className="py-4 text-center">
+                            <HardDrive className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
+                            <p className="text-sm text-muted-foreground mb-4">Tento hosting nemá přiřazený server</p>
+                            <Button
+                                onClick={handleActivateHosting}
+                                disabled={activatingHosting}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                            >
+                                {activatingHosting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Play className="h-4 w-4 mr-2" />}
+                                Aktivovat hosting na sss06
+                            </Button>
+                            {activateResult && (
+                                <p className={`text-xs mt-3 ${activateResult.success ? 'text-emerald-400' : 'text-red-400'}`}>
+                                    {activateResult.message}
+                                </p>
+                            )}
                         </div>
                     )}
-                    {website.admin_url && (
-                        <InfoRow label="Admin URL">
-                            <a href={website.admin_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
-                                Otevřít <ExternalLink className="h-3 w-3" />
-                            </a>
-                        </InfoRow>
+                </div>
+                {/* Sync button when hosting already exists */}
+                {hasHosting && (
+                    <div className="px-5 pb-4 flex items-center gap-3">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleActivateHosting}
+                            disabled={activatingHosting}
+                            className="text-muted-foreground hover:text-foreground hover:bg-accent border border-border"
+                        >
+                            {activatingHosting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                            Synchronizovat hosting
+                        </Button>
+                        {activateResult && (
+                            <span className={`text-xs ${activateResult.success ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {activateResult.message}
+                            </span>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* Domény card */}
+            <div className="bg-card border border-border rounded-lg overflow-hidden">
+                <SectionHeader icon={Globe} title="Domény" count={hosting.domains?.length ?? 0} />
+                <div className="px-5 py-4">
+                    {(!hosting.domains || hosting.domains.length === 0) ? (
+                        <div className="text-center py-4">
+                            <Globe className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                            <p className="text-sm text-muted-foreground">Žádné domény</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            {hosting.domains.map((domain) => (
+                                <a
+                                    key={domain.id}
+                                    href={`/domeny/${domain.id}`}
+                                    className="flex items-center justify-between rounded-lg bg-accent px-3 py-2.5 hover:bg-accent/80 transition-colors"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <Globe className="h-3.5 w-3.5 text-amber-500" />
+                                        <span className="text-sm font-medium text-primary">{domain.name}</span>
+                                        {domain.is_registered_by_us ? (
+                                            <span className="inline-flex items-center gap-1 text-[10px]">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                                <span className="text-emerald-400">Vlastní</span>
+                                            </span>
+                                        ) : (
+                                            <span className="text-[10px] text-muted-foreground/60">Externí</span>
+                                        )}
+                                    </div>
+                                    <ExpirationBadge expiresAt={domain.expires_at} />
+                                </a>
+                            ))}
+                        </div>
                     )}
                 </div>
             </div>
 
-            {/* Financial summary */}
+            {/* Financial summary — Cena tabulka */}
             <div className="bg-card border border-border rounded-lg overflow-hidden">
                 <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border">
                     <DollarSign className="h-4 w-4 text-emerald-400" />
                     <h3 className="text-sm font-semibold text-foreground">Fakturace</h3>
                 </div>
                 <div className="p-5">
-                    {/* Price breakdown table */}
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
@@ -513,57 +578,45 @@ function TabPrehled({ website, paymentStats, onShowPaymentModal }: {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
-                                {(website.domain_sell_yearly > 0 || website.domain_cost_yearly > 0) && (
-                                    <tr>
-                                        <td className="py-2 text-muted-foreground">Doména</td>
-                                        <td className="py-2 text-right text-foreground">
-                                            {website.domain_cost_yearly ? formatCurrency(website.domain_cost_yearly) : <span className="text-muted-foreground/50">—</span>}
-                                        </td>
-                                        <td className="py-2 text-right text-foreground">
-                                            {website.domain_sell_yearly ? formatCurrency(website.domain_sell_yearly) : <span className="text-muted-foreground/50">—</span>}
-                                        </td>
-                                        <td className={`py-2 text-right ${(website.domain_sell_yearly - website.domain_cost_yearly) > 0 ? 'text-emerald-400' : (website.domain_sell_yearly - website.domain_cost_yearly) < 0 ? 'text-red-400' : 'text-foreground'}`}>
-                                            {formatCurrency(website.domain_sell_yearly - website.domain_cost_yearly)}
-                                        </td>
-                                    </tr>
-                                )}
+                                {/* Hosting row */}
                                 <tr>
                                     <td className="py-2 text-muted-foreground">Hosting</td>
                                     <td className="py-2 text-right text-foreground">
-                                        {website.hosting_cost_yearly ? formatCurrency(website.hosting_cost_yearly) : <span className="text-muted-foreground/50">—</span>}
+                                        {parseFloat(String(hosting.cost_yearly)) ? formatCurrency(hosting.cost_yearly) : <span className="text-muted-foreground/50">—</span>}
                                     </td>
                                     <td className="py-2 text-right text-foreground">
-                                        {website.hosting_sell_yearly ? formatCurrency(website.hosting_sell_yearly) : <span className="text-muted-foreground/50">—</span>}
+                                        {parseFloat(String(hosting.sell_yearly)) ? formatCurrency(hosting.sell_yearly) : <span className="text-muted-foreground/50">—</span>}
                                     </td>
-                                    <td className={`py-2 text-right ${(website.hosting_sell_yearly - website.hosting_cost_yearly) > 0 ? 'text-emerald-400' : (website.hosting_sell_yearly - website.hosting_cost_yearly) < 0 ? 'text-red-400' : 'text-foreground'}`}>
-                                        {formatCurrency(website.hosting_sell_yearly - website.hosting_cost_yearly)}
+                                    <td className={`py-2 text-right ${(parseFloat(String(hosting.sell_yearly)) - parseFloat(String(hosting.cost_yearly))) > 0 ? 'text-emerald-400' : (parseFloat(String(hosting.sell_yearly)) - parseFloat(String(hosting.cost_yearly))) < 0 ? 'text-red-400' : 'text-foreground'}`}>
+                                        {formatCurrency((parseFloat(String(hosting.sell_yearly)) || 0) - (parseFloat(String(hosting.cost_yearly)) || 0))}
                                     </td>
                                 </tr>
-                                {/* Alias domain prices */}
-                                {website.aliases?.filter((a: AliasWebsite) => a.domain_sell_yearly > 0 || a.domain_cost_yearly > 0).map((alias: any) => (
-                                    <tr key={alias.id}>
+                                {/* Domain rows from linked domains */}
+                                {hosting.domains?.filter((d) => parseFloat(String(d.sell_yearly)) > 0 || parseFloat(String(d.cost_yearly)) > 0).map((domain) => (
+                                    <tr key={domain.id}>
                                         <td className="py-2 text-muted-foreground">
-                                            Doména {alias.name}
-                                            {alias.domain_expires_at && (
+                                            Doména {domain.name}
+                                            {domain.expires_at && (
                                                 <span className="ml-2 text-xs text-muted-foreground/60">
-                                                    (exp. {format(new Date(alias.domain_expires_at), 'd. M. yyyy', { locale: cs })})
+                                                    (exp. {format(new Date(domain.expires_at), 'd. M. yyyy', { locale: cs })})
                                                 </span>
                                             )}
                                         </td>
                                         <td className="py-2 text-right text-foreground">
-                                            {alias.domain_cost_yearly ? formatCurrency(alias.domain_cost_yearly) : <span className="text-muted-foreground/50">—</span>}
+                                            {parseFloat(String(domain.cost_yearly)) ? formatCurrency(domain.cost_yearly) : <span className="text-muted-foreground/50">—</span>}
                                         </td>
                                         <td className="py-2 text-right text-foreground">
-                                            {formatCurrency(alias.domain_sell_yearly)}
+                                            {formatCurrency(domain.sell_yearly)}
                                         </td>
-                                        <td className={`py-2 text-right ${(alias.domain_sell_yearly - alias.domain_cost_yearly) > 0 ? 'text-emerald-400' : 'text-foreground'}`}>
-                                            {formatCurrency(alias.domain_sell_yearly - alias.domain_cost_yearly)}
+                                        <td className={`py-2 text-right ${(parseFloat(String(domain.sell_yearly)) - parseFloat(String(domain.cost_yearly))) > 0 ? 'text-emerald-400' : 'text-foreground'}`}>
+                                            {formatCurrency((parseFloat(String(domain.sell_yearly)) || 0) - (parseFloat(String(domain.cost_yearly)) || 0))}
                                         </td>
                                     </tr>
                                 ))}
+                                {/* Management row */}
                                 {managementMonthly > 0 && (
                                     <tr>
-                                        <td className="py-2 text-muted-foreground">Správa ({website.management_plan?.name})</td>
+                                        <td className="py-2 text-muted-foreground">Správa ({hosting.management_plan?.name})</td>
                                         <td className="py-2 text-right text-muted-foreground/50">—</td>
                                         <td className="py-2 text-right text-foreground">{formatCurrency(managementMonthly)}/měs</td>
                                         <td className="py-2 text-right text-foreground"></td>
@@ -574,10 +627,10 @@ function TabPrehled({ website, paymentStats, onShowPaymentModal }: {
                                 <tr className="border-t border-border font-semibold">
                                     <td className="pt-3 text-foreground">Celkem ročně</td>
                                     {(() => {
-                                        const aliasDomainCost = (website.aliases || []).reduce((sum: number, a: any) => sum + (Number(a.domain_cost_yearly) || 0), 0);
-                                        const aliasDomainSell = (website.aliases || []).reduce((sum: number, a: any) => sum + (Number(a.domain_sell_yearly) || 0), 0);
-                                        const totalCost = (Number(website.cost_yearly) || 0) + aliasDomainCost;
-                                        const totalSell = (Number(website.sell_yearly) || 0) + aliasDomainSell + managementYearly;
+                                        const domainCost = (hosting.domains || []).reduce((sum, d) => sum + (parseFloat(String(d.cost_yearly)) || 0), 0);
+                                        const domainSell = (hosting.domains || []).reduce((sum, d) => sum + (parseFloat(String(d.sell_yearly)) || 0), 0);
+                                        const totalCost = (parseFloat(String(hosting.cost_yearly)) || 0) + domainCost;
+                                        const totalSell = (parseFloat(String(hosting.sell_yearly)) || 0) + domainSell + managementYearly;
                                         const totalMargin = totalSell - totalCost;
                                         return (
                                             <>
@@ -597,17 +650,17 @@ function TabPrehled({ website, paymentStats, onShowPaymentModal }: {
                     <div className="flex items-center gap-6 mt-4 pt-4 border-t border-border">
                         <div className="flex items-center gap-2 text-sm">
                             <Switch
-                                checked={website.auto_invoice}
-                                onCheckedChange={(v) => router.put(`/webove-sluzby/${website.id}`, { auto_invoice: v }, { preserveScroll: true })}
+                                checked={hosting.auto_invoice}
+                                onCheckedChange={(v) => router.put(`/hostingy/${hosting.id}`, { auto_invoice: v }, { preserveScroll: true })}
                                 className="scale-90"
                             />
-                            <span className="text-muted-foreground">Auto-fakturace (hosting + doména)</span>
+                            <span className="text-muted-foreground">Auto-fakturace (hosting + domény)</span>
                         </div>
-                        {website.management_plan && (
+                        {hosting.management_plan && (
                             <div className="flex items-center gap-2 text-sm">
                                 <Switch
-                                    checked={website.auto_invoice_management}
-                                    onCheckedChange={(v) => router.put(`/webove-sluzby/${website.id}`, { auto_invoice_management: v }, { preserveScroll: true })}
+                                    checked={hosting.auto_invoice_management}
+                                    onCheckedChange={(v) => router.put(`/hostingy/${hosting.id}`, { auto_invoice_management: v }, { preserveScroll: true })}
                                     className="scale-90"
                                 />
                                 <span className="text-muted-foreground">Auto-fakturace správa</span>
@@ -617,6 +670,464 @@ function TabPrehled({ website, paymentStats, onShowPaymentModal }: {
                 </div>
             </div>
 
+            {/* Poznámky */}
+            {hosting.notes && (
+                <div className="bg-card border border-border rounded-lg px-5 py-4">
+                    <h3 className="text-sm font-semibold text-foreground mb-2">Poznámky</h3>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{hosting.notes}</p>
+                </div>
+            )}
+        </div>
+    );
+}
+
+/* ─────── Tab: Správa ─────── */
+
+function TabSprava({ hosting }: { hosting: Hosting }) {
+    const plan = hosting.management_plan;
+    const monthlyPrice = plan ? Number(plan.price_monthly) : 0;
+
+    return (
+        <div className="space-y-4">
+            {plan ? (
+                <div className="bg-card border border-border rounded-lg overflow-hidden">
+                    <SectionHeader icon={Settings} title="Balíček správy" />
+                    <div className="px-5 py-4 space-y-1">
+                        <InfoRow label="Balíček">
+                            <span className="font-semibold text-foreground">{plan.name}</span>
+                        </InfoRow>
+                        <InfoRow label="Měsíční cena">
+                            <span className="font-medium">{formatCurrency(monthlyPrice)}/měs</span>
+                        </InfoRow>
+                        {hosting.management_cycle && (
+                            <InfoRow label="Fakturační cyklus">
+                                <span>{managementCycleLabels[hosting.management_cycle] ?? hosting.management_cycle}</span>
+                            </InfoRow>
+                        )}
+                        <InfoRow label="Auto-fakturace správy">
+                            <span className={hosting.auto_invoice_management ? 'text-emerald-400 font-medium' : 'text-muted-foreground'}>
+                                {hosting.auto_invoice_management ? 'Ano' : 'Ne'}
+                            </span>
+                        </InfoRow>
+                        <Separator className="bg-border !my-3" />
+                        <InfoRow label="Roční výše">
+                            <span className="font-semibold text-foreground">{formatCurrency(monthlyPrice * 12)}/rok</span>
+                        </InfoRow>
+                        {hosting.management_cycle && (
+                            <InfoRow label="Fakturační částka">
+                                <span className="font-medium text-foreground">
+                                    {hosting.management_cycle === 'quarterly' && formatCurrency(monthlyPrice * 3)}
+                                    {hosting.management_cycle === 'semi_annual' && formatCurrency(monthlyPrice * 6)}
+                                    {hosting.management_cycle === 'annual' && formatCurrency(monthlyPrice * 12)}
+                                    {!['quarterly', 'semi_annual', 'annual'].includes(hosting.management_cycle ?? '') && formatCurrency(monthlyPrice)}
+                                </span>
+                            </InfoRow>
+                        )}
+                    </div>
+                </div>
+            ) : (
+                <div className="bg-card border border-border rounded-lg px-5 py-8 text-center">
+                    <Settings className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
+                    <p className="text-sm text-muted-foreground mb-2">Bez správy webu</p>
+                    <p className="text-xs text-muted-foreground/60">Nastavte balíček přes tlačítko Upravit.</p>
+                </div>
+            )}
+        </div>
+    );
+}
+
+/* ─────── Tab: Přístupy ─────── */
+
+function TabPristupy({ hosting }: { hosting: Hosting }) {
+    return (
+        <div className="space-y-4">
+            <CredentialsSection hostingId={hosting.id} credentials={hosting.credentials} adminUrl={hosting.admin_url} />
+            <EmailAccountsSection hostingId={hosting.id} emailAccounts={hosting.email_accounts ?? []} />
+        </div>
+    );
+}
+
+function CopyCredentialButton({ credential, adminUrl }: { credential: HostingCredential; adminUrl: string | null }) {
+    const [copied, setCopied] = useState(false);
+
+    function handleCopy() {
+        const lines: string[] = [];
+        lines.push(`Přístup: ${credential.label}`);
+        if (adminUrl) lines.push(`URL: ${adminUrl}`);
+        if (credential.login) lines.push(`Login: ${credential.login}`);
+        if (credential.password) lines.push(`Heslo: ${credential.password}`);
+        if (credential.email) lines.push(`E-mail: ${credential.email}`);
+
+        navigator.clipboard.writeText(lines.join('\n'));
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    }
+
+    return (
+        <button
+            onClick={handleCopy}
+            className={`rounded p-1.5 transition-colors ${copied ? 'text-emerald-500' : 'text-muted-foreground hover:bg-background hover:text-foreground'}`}
+            title={copied ? 'Zkopírováno!' : 'Kopírovat přístupy'}
+        >
+            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+        </button>
+    );
+}
+
+/* ─────── Credentials Section with CRUD ─────── */
+
+function CredentialsSection({ hostingId, credentials, adminUrl }: {
+    hostingId: number;
+    credentials: HostingCredential[];
+    adminUrl: string | null;
+}) {
+    const [showForm, setShowForm] = useState(false);
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const [deleteId, setDeleteId] = useState<number | null>(null);
+
+    return (
+        <div className="bg-card border border-border rounded-lg overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
+                <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-muted-foreground" />
+                    <h2 className="text-sm font-semibold text-foreground">Přístupové údaje</h2>
+                    {credentials.length > 0 && (
+                        <span className="text-xs text-muted-foreground">({credentials.length})</span>
+                    )}
+                </div>
+                {!showForm && !editingId && (
+                    <button
+                        onClick={() => setShowForm(true)}
+                        className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
+                    >
+                        <Plus className="h-3.5 w-3.5" />
+                        Přidat
+                    </button>
+                )}
+            </div>
+
+            <div className="px-5 py-4">
+                {adminUrl && (
+                    <div className="flex items-center justify-between py-1.5 mb-2">
+                        <span className="text-sm text-muted-foreground">Admin URL</span>
+                        <a href={adminUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
+                            Otevřít <ExternalLink className="h-3 w-3" />
+                        </a>
+                    </div>
+                )}
+
+                {showForm && (
+                    <CredentialForm
+                        hostingId={hostingId}
+                        onCancel={() => setShowForm(false)}
+                        onSuccess={() => setShowForm(false)}
+                    />
+                )}
+
+                {credentials.length === 0 && !showForm && !adminUrl && (
+                    <p className="text-sm text-muted-foreground py-2">Žádné přístupové údaje</p>
+                )}
+
+                <div className="space-y-2">
+                    {credentials.map((cred) =>
+                        editingId === cred.id ? (
+                            <CredentialForm
+                                key={cred.id}
+                                hostingId={hostingId}
+                                credential={cred}
+                                onCancel={() => setEditingId(null)}
+                                onSuccess={() => setEditingId(null)}
+                            />
+                        ) : (
+                            <div key={cred.id} className="rounded-lg bg-accent px-3 py-2.5">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <Shield className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                        <span className="text-xs font-medium text-foreground">{cred.label}</span>
+                                    </div>
+                                    <div className="flex shrink-0 gap-0.5">
+                                        <CopyCredentialButton credential={cred} adminUrl={adminUrl} />
+                                        <button onClick={() => setEditingId(cred.id)} className="rounded p-1.5 text-muted-foreground hover:bg-background hover:text-foreground" title="Upravit">
+                                            <Pencil className="h-3.5 w-3.5" />
+                                        </button>
+                                        <button onClick={() => setDeleteId(cred.id)} className="rounded p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" title="Smazat">
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-between py-0.5">
+                                    <span className="text-xs text-muted-foreground">Login</span>
+                                    <span className="text-sm text-foreground">{cred.login}</span>
+                                </div>
+                                {cred.password && (
+                                    <div className="flex items-center justify-between py-0.5">
+                                        <span className="text-xs text-muted-foreground">Heslo</span>
+                                        <PasswordField password={cred.password} />
+                                    </div>
+                                )}
+                                {cred.email && (
+                                    <div className="flex items-center justify-between py-0.5">
+                                        <span className="text-xs text-muted-foreground">E-mail</span>
+                                        <span className="text-sm text-foreground">{cred.email}</span>
+                                    </div>
+                                )}
+                                {cred.notes && (
+                                    <p className="text-xs text-muted-foreground/70 mt-1">{cred.notes}</p>
+                                )}
+                            </div>
+                        ),
+                    )}
+                </div>
+            </div>
+
+            <ConfirmDialog
+                open={deleteId !== null}
+                onClose={() => setDeleteId(null)}
+                onConfirm={() => {
+                    if (deleteId !== null) {
+                        router.delete(`/hostingy/credentials/${deleteId}`, { preserveScroll: true });
+                        setDeleteId(null);
+                    }
+                }}
+                title="Smazat přístup"
+                message="Opravdu chcete smazat tyto přístupové údaje?"
+            />
+        </div>
+    );
+}
+
+function CredentialForm({
+    hostingId,
+    credential,
+    onCancel,
+    onSuccess,
+}: {
+    hostingId: number;
+    credential?: HostingCredential;
+    onCancel: () => void;
+    onSuccess: () => void;
+}) {
+    const isEdit = !!credential;
+    const form = useForm({
+        label: credential?.label ?? '',
+        login: credential?.login ?? '',
+        password: '',
+        email: credential?.email ?? '',
+        notes: credential?.notes ?? '',
+    });
+
+    const handleSubmit = (e: FormEvent) => {
+        e.preventDefault();
+        if (isEdit) {
+            form.put(`/hostingy/credentials/${credential!.id}`, { preserveScroll: true, onSuccess });
+        } else {
+            form.post(`/hostingy/${hostingId}/credentials`, { preserveScroll: true, onSuccess: () => { form.reset(); onSuccess(); } });
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="rounded-lg border border-border bg-accent p-3 mb-2 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+                <div>
+                    <Label className="text-xs text-muted-foreground">Název *</Label>
+                    <Input value={form.data.label} onChange={(e) => form.setData('label', e.target.value)} placeholder="např. WP admin" className="h-8 text-sm bg-background" />
+                    {form.errors.label && <p className="text-xs text-red-400 mt-0.5">{form.errors.label}</p>}
+                </div>
+                <div>
+                    <Label className="text-xs text-muted-foreground">Login</Label>
+                    <Input value={form.data.login} onChange={(e) => form.setData('login', e.target.value)} placeholder="admin" className="h-8 text-sm bg-background" />
+                </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+                <div>
+                    <Label className="text-xs text-muted-foreground">Heslo {isEdit && <span className="text-muted-foreground/50">(prázdné = beze změny)</span>}</Label>
+                    <Input type="text" value={form.data.password} onChange={(e) => form.setData('password', e.target.value)} placeholder={isEdit ? '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022' : 'heslo'} className="h-8 text-sm bg-background" />
+                </div>
+                <div>
+                    <Label className="text-xs text-muted-foreground">E-mail</Label>
+                    <Input type="email" value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} placeholder="email@doména.cz" className="h-8 text-sm bg-background" />
+                </div>
+            </div>
+            <div>
+                <Label className="text-xs text-muted-foreground">Poznámka</Label>
+                <Input value={form.data.notes} onChange={(e) => form.setData('notes', e.target.value)} placeholder="volitelné" className="h-8 text-sm bg-background" />
+            </div>
+            <div className="flex justify-end gap-2">
+                <button type="button" onClick={onCancel} className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">Zrušit</button>
+                <button type="submit" disabled={form.processing} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/80 disabled:opacity-50">
+                    {form.processing ? 'Ukládám...' : isEdit ? 'Uložit' : 'Přidat'}
+                </button>
+            </div>
+        </form>
+    );
+}
+
+/* ─────── Email Accounts Section ─────── */
+
+function EmailAccountsSection({ hostingId, emailAccounts }: { hostingId: number; emailAccounts: EmailAccount[] }) {
+    const [showForm, setShowForm] = useState(false);
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const [deleteId, setDeleteId] = useState<number | null>(null);
+
+    return (
+        <div className="bg-card border border-border rounded-lg overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
+                <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <h2 className="text-sm font-semibold text-foreground">E-mailové schránky</h2>
+                    {emailAccounts.length > 0 && (
+                        <span className="text-xs text-muted-foreground">({emailAccounts.length})</span>
+                    )}
+                </div>
+                {!showForm && !editingId && (
+                    <button
+                        onClick={() => setShowForm(true)}
+                        className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
+                    >
+                        <Plus className="h-3.5 w-3.5" />
+                        Přidat
+                    </button>
+                )}
+            </div>
+
+            <div className="px-5 py-4">
+                {showForm && (
+                    <EmailAccountForm
+                        hostingId={hostingId}
+                        onCancel={() => setShowForm(false)}
+                        onSuccess={() => setShowForm(false)}
+                    />
+                )}
+
+                {emailAccounts.length === 0 && !showForm && (
+                    <p className="text-sm text-muted-foreground py-2">Žádné e-mailové schránky</p>
+                )}
+
+                <div className="space-y-2">
+                    {emailAccounts.map((ea) =>
+                        editingId === ea.id ? (
+                            <EmailAccountForm
+                                key={ea.id}
+                                hostingId={hostingId}
+                                emailAccount={ea}
+                                onCancel={() => setEditingId(null)}
+                                onSuccess={() => setEditingId(null)}
+                            />
+                        ) : (
+                            <div key={ea.id} className="flex items-center gap-3 rounded-lg bg-accent px-3 py-2.5">
+                                <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-sm font-medium text-foreground">{ea.email}</p>
+                                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                        <span>{ea.quota_mb >= 1024 ? `${(ea.quota_mb / 1024).toFixed(0)} GB` : `${ea.quota_mb} MB`}</span>
+                                        {ea.notes && <span>&middot; {ea.notes}</span>}
+                                    </div>
+                                </div>
+                                {ea.password && <PasswordField password={ea.password} />}
+                                <div className="flex shrink-0 gap-0.5">
+                                    <button onClick={() => setEditingId(ea.id)} className="rounded p-1.5 text-muted-foreground hover:bg-background hover:text-foreground" title="Upravit">
+                                        <Pencil className="h-3.5 w-3.5" />
+                                    </button>
+                                    <button onClick={() => setDeleteId(ea.id)} className="rounded p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" title="Smazat">
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                </div>
+                            </div>
+                        ),
+                    )}
+                </div>
+            </div>
+
+            <ConfirmDialog
+                open={deleteId !== null}
+                onClose={() => setDeleteId(null)}
+                onConfirm={() => {
+                    if (deleteId !== null) {
+                        router.delete(`/emaily/${deleteId}`, { preserveScroll: true });
+                        setDeleteId(null);
+                    }
+                }}
+                title="Smazat e-mail"
+                message="Opravdu chcete smazat tento e-mailový účet z evidence?"
+            />
+        </div>
+    );
+}
+
+function EmailAccountForm({
+    hostingId,
+    emailAccount,
+    onCancel,
+    onSuccess,
+}: {
+    hostingId: number;
+    emailAccount?: EmailAccount;
+    onCancel: () => void;
+    onSuccess: () => void;
+}) {
+    const isEdit = !!emailAccount;
+    const form = useForm({
+        email: emailAccount?.email ?? '',
+        password: '',
+        quota_mb: emailAccount?.quota_mb ?? 3072,
+        notes: emailAccount?.notes ?? '',
+    });
+
+    const handleSubmit = (e: FormEvent) => {
+        e.preventDefault();
+        if (isEdit) {
+            form.put(`/emaily/${emailAccount!.id}`, { preserveScroll: true, onSuccess });
+        } else {
+            form.post(`/hostingy/${hostingId}/emaily`, { preserveScroll: true, onSuccess: () => { form.reset(); onSuccess(); } });
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="rounded-lg border border-border bg-accent p-3 mb-2 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+                <div>
+                    <Label className="text-xs text-muted-foreground">E-mail *</Label>
+                    <Input type="email" value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} placeholder="info@domena.cz" className="h-8 text-sm bg-background" />
+                    {form.errors.email && <p className="text-xs text-red-400 mt-0.5">{form.errors.email}</p>}
+                </div>
+                <div>
+                    <Label className="text-xs text-muted-foreground">Heslo {isEdit && <span className="text-muted-foreground/50">(prázdné = beze změny)</span>}</Label>
+                    <Input type="text" value={form.data.password} onChange={(e) => form.setData('password', e.target.value)} placeholder={isEdit ? '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022' : 'heslo'} className="h-8 text-sm bg-background" />
+                </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+                <div>
+                    <Label className="text-xs text-muted-foreground">Kvóta (MB)</Label>
+                    <Input type="number" value={form.data.quota_mb} onChange={(e) => form.setData('quota_mb', parseInt(e.target.value) || 3072)} className="h-8 text-sm bg-background" />
+                </div>
+                <div>
+                    <Label className="text-xs text-muted-foreground">Poznámka</Label>
+                    <Input type="text" value={form.data.notes} onChange={(e) => form.setData('notes', e.target.value)} placeholder="např. hlavní schránka" className="h-8 text-sm bg-background" />
+                </div>
+            </div>
+            <div className="flex justify-end gap-2">
+                <button type="button" onClick={onCancel} className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">Zrušit</button>
+                <button type="submit" disabled={form.processing} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/80 disabled:opacity-50">
+                    {form.processing ? 'Ukládám...' : isEdit ? 'Uložit' : 'Přidat'}
+                </button>
+            </div>
+        </form>
+    );
+}
+
+/* ─────── Tab: Platby & Faktury ─────── */
+
+function TabPlatby({ hosting, paymentStats, onShowPaymentModal }: {
+    hosting: Hosting;
+    paymentStats: Props['paymentStats'];
+    onShowPaymentModal: () => void;
+}) {
+    const handleMarkPaid = (paymentId: number) => {
+        router.put(`/hostingy/${hosting.id}/platby/${paymentId}/zaplaceno`, {});
+    };
+
+    return (
+        <div className="space-y-4">
             {/* Platební historie */}
             <div className="bg-card border border-border rounded-lg overflow-hidden">
                 <SectionHeader
@@ -630,11 +1141,11 @@ function TabPrehled({ website, paymentStats, onShowPaymentModal }: {
                         </Button>
                     }
                 />
-                {website.payments.length === 0 ? (
+                {hosting.payments.length === 0 ? (
                     <div className="px-5 py-8 text-center text-sm text-muted-foreground">Žádné platby</div>
                 ) : (
                     <div className="divide-y divide-border">
-                        {website.payments.map((payment) => (
+                        {hosting.payments.map((payment) => (
                             <div key={payment.id} className="flex items-center justify-between px-5 py-3 hover:bg-muted/30 transition-colors">
                                 <div className="min-w-0">
                                     <p className="text-sm text-muted-foreground">
@@ -687,11 +1198,11 @@ function TabPrehled({ website, paymentStats, onShowPaymentModal }: {
             </div>
 
             {/* Faktury */}
-            {website.invoices && website.invoices.length > 0 && (
+            {hosting.invoices && hosting.invoices.length > 0 && (
                 <div className="bg-card border border-border rounded-lg overflow-hidden">
-                    <SectionHeader icon={FileText} title="Faktury" count={website.invoices.length} />
+                    <SectionHeader icon={FileText} title="Faktury" count={hosting.invoices.length} />
                     <div className="divide-y divide-border">
-                        {website.invoices.map((inv) => {
+                        {hosting.invoices.map((inv) => {
                             const invStatus = invoiceStatusConfig[inv.status] ?? invoiceStatusConfig.vystavena;
                             return (
                                 <a key={inv.id} href={`/faktury/${inv.id}`} className="flex items-center justify-between px-5 py-3 hover:bg-muted/30 transition-colors">
@@ -713,734 +1224,39 @@ function TabPrehled({ website, paymentStats, onShowPaymentModal }: {
                     </div>
                 </div>
             )}
-
-            {/* Aliasy */}
-            {website.aliases && website.aliases.length > 0 && (
-                <div className="bg-card border border-border rounded-lg overflow-hidden">
-                    <SectionHeader icon={Link2} title="Aliasy" count={website.aliases.length} />
-                    <div className="divide-y divide-border">
-                        {website.aliases.map((alias) => (
-                            <a
-                                key={alias.id}
-                                href={`/webove-sluzby/${alias.id}`}
-                                className="flex items-center justify-between px-5 py-3 hover:bg-muted/30 transition-colors"
-                            >
-                                <div className="flex items-center gap-2">
-                                    <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
-                                    <span className="text-sm font-medium text-primary">{alias.name}</span>
-                                </div>
-                                {alias.domain_expires_at && (
-                                    <ExpirationBadge expiresAt={alias.domain_expires_at} />
-                                )}
-                            </a>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* Poznámky */}
-            {website.notes && (
-                <div className="bg-card border border-border rounded-lg px-5 py-4">
-                    <h3 className="text-sm font-semibold text-foreground mb-2">Poznámky</h3>
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{website.notes}</p>
-                </div>
-            )}
         </div>
-    );
-}
-
-/* ─────── Tab: Domena ─────── */
-
-function TabDomena({ website }: { website: Website }) {
-    return (
-        <div className="space-y-4">
-            {/* Registrace */}
-            <div className="bg-card border border-border rounded-lg overflow-hidden">
-                <SectionHeader icon={Globe} title="Registrace domény" />
-                <div className="px-5 py-4 space-y-1">
-                    <InfoRow label="Registrátor">
-                        {website.is_registered_by_us ? (
-                            <span className="inline-flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                <span className="text-emerald-400 font-medium">Vlastní</span>
-                            </span>
-                        ) : (
-                            <span className="text-muted-foreground/60">Externí</span>
-                        )}
-                    </InfoRow>
-                    <InfoRow label="Expirace domény">
-                        {website.domain_expires_at ? (
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm">{format(new Date(website.domain_expires_at), 'd. M. yyyy', { locale: cs })}</span>
-                                <ExpirationBadge expiresAt={website.domain_expires_at} />
-                            </div>
-                        ) : (
-                            <span className="text-muted-foreground/50">Nenastaveno</span>
-                        )}
-                    </InfoRow>
-                    {website.ip_address && (
-                        <InfoRow label="IP adresa">
-                            <span className="font-mono text-xs">{website.ip_address}</span>
-                        </InfoRow>
-                    )}
-                    {website.is_registered_by_us && (website.domain_cost_yearly > 0 || website.domain_sell_yearly > 0) && (
-                        <>
-                            <InfoRow label="Roční náklad domény">
-                                <span className="text-foreground">{formatCurrency(website.domain_cost_yearly)}</span>
-                            </InfoRow>
-                            <InfoRow label="Prodejní cena domény">
-                                <span className="text-foreground">{formatCurrency(website.domain_sell_yearly)}</span>
-                            </InfoRow>
-                        </>
-                    )}
-                    <InfoRow label="Externí doména">
-                        <span className={website.is_external ? 'text-amber-400' : 'text-muted-foreground'}>
-                            {website.is_external ? 'Ano' : 'Ne'}
-                        </span>
-                    </InfoRow>
-                    {website.starts_at && (
-                        <InfoRow label="Služba od">
-                            <span>{format(new Date(website.starts_at), 'd. M. yyyy', { locale: cs })}</span>
-                        </InfoRow>
-                    )}
-                </div>
-            </div>
-
-            {/* Aliasy */}
-            <div className="bg-card border border-border rounded-lg overflow-hidden">
-                <SectionHeader icon={Link2} title="Aliasy" count={website.aliases?.length ?? 0} />
-                <div className="px-5 py-4">
-                    {(!website.aliases || website.aliases.length === 0) ? (
-                        <p className="text-sm text-muted-foreground">Žádné aliasy</p>
-                    ) : (
-                        <div className="space-y-2">
-                            {website.aliases.map((alias) => (
-                                <a
-                                    key={alias.id}
-                                    href={`/webove-sluzby/${alias.id}`}
-                                    className="flex items-center justify-between rounded-lg bg-accent px-3 py-2.5 hover:bg-accent/80 transition-colors"
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
-                                        <span className="text-sm font-medium text-primary">{alias.name}</span>
-                                    </div>
-                                    {alias.domain_expires_at && (
-                                        <ExpirationBadge expiresAt={alias.domain_expires_at} />
-                                    )}
-                                </a>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Sync info */}
-            {website.synced_at && (
-                <p className="text-xs text-muted-foreground/50 px-1">
-                    Poslední sync: {format(new Date(website.synced_at), 'd. M. yyyy HH:mm', { locale: cs })}
-                </p>
-            )}
-        </div>
-    );
-}
-
-/* ─────── Tab: Hosting ─────── */
-
-function TabHosting({ website }: { website: Website }) {
-    const [activatingHosting, setActivatingHosting] = useState(false);
-    const [activateResult, setActivateResult] = useState<{ success: boolean; message: string } | null>(null);
-
-    const handleActivateHosting = async () => {
-        setActivatingHosting(true);
-        setActivateResult(null);
-        try {
-            const response = await fetch('/webove-sluzby/activate-domain', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-XSRF-TOKEN': decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? ''),
-                    'Accept': 'application/json',
-                },
-                body: JSON.stringify({ domain_name: website.name }),
-            });
-            const data = await response.json();
-            if (response.ok) {
-                setActivateResult({ success: true, message: data.message ?? 'Hosting aktivován.' });
-                setTimeout(() => router.post('/webove-sluzby/sync', {}, { preserveState: false }), 1500);
-            } else {
-                setActivateResult({ success: false, message: data.message ?? 'Aktivace selhala.' });
-            }
-        } catch {
-            setActivateResult({ success: false, message: 'Síťová chyba.' });
-        } finally {
-            setActivatingHosting(false);
-        }
-    };
-
-    const hasHosting = !!(website.hosting_server || website.server);
-
-    return (
-        <div className="space-y-4">
-            {hasHosting ? (
-                <div className="bg-card border border-border rounded-lg overflow-hidden">
-                    <SectionHeader icon={Server} title="Hosting" />
-                    <div className="px-5 py-4 space-y-1">
-                        <InfoRow label="Server">
-                            {website.hosting_server ? (
-                                <span className="font-medium">{website.hosting_server.name}</span>
-                            ) : website.server ? (
-                                <span className="font-mono text-xs">{website.server}</span>
-                            ) : null}
-                        </InfoRow>
-                        <InfoRow label="Expirace hostingu">
-                            {website.hosting_expires_at ? (
-                                <div className="flex items-center gap-2">
-                                    <span className="text-sm">{format(new Date(website.hosting_expires_at), 'd. M. yyyy', { locale: cs })}</span>
-                                    <ExpirationBadge expiresAt={website.hosting_expires_at} />
-                                </div>
-                            ) : (
-                                <span className="text-muted-foreground/50">&mdash;</span>
-                            )}
-                        </InfoRow>
-                        {website.storage_quota_mb > 0 && (
-                            <div className="py-2">
-                                <StorageBar used={website.storage_used_mb} quota={website.storage_quota_mb} />
-                            </div>
-                        )}
-                        {(website.hosting_cost_yearly > 0 || website.hosting_sell_yearly > 0) && (
-                            <>
-                                <InfoRow label="Roční náklad hostingu">
-                                    <span className="text-foreground">{formatCurrency(website.hosting_cost_yearly)}</span>
-                                </InfoRow>
-                                <InfoRow label="Prodejní cena hostingu">
-                                    <span className="text-foreground">{formatCurrency(website.hosting_sell_yearly)}</span>
-                                </InfoRow>
-                            </>
-                        )}
-                        {website.admin_url && (
-                            <InfoRow label="Admin URL">
-                                <a href={website.admin_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
-                                    {website.admin_url} <ExternalLink className="h-3 w-3" />
-                                </a>
-                            </InfoRow>
-                        )}
-                        {website.synced_at && (
-                            <InfoRow label="Poslední sync">
-                                <span className="text-xs">{format(new Date(website.synced_at), 'd. M. yyyy HH:mm', { locale: cs })}</span>
-                            </InfoRow>
-                        )}
-                    </div>
-                </div>
-            ) : (
-                <div className="bg-card border border-border rounded-lg px-5 py-8 text-center">
-                    <HardDrive className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
-                    <p className="text-sm text-muted-foreground mb-4">Tento web nemá aktivní hosting</p>
-                    <Button
-                        onClick={handleActivateHosting}
-                        disabled={activatingHosting}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                    >
-                        {activatingHosting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Play className="h-4 w-4 mr-2" />}
-                        Aktivovat hosting na sss06
-                    </Button>
-                    {activateResult && (
-                        <p className={`text-xs mt-3 ${activateResult.success ? 'text-emerald-400' : 'text-red-400'}`}>
-                            {activateResult.message}
-                        </p>
-                    )}
-                </div>
-            )}
-
-            {/* Sync button when hosting already exists on server */}
-            {hasHosting && (
-                <div className="flex items-center gap-3">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleActivateHosting}
-                        disabled={activatingHosting}
-                        className="text-muted-foreground hover:text-foreground hover:bg-accent border border-border"
-                    >
-                        {activatingHosting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                        Synchronizovat hosting
-                    </Button>
-                    {activateResult && (
-                        <span className={`text-xs ${activateResult.success ? 'text-emerald-400' : 'text-red-400'}`}>
-                            {activateResult.message}
-                        </span>
-                    )}
-                </div>
-            )}
-        </div>
-    );
-}
-
-/* ─────── Tab: Sprava ─────── */
-
-function TabSprava({ website }: { website: Website }) {
-    const plan = website.management_plan;
-    const monthlyPrice = plan ? Number(plan.price_monthly) : 0;
-
-    return (
-        <div className="space-y-4">
-            {plan ? (
-                <div className="bg-card border border-border rounded-lg overflow-hidden">
-                    <SectionHeader icon={Settings} title="Balíček správy" />
-                    <div className="px-5 py-4 space-y-1">
-                        <InfoRow label="Balíček">
-                            <span className="font-semibold text-foreground">{plan.name}</span>
-                        </InfoRow>
-                        <InfoRow label="Měsíční cena">
-                            <span className="font-medium">{formatCurrency(monthlyPrice)}/měs</span>
-                        </InfoRow>
-                        {website.management_cycle && (
-                            <InfoRow label="Fakturační cyklus">
-                                <span>{managementCycleLabels[website.management_cycle] ?? website.management_cycle}</span>
-                            </InfoRow>
-                        )}
-                        <InfoRow label="Auto-fakturace správy">
-                            <span className={website.auto_invoice_management ? 'text-emerald-400 font-medium' : 'text-muted-foreground'}>
-                                {website.auto_invoice_management ? 'Ano' : 'Ne'}
-                            </span>
-                        </InfoRow>
-                        <Separator className="bg-border !my-3" />
-                        <InfoRow label="Roční výše">
-                            <span className="font-semibold text-foreground">{formatCurrency(monthlyPrice * 12)}/rok</span>
-                        </InfoRow>
-                        {website.management_cycle && (
-                            <InfoRow label="Fakturační částka">
-                                <span className="font-medium text-foreground">
-                                    {website.management_cycle === 'quarterly' && formatCurrency(monthlyPrice * 3)}
-                                    {website.management_cycle === 'semi_annual' && formatCurrency(monthlyPrice * 6)}
-                                    {website.management_cycle === 'annual' && formatCurrency(monthlyPrice * 12)}
-                                    {!['quarterly', 'semi_annual', 'annual'].includes(website.management_cycle ?? '') && formatCurrency(monthlyPrice)}
-                                </span>
-                            </InfoRow>
-                        )}
-                    </div>
-                </div>
-            ) : (
-                <div className="bg-card border border-border rounded-lg px-5 py-8 text-center">
-                    <Settings className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
-                    <p className="text-sm text-muted-foreground mb-2">Bez správy webu</p>
-                    <p className="text-xs text-muted-foreground/60">Nastavte balíček přes tlačítko Upravit.</p>
-                </div>
-            )}
-        </div>
-    );
-}
-
-/* ─────── Tab: Pristupy ─────── */
-
-function TabPristupy({ website }: { website: Website }) {
-    return (
-        <div className="space-y-4">
-            {/* Pristupove udaje */}
-            <CredentialsSection websiteId={website.id} credentials={website.credentials} adminUrl={website.admin_url} />
-
-            {/* E-mailove schranky */}
-            <EmailAccountsSection websiteId={website.id} emailAccounts={website.email_accounts ?? []} />
-        </div>
-    );
-}
-
-function CopyCredentialButton({ credential, adminUrl }: { credential: WebsiteCredential; adminUrl: string | null }) {
-    const [copied, setCopied] = useState(false);
-
-    function handleCopy() {
-        const lines: string[] = [];
-        lines.push(`Přístup: ${credential.label}`);
-        if (adminUrl) lines.push(`URL: ${adminUrl}`);
-        if (credential.login) lines.push(`Login: ${credential.login}`);
-        if (credential.password) lines.push(`Heslo: ${credential.password}`);
-        if (credential.email) lines.push(`E-mail: ${credential.email}`);
-
-        navigator.clipboard.writeText(lines.join('\n'));
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    }
-
-    return (
-        <button
-            onClick={handleCopy}
-            className={`rounded p-1.5 transition-colors ${copied ? 'text-emerald-500' : 'text-muted-foreground hover:bg-background hover:text-foreground'}`}
-            title={copied ? 'Zkopírováno!' : 'Kopírovat přístupy'}
-        >
-            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-        </button>
-    );
-}
-
-/* ─────── Credentials Section with CRUD ─────── */
-
-function CredentialsSection({ websiteId, credentials, adminUrl }: {
-    websiteId: number;
-    credentials: WebsiteCredential[];
-    adminUrl: string | null;
-}) {
-    const [showForm, setShowForm] = useState(false);
-    const [editingId, setEditingId] = useState<number | null>(null);
-    const [deleteId, setDeleteId] = useState<number | null>(null);
-
-    return (
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
-                <div className="flex items-center gap-2">
-                    <Shield className="h-4 w-4 text-muted-foreground" />
-                    <h2 className="text-sm font-semibold text-foreground">Přístupové údaje</h2>
-                    {credentials.length > 0 && (
-                        <span className="text-xs text-muted-foreground">({credentials.length})</span>
-                    )}
-                </div>
-                {!showForm && !editingId && (
-                    <button
-                        onClick={() => setShowForm(true)}
-                        className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
-                    >
-                        <Plus className="h-3.5 w-3.5" />
-                        Přidat
-                    </button>
-                )}
-            </div>
-
-            <div className="px-5 py-4">
-                {adminUrl && (
-                    <div className="flex items-center justify-between py-1.5 mb-2">
-                        <span className="text-sm text-muted-foreground">Admin URL</span>
-                        <a href={adminUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
-                            Otevřít <ExternalLink className="h-3 w-3" />
-                        </a>
-                    </div>
-                )}
-
-                {showForm && (
-                    <CredentialForm
-                        websiteId={websiteId}
-                        onCancel={() => setShowForm(false)}
-                        onSuccess={() => setShowForm(false)}
-                    />
-                )}
-
-                {credentials.length === 0 && !showForm && !adminUrl && (
-                    <p className="text-sm text-muted-foreground py-2">Žádné přístupové údaje</p>
-                )}
-
-                <div className="space-y-2">
-                    {credentials.map((cred) =>
-                        editingId === cred.id ? (
-                            <CredentialForm
-                                key={cred.id}
-                                websiteId={websiteId}
-                                credential={cred}
-                                onCancel={() => setEditingId(null)}
-                                onSuccess={() => setEditingId(null)}
-                            />
-                        ) : (
-                            <div key={cred.id} className="rounded-lg bg-accent px-3 py-2.5">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <Shield className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                        <span className="text-xs font-medium text-foreground">{cred.label}</span>
-                                    </div>
-                                    <div className="flex shrink-0 gap-0.5">
-                                        <CopyCredentialButton credential={cred} adminUrl={adminUrl} />
-                                        <button onClick={() => setEditingId(cred.id)} className="rounded p-1.5 text-muted-foreground hover:bg-background hover:text-foreground" title="Upravit">
-                                            <Pencil className="h-3.5 w-3.5" />
-                                        </button>
-                                        <button onClick={() => setDeleteId(cred.id)} className="rounded p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" title="Smazat">
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                        </button>
-                                    </div>
-                                </div>
-                                <div className="flex items-center justify-between py-0.5">
-                                    <span className="text-xs text-muted-foreground">Login</span>
-                                    <span className="text-sm text-foreground">{cred.login}</span>
-                                </div>
-                                {cred.password && (
-                                    <div className="flex items-center justify-between py-0.5">
-                                        <span className="text-xs text-muted-foreground">Heslo</span>
-                                        <PasswordField password={cred.password} />
-                                    </div>
-                                )}
-                                {cred.email && (
-                                    <div className="flex items-center justify-between py-0.5">
-                                        <span className="text-xs text-muted-foreground">E-mail</span>
-                                        <span className="text-sm text-foreground">{cred.email}</span>
-                                    </div>
-                                )}
-                                {cred.notes && (
-                                    <p className="text-xs text-muted-foreground/70 mt-1">{cred.notes}</p>
-                                )}
-                            </div>
-                        ),
-                    )}
-                </div>
-            </div>
-
-            <ConfirmDialog
-                open={deleteId !== null}
-                onClose={() => setDeleteId(null)}
-                onConfirm={() => {
-                    if (deleteId !== null) {
-                        router.delete(`/webove-sluzby/credentials/${deleteId}`, { preserveScroll: true });
-                        setDeleteId(null);
-                    }
-                }}
-                title="Smazat přístup"
-                message="Opravdu chcete smazat tyto přístupové údaje?"
-            />
-        </div>
-    );
-}
-
-function CredentialForm({
-    websiteId,
-    credential,
-    onCancel,
-    onSuccess,
-}: {
-    websiteId: number;
-    credential?: WebsiteCredential;
-    onCancel: () => void;
-    onSuccess: () => void;
-}) {
-    const isEdit = !!credential;
-    const form = useForm({
-        label: credential?.label ?? '',
-        login: credential?.login ?? '',
-        password: '',
-        email: credential?.email ?? '',
-        notes: credential?.notes ?? '',
-    });
-
-    const handleSubmit = (e: FormEvent) => {
-        e.preventDefault();
-        if (isEdit) {
-            form.put(`/webove-sluzby/credentials/${credential!.id}`, { preserveScroll: true, onSuccess });
-        } else {
-            form.post(`/webove-sluzby/${websiteId}/credentials`, { preserveScroll: true, onSuccess: () => { form.reset(); onSuccess(); } });
-        }
-    };
-
-    return (
-        <form onSubmit={handleSubmit} className="rounded-lg border border-border bg-accent p-3 mb-2 space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-                <div>
-                    <Label className="text-xs text-muted-foreground">Název *</Label>
-                    <Input value={form.data.label} onChange={(e) => form.setData('label', e.target.value)} placeholder="např. WP admin" className="h-8 text-sm bg-background" />
-                    {form.errors.label && <p className="text-xs text-red-400 mt-0.5">{form.errors.label}</p>}
-                </div>
-                <div>
-                    <Label className="text-xs text-muted-foreground">Login</Label>
-                    <Input value={form.data.login} onChange={(e) => form.setData('login', e.target.value)} placeholder="admin" className="h-8 text-sm bg-background" />
-                </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-                <div>
-                    <Label className="text-xs text-muted-foreground">Heslo {isEdit && <span className="text-muted-foreground/50">(prázdné = beze změny)</span>}</Label>
-                    <Input type="text" value={form.data.password} onChange={(e) => form.setData('password', e.target.value)} placeholder={isEdit ? '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022' : 'heslo'} className="h-8 text-sm bg-background" />
-                </div>
-                <div>
-                    <Label className="text-xs text-muted-foreground">E-mail</Label>
-                    <Input type="email" value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} placeholder="email@doména.cz" className="h-8 text-sm bg-background" />
-                </div>
-            </div>
-            <div>
-                <Label className="text-xs text-muted-foreground">Poznámka</Label>
-                <Input value={form.data.notes} onChange={(e) => form.setData('notes', e.target.value)} placeholder="volitelné" className="h-8 text-sm bg-background" />
-            </div>
-            <div className="flex justify-end gap-2">
-                <button type="button" onClick={onCancel} className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">Zrušit</button>
-                <button type="submit" disabled={form.processing} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/80 disabled:opacity-50">
-                    {form.processing ? 'Ukládám...' : isEdit ? 'Uložit' : 'Přidat'}
-                </button>
-            </div>
-        </form>
-    );
-}
-
-/* ─────── Email Accounts Section ─────── */
-
-function EmailAccountsSection({ websiteId, emailAccounts }: { websiteId: number; emailAccounts: EmailAccount[] }) {
-    const [showForm, setShowForm] = useState(false);
-    const [editingId, setEditingId] = useState<number | null>(null);
-    const [deleteId, setDeleteId] = useState<number | null>(null);
-
-    return (
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
-                <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <h2 className="text-sm font-semibold text-foreground">E-mailové schránky</h2>
-                    {emailAccounts.length > 0 && (
-                        <span className="text-xs text-muted-foreground">({emailAccounts.length})</span>
-                    )}
-                </div>
-                {!showForm && !editingId && (
-                    <button
-                        onClick={() => setShowForm(true)}
-                        className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
-                    >
-                        <Plus className="h-3.5 w-3.5" />
-                        Pridat
-                    </button>
-                )}
-            </div>
-
-            <div className="px-5 py-4">
-                {showForm && (
-                    <EmailAccountForm
-                        websiteId={websiteId}
-                        onCancel={() => setShowForm(false)}
-                        onSuccess={() => setShowForm(false)}
-                    />
-                )}
-
-                {emailAccounts.length === 0 && !showForm && (
-                    <p className="text-sm text-muted-foreground py-2">Žádné e-mailové schránky</p>
-                )}
-
-                <div className="space-y-2">
-                    {emailAccounts.map((ea) =>
-                        editingId === ea.id ? (
-                            <EmailAccountForm
-                                key={ea.id}
-                                websiteId={websiteId}
-                                emailAccount={ea}
-                                onCancel={() => setEditingId(null)}
-                                onSuccess={() => setEditingId(null)}
-                            />
-                        ) : (
-                            <div key={ea.id} className="flex items-center gap-3 rounded-lg bg-accent px-3 py-2.5">
-                                <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-sm font-medium text-foreground">{ea.email}</p>
-                                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                        <span>{ea.quota_mb >= 1024 ? `${(ea.quota_mb / 1024).toFixed(0)} GB` : `${ea.quota_mb} MB`}</span>
-                                        {ea.notes && <span>&middot; {ea.notes}</span>}
-                                    </div>
-                                </div>
-                                {ea.password && <PasswordField password={ea.password} />}
-                                <div className="flex shrink-0 gap-0.5">
-                                    <button onClick={() => setEditingId(ea.id)} className="rounded p-1.5 text-muted-foreground hover:bg-background hover:text-foreground" title="Upravit">
-                                        <Pencil className="h-3.5 w-3.5" />
-                                    </button>
-                                    <button onClick={() => setDeleteId(ea.id)} className="rounded p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" title="Smazat">
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                    </button>
-                                </div>
-                            </div>
-                        ),
-                    )}
-                </div>
-            </div>
-
-            <ConfirmDialog
-                open={deleteId !== null}
-                onClose={() => setDeleteId(null)}
-                onConfirm={() => {
-                    if (deleteId !== null) {
-                        router.delete(`/emaily/${deleteId}`, { preserveScroll: true });
-                        setDeleteId(null);
-                    }
-                }}
-                title="Smazat e-mail"
-                message="Opravdu chcete smazat tento e-mailovy ucet z evidence?"
-            />
-        </div>
-    );
-}
-
-function EmailAccountForm({
-    websiteId,
-    emailAccount,
-    onCancel,
-    onSuccess,
-}: {
-    websiteId: number;
-    emailAccount?: EmailAccount;
-    onCancel: () => void;
-    onSuccess: () => void;
-}) {
-    const isEdit = !!emailAccount;
-    const form = useForm({
-        email: emailAccount?.email ?? '',
-        password: '',
-        quota_mb: emailAccount?.quota_mb ?? 3072,
-        notes: emailAccount?.notes ?? '',
-    });
-
-    const handleSubmit = (e: FormEvent) => {
-        e.preventDefault();
-        if (isEdit) {
-            form.put(`/emaily/${emailAccount!.id}`, { preserveScroll: true, onSuccess });
-        } else {
-            form.post(`/webove-sluzby/${websiteId}/emaily`, { preserveScroll: true, onSuccess: () => { form.reset(); onSuccess(); } });
-        }
-    };
-
-    return (
-        <form onSubmit={handleSubmit} className="rounded-lg border border-border bg-accent p-3 mb-2 space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-                <div>
-                    <Label className="text-xs text-muted-foreground">E-mail *</Label>
-                    <Input type="email" value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} placeholder="info@domena.cz" className="h-8 text-sm bg-background" />
-                    {form.errors.email && <p className="text-xs text-red-400 mt-0.5">{form.errors.email}</p>}
-                </div>
-                <div>
-                    <Label className="text-xs text-muted-foreground">Heslo {isEdit && <span className="text-muted-foreground/50">(prázdné = beze změny)</span>}</Label>
-                    <Input type="text" value={form.data.password} onChange={(e) => form.setData('password', e.target.value)} placeholder={isEdit ? '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022' : 'heslo'} className="h-8 text-sm bg-background" />
-                </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-                <div>
-                    <Label className="text-xs text-muted-foreground">Kvota (MB)</Label>
-                    <Input type="number" value={form.data.quota_mb} onChange={(e) => form.setData('quota_mb', parseInt(e.target.value) || 3072)} className="h-8 text-sm bg-background" />
-                </div>
-                <div>
-                    <Label className="text-xs text-muted-foreground">Poznámka</Label>
-                    <Input type="text" value={form.data.notes} onChange={(e) => form.setData('notes', e.target.value)} placeholder="napr. hlavni schranka" className="h-8 text-sm bg-background" />
-                </div>
-            </div>
-            <div className="flex justify-end gap-2">
-                <button type="button" onClick={onCancel} className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">Zrušit</button>
-                <button type="submit" disabled={form.processing} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/80 disabled:opacity-50">
-                    {form.processing ? 'Ukládám...' : isEdit ? 'Uložit' : 'Přidat'}
-                </button>
-            </div>
-        </form>
     );
 }
 
 /* ─────── Main Component ─────── */
 
-export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
+export default function HostingsShow({ hosting, paymentStats }: Props) {
     const [activeTab, setActiveTab] = useState<TabId>('prehled');
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-    const statusInfo = statusMap[website.status];
+    const statusInfo = statusMap[hosting.status];
 
     return (
         <AuthenticatedLayout
-            title={website.name}
+            title={hosting.name}
             breadcrumbs={[
-                { label: 'Webove sluzby', href: '/webove-sluzby' },
-                { label: website.name },
+                { label: 'Hostingy', href: '/hostingy' },
+                { label: hosting.name },
             ]}
         >
             <div className="p-6 space-y-6 max-w-6xl mx-auto">
-                {/* ═══════ HEADER ═══════ */}
+                {/* HEADER */}
                 <div className="space-y-2">
                     {/* Row 1: Actions top-right */}
                     <div className="flex items-center justify-end gap-2">
-                        {!website.is_free && website.customer && (
-                            <Button onClick={() => router.post(`/webove-sluzby/${website.id}/faktura`)} className="bg-amber-600 text-white hover:bg-amber-700 border-0" size="sm">
+                        {!hosting.is_free && hosting.customer && (
+                            <Button onClick={() => router.post(`/hostingy/${hosting.id}/faktura`)} className="bg-amber-600 text-white hover:bg-amber-700 border-0" size="sm">
                                 <FileText className="h-3.5 w-3.5 mr-1.5" />
                                 Vystavit fakturu
                             </Button>
                         )}
-                        <Button onClick={() => router.visit(`/webove-sluzby/${website.id}/edit`)} className="bg-[#ad9d8e]/15 text-[#ad9d8e] hover:bg-[#ad9d8e]/25 border border-[#ad9d8e]/25" size="sm">
+                        <Button onClick={() => router.visit(`/hostingy/${hosting.id}/edit`)} className="bg-[#ad9d8e]/15 text-[#ad9d8e] hover:bg-[#ad9d8e]/25 border border-[#ad9d8e]/25" size="sm">
                             <Pencil className="h-3.5 w-3.5 mr-1.5" />
                             Upravit
                         </Button>
@@ -1454,35 +1270,30 @@ export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
                     <div className="flex items-center gap-3">
                         <Button
                             variant="ghost"
-                            onClick={() => router.visit('/webove-sluzby')}
+                            onClick={() => router.visit('/hostingy')}
                             className="text-muted-foreground hover:text-foreground shrink-0 -ml-2"
                         >
                             <ArrowLeft className="h-4 w-4" />
                         </Button>
-                        <Globe className="h-6 w-6 text-amber-500 shrink-0" />
-                        <h1 className="text-2xl font-semibold tracking-tight text-foreground">{website.name}</h1>
+                        <HardDrive className="h-6 w-6 text-sky-400 shrink-0" />
+                        <h1 className="text-2xl font-semibold tracking-tight text-foreground">{hosting.name}</h1>
                         {statusInfo && <StatusBadge status={statusInfo.variant}>{statusInfo.label}</StatusBadge>}
-                        {website.is_free && (
+                        {hosting.is_free && (
                             <span className="inline-flex items-center rounded-full bg-emerald-500/15 border border-emerald-500/25 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">ZDARMA</span>
-                        )}
-                        {website.alias_of && (
-                            <span className="inline-flex items-center rounded-full bg-violet-500/15 border border-violet-500/25 px-2 py-0.5 text-[10px] font-semibold text-violet-400">
-                                ALIAS → {website.alias_of.name}
-                            </span>
                         )}
                     </div>
 
                     {/* Row 3: Customer */}
-                    {website.customer && (
+                    {hosting.customer && (
                         <div className="pl-10">
-                            <a href={`/zakaznici/${website.customer.id}`} className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                                {website.customer.company || website.customer.name}
+                            <a href={`/zakaznici/${hosting.customer.id}`} className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                                {hosting.customer.company || hosting.customer.name}
                             </a>
                         </div>
                     )}
                 </div>
 
-                {/* ═══════ TABS ═══════ */}
+                {/* TABS */}
                 <div className="border-b border-border">
                     <nav className="flex gap-0 -mb-px">
                         {tabs.map((tab) => {
@@ -1506,30 +1317,29 @@ export default function WeboveSluzbyShow({ website, paymentStats }: Props) {
                     </nav>
                 </div>
 
-                {/* ═══════ TAB CONTENT ═══════ */}
-                {activeTab === 'prehled' && (
-                    <TabPrehled
-                        website={website}
+                {/* TAB CONTENT */}
+                {activeTab === 'prehled' && <TabPrehled hosting={hosting} />}
+                {activeTab === 'sprava' && <TabSprava hosting={hosting} />}
+                {activeTab === 'pristupy' && <TabPristupy hosting={hosting} />}
+                {activeTab === 'platby' && (
+                    <TabPlatby
+                        hosting={hosting}
                         paymentStats={paymentStats}
                         onShowPaymentModal={() => setShowPaymentModal(true)}
                     />
                 )}
-                {activeTab === 'domena' && <TabDomena website={website} />}
-                {activeTab === 'hosting' && <TabHosting website={website} />}
-                {activeTab === 'sprava' && <TabSprava website={website} />}
-                {activeTab === 'pristupy' && <TabPristupy website={website} />}
             </div>
 
-            <GlassModal open={showPaymentModal} onClose={() => setShowPaymentModal(false)} title="Nova platba" maxWidth="max-w-lg">
-                <PaymentForm website={website} onClose={() => setShowPaymentModal(false)} />
+            <GlassModal open={showPaymentModal} onClose={() => setShowPaymentModal(false)} title="Nová platba" maxWidth="max-w-lg">
+                <PaymentForm hosting={hosting} onClose={() => setShowPaymentModal(false)} />
             </GlassModal>
 
             <ConfirmDialog
                 open={showDeleteConfirm}
                 onClose={() => setShowDeleteConfirm(false)}
-                onConfirm={() => router.delete(`/webove-sluzby/${website.id}`)}
-                title="Smazat web"
-                message={`Opravdu chcete smazat "${website.name}"?`}
+                onConfirm={() => router.delete(`/hostingy/${hosting.id}`)}
+                title="Smazat hosting"
+                message={`Opravdu chcete smazat "${hosting.name}"?`}
             />
         </AuthenticatedLayout>
     );

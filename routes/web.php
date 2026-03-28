@@ -23,8 +23,9 @@ use App\Http\Controllers\SupportController;
 use App\Http\Controllers\LogsController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\VpsServerController;
-use App\Http\Controllers\WebsiteController;
-use App\Http\Controllers\WebsiteCredentialController;
+use App\Http\Controllers\DomainController;
+use App\Http\Controllers\HostingController;
+use App\Http\Controllers\HostingCredentialController;
 use App\Http\Controllers\OrderCostController;
 use App\Http\Controllers\OrderItemController;
 use App\Http\Controllers\TaskController;
@@ -103,50 +104,44 @@ Route::middleware('auth')->group(function () {
 
     // Legacy pozadavky routes removed — use /zpravy instead (redirect below)
 
-    // ===== Webové služby (websites) =====
+    // ===== DOMÉNY =====
+    // Static routes BEFORE resource (so {domain} parameter doesn't capture literals)
+    Route::post('/domeny/sync-vashosting', [DomainController::class, 'syncVasHosting'])->name('domains.sync-vashosting');
+    Route::post('/domeny/sync-wedos', [DomainController::class, 'syncWedos'])->name('domains.sync-wedos');
+    Route::get('/domeny/vytvorit', [DomainController::class, 'create'])->name('domains.create');
+    Route::get('/domeny/ke-schvaleni', [DomainController::class, 'pending'])->name('domains.pending');
+    Route::post('/domeny/ke-schvaleni/approve', [DomainController::class, 'approvePending'])->name('domains.pending.approve');
+    Route::post('/domeny/ke-schvaleni/ignore', [DomainController::class, 'ignorePending'])->name('domains.pending.ignore');
+    Route::post('/domeny/{domain}/faktura', [DomainController::class, 'createInvoice'])->name('domains.invoice.create');
+    Route::resource('domeny', DomainController::class)->parameters(['domeny' => 'domain'])->except(['create']);
 
-    // Static routes FIRST (before {website} parameter)
-    Route::post('webove-sluzby/sync', [WebsiteController::class, 'sync'])->name('websites.sync');
-    Route::post('webove-sluzby/bulk-update', [WebsiteController::class, 'bulkUpdate'])->name('websites.bulk-update');
-    Route::post('webove-sluzby/activate-domain', [WebsiteController::class, 'activateDomain'])->name('websites.activate-domain');
-    Route::get('webove-sluzby/vytvorit', [WebsiteController::class, 'create'])->name('websites.create');
-    Route::post('webove-sluzby/faktura-zakaznik/{customer}', [WebsiteController::class, 'createCustomerInvoice'])->name('websites.invoice.createCustomer');
+    // ===== HOSTINGY =====
+    Route::post('/hostingy/sync-sss06', [HostingController::class, 'syncSss06'])->name('hostings.sync-sss06');
+    Route::post('/hostingy/sync-ond08', [HostingController::class, 'syncOnd08'])->name('hostings.sync-ond08');
+    Route::post('/hostingy/sync-thaimassage', [HostingController::class, 'syncThaimassage'])->name('hostings.sync-thaimassage');
+    Route::post('/hostingy/bulk-update', [HostingController::class, 'bulkUpdate'])->name('hostings.bulk-update');
+    Route::post('/hostingy/activate-domain', [HostingController::class, 'activateDomain'])->name('hostings.activate-domain');
+    Route::get('/hostingy/vytvorit', [HostingController::class, 'create'])->name('hostings.create');
+    Route::post('/hostingy/faktura-zakaznik/{customer}', [HostingController::class, 'createCustomerInvoice'])->name('hostings.invoice.createCustomer');
+    Route::get('/hostingy/ke-schvaleni', [HostingController::class, 'pending'])->name('hostings.pending');
+    Route::post('/hostingy/ke-schvaleni/approve', [HostingController::class, 'approvePending'])->name('hostings.pending.approve');
+    Route::post('/hostingy/ke-schvaleni/ignore', [HostingController::class, 'ignorePending'])->name('hostings.pending.ignore');
+    Route::post('/hostingy/{hosting}/faktura', [HostingController::class, 'createInvoice'])->name('hostings.invoice.create');
+    Route::post('/hostingy/{hosting}/toggle-ignore', [HostingController::class, 'toggleIgnoreAlerts'])->name('hostings.toggleIgnore');
+    Route::post('/hostingy/{hosting}/credentials', [HostingCredentialController::class, 'store'])->name('credentials.store');
+    Route::put('/hostingy/credentials/{credential}', [HostingCredentialController::class, 'update'])->name('credentials.update');
+    Route::delete('/hostingy/credentials/{credential}', [HostingCredentialController::class, 'destroy'])->name('credentials.destroy');
+    Route::post('/hostingy/{hosting}/emaily', [EmailAccountController::class, 'store'])->name('email-accounts.store');
+    Route::resource('hostingy', HostingController::class)->parameters(['hostingy' => 'hosting'])->except(['create']);
 
-    // Ke schválení
-    Route::get('webove-sluzby/ke-schvaleni', [WebsiteController::class, 'pending'])->name('websites.pending');
-    Route::post('webove-sluzby/ke-schvaleni/approve', [WebsiteController::class, 'approvePending'])->name('websites.pending.approve');
-    Route::post('webove-sluzby/ke-schvaleni/ignore', [WebsiteController::class, 'ignorePending'])->name('websites.pending.ignore');
+    // ===== VPS =====
+    Route::get('/vps', [VpsServerController::class, 'index'])->name('vps.index');
+    Route::post('/vps', [VpsServerController::class, 'store'])->name('vps.store');
+    Route::put('/vps/{vps}', [VpsServerController::class, 'update'])->name('vps.update');
+    Route::delete('/vps/{vps}', [VpsServerController::class, 'destroy'])->name('vps.destroy');
+    Route::post('/vps/sync', [VpsServerController::class, 'syncFromHostings'])->name('vps.sync');
 
-    // VPS servery — sync route musí být PŘED {vp} aby nebyl "sync" brán jako ID
-    Route::post('webove-sluzby/vps/sync', [VpsServerController::class, 'syncFromHostings'])->name('vps.sync');
-    Route::post('webove-sluzby/vps', [VpsServerController::class, 'store'])->name('vps.store');
-    Route::put('webove-sluzby/vps/{vp}', [VpsServerController::class, 'update'])->name('vps.update');
-    Route::delete('webove-sluzby/vps/{vp}', [VpsServerController::class, 'destroy'])->name('vps.destroy');
-
-    // Resource routes (parameterized — AFTER static)
-    Route::resource('webove-sluzby', WebsiteController::class)->parameters(['webove-sluzby' => 'website'])->names([
-        'index' => 'websites.index',
-        'store' => 'websites.store',
-        'show' => 'websites.show',
-        'edit' => 'websites.edit',
-        'update' => 'websites.update',
-        'destroy' => 'websites.destroy',
-    ]);
-    Route::get('webove-sluzby/{website}/upravit', [WebsiteController::class, 'edit']);
-
-    // Website sub-resources (need {website} parameter)
-    Route::post('webove-sluzby/{website}/platby', [WebsiteController::class, 'storePayment'])->name('websites.payments.store');
-    Route::put('webove-sluzby/{website}/platby/{payment}/zaplaceno', [WebsiteController::class, 'markPaymentPaid'])->name('websites.payments.paid');
-    Route::post('webove-sluzby/{website}/faktura', [WebsiteController::class, 'createInvoice'])->name('websites.invoice.create');
-    Route::post('webove-sluzby/{website}/toggle-ignore', [WebsiteController::class, 'toggleIgnoreAlerts'])->name('websites.toggleIgnore');
-
-    // Credentials
-    Route::post('webove-sluzby/{website}/credentials', [WebsiteCredentialController::class, 'store'])->name('credentials.store');
-    Route::put('webove-sluzby/credentials/{credential}', [WebsiteCredentialController::class, 'update'])->name('credentials.update');
-    Route::delete('webove-sluzby/credentials/{credential}', [WebsiteCredentialController::class, 'destroy'])->name('credentials.destroy');
-
-    // Email účty na webech
-    Route::post('webove-sluzby/{website}/emaily', [EmailAccountController::class, 'store'])->name('email-accounts.store');
+    // Email účty (mimo hosting kontext)
     Route::put('emaily/{emailAccount}', [EmailAccountController::class, 'update'])->name('email-accounts.update');
     Route::delete('emaily/{emailAccount}', [EmailAccountController::class, 'destroy'])->name('email-accounts.destroy');
 
@@ -224,4 +219,5 @@ Route::middleware('auth')->group(function () {
 });
 
 // Legacy redirects (outside auth middleware — catch-all)
-Route::get('/neniweb/{any?}', fn($any = '') => redirect("/webove-sluzby/{$any}", 301))->where('any', '.*');
+Route::get('/webove-sluzby/{any?}', fn($any = '') => redirect('/hostingy/' . $any, 301))->where('any', '.*');
+Route::get('/neniweb/{any?}', fn($any = '') => redirect('/hostingy/' . $any, 301))->where('any', '.*');

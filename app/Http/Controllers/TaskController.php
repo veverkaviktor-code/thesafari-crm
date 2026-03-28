@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\Domain;
 use App\Models\Hosting;
 use App\Models\Invoice;
 use App\Models\Order;
@@ -47,7 +48,7 @@ class TaskController extends Controller
         if ($trashed) {
             return Inertia::render('Planner/Index', [
                 'tasks'          => $tasks,
-                'calendarEvents' => ['tasks' => [], 'websites' => [], 'invoices' => []],
+                'calendarEvents' => ['tasks' => [], 'hostings' => [], 'domains' => [], 'invoices' => []],
                 'filters'        => $request->only(['search', 'trashed']),
                 'customers'      => [],
                 'orders'         => [],
@@ -74,7 +75,7 @@ class TaskController extends Controller
                 'priority' => $t->priority,
             ]);
 
-        $expiringWebsites = Hosting::where('status', 'aktivni')
+        $expiringHostings = Hosting::where('status', 'aktivni')
             ->whereNotNull('expires_at')
             ->whereBetween('expires_at', [$calendarStart, $calendarEnd])
             ->select('id', 'name', 'expires_at')
@@ -83,7 +84,20 @@ class TaskController extends Controller
                 'id'      => $h->id,
                 'title'   => $h->name,
                 'date'    => $h->expires_at->toDateString(),
-                'type'    => 'website',
+                'type'    => 'hosting',
+            ]);
+
+        $expiringDomains = Domain::where('status', 'aktivni')
+            ->where('is_registered_by_us', true)
+            ->whereNotNull('expires_at')
+            ->whereBetween('expires_at', [$calendarStart, $calendarEnd])
+            ->select('id', 'name', 'expires_at')
+            ->get()
+            ->map(fn ($d) => [
+                'id'      => $d->id,
+                'title'   => $d->name,
+                'date'    => $d->expires_at->toDateString(),
+                'type'    => 'domain',
             ]);
 
         $dueInvoices = Invoice::whereIn('status', ['vystavena', 'odeslana'])
@@ -109,7 +123,8 @@ class TaskController extends Controller
             'tasks'          => $tasks,
             'calendarEvents' => [
                 'tasks'         => $calendarTasks,
-                'websites' => $expiringWebsites,
+                'hostings'      => $expiringHostings,
+                'domains'       => $expiringDomains,
                 'invoices'      => $dueInvoices,
             ],
             'filters'       => $request->only(['search', 'status', 'priority', 'period', 'trashed']),

@@ -2,23 +2,24 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Domain;
+use App\Models\Hosting;
 use App\Models\Invoice;
 use App\Models\User;
 use App\Models\VpsServer;
-use App\Models\Website;
 use App\Notifications\WebsiteInvoiceCreated;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-class AutoInvoiceWebsites extends Command
+class AutoInvoiceHostings extends Command
 {
-    protected $signature = 'websites:auto-invoice {--dry-run : Only show what would be invoiced}';
-    protected $description = 'Create invoices for websites with hosting expiring within 30 days';
+    protected $signature = 'hostings:auto-invoice {--dry-run : Only show what would be invoiced}';
+    protected $description = 'Create invoices for hostings expiring within 30 days';
 
     public function handle(): int
     {
-        $lock = \Illuminate\Support\Facades\Cache::lock('auto-invoice-websites', 300);
+        $lock = \Illuminate\Support\Facades\Cache::lock('auto-invoice-hostings', 300);
         if (!$lock->get()) {
             $this->warn('Příkaz již běží.');
             return 0;
@@ -36,104 +37,85 @@ class AutoInvoiceWebsites extends Command
         $dryRun = $this->option('dry-run');
         $admin = User::admin();
 
-        $websites = Website::where('status', 'aktivni')
-            ->whereNull('alias_of_id') // Skip aliases — covered by main website
+        $hostings = Hosting::where('status', 'aktivni')
             ->where('auto_invoice', true)
             ->where('is_free', false)
-            ->whereNotNull('hosting_expires_at')
-            ->where('hosting_expires_at', '>', now())
-            ->where('hosting_expires_at', '<=', now()->addDays(30))
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '>', now())
+            ->where('expires_at', '<=', now()->addDays(30))
             ->where('sell_yearly', '>', 0)
             ->whereDoesntHave('invoices', function ($q) {
                 $q->whereIn('status', ['vystavena', 'odeslana']);
             })
-            ->with('customer')
+            ->with(['customer', 'domains'])
             ->get();
 
-        if ($websites->isEmpty()) {
-            $this->info('No websites to invoice.');
-            return 0;
+        if ($hostings->isEmpty()) {
+            $this->info('No hostings to invoice.');
         }
 
         // Group by customer_id — one invoice per customer with all services
-        $groups = $websites->groupBy('customer_id');
+        $groups = $hostings->groupBy('customer_id');
 
         $created = 0;
 
-        foreach ($groups as $key => $siteGroup) {
-            $customer = $siteGroup->first()->customer;
+        foreach ($groups as $key => $hostingGroup) {
+            $customer = $hostingGroup->first()->customer;
 
             if (!$customer) {
-                Log::warning("AutoInvoice: website {$siteGroup->first()->id} has no customer, skipping.");
+                Log::warning("AutoInvoice: hosting {$hostingGroup->first()->id} has no customer, skipping.");
                 continue;
             }
 
             $items = [];
-            $aliasWebsiteIds = [];
-            foreach ($siteGroup as $website) {
-                $hostingPrice = (float) $website->hosting_sell_yearly;
-                $domainPrice  = (float) $website->domain_sell_yearly;
+            foreach ($hostingGroup as $hosting) {
+                $hostingPrice = (float) $hosting->sell_yearly;
 
-                if ($hostingPrice <= 0 && $domainPrice <= 0) {
-                    Log::warning("AutoInvoice: website {$website->id} ({$website->name}) has zero price, skipping.");
+                if ($hostingPrice <= 0) {
+                    Log::warning("AutoInvoice: hosting {$hosting->id} ({$hosting->name}) has zero price, skipping.");
                     continue;
                 }
 
-                // Build period string from hosting expiration (same as createInvoice)
+                // Build period string from hosting expiration
                 $periodStr = '1 rok';
-                if ($website->hosting_expires_at) {
-                    $expiry = \Carbon\Carbon::parse($website->hosting_expires_at);
+                if ($hosting->expires_at) {
+                    $expiry = \Carbon\Carbon::parse($hosting->expires_at);
                     $periodStr = $expiry->format('j. n. Y') . ' – ' . $expiry->copy()->addYear()->format('j. n. Y');
                 }
 
                 // Hosting item
-                if ($hostingPrice > 0) {
-                    $items[] = [
-                        'website'     => $website,
-                        'description' => "Hosting {$website->name} ({$periodStr})",
-                        'quantity'    => 1,
-                        'unit'        => 'rok',
-                        'unit_price'  => $hostingPrice,
-                        'total_price' => $hostingPrice,
-                    ];
-                }
+                $items[] = [
+                    'model'       => $hosting,
+                    'model_type'  => 'hosting',
+                    'description' => "Hosting {$hosting->name} ({$periodStr})",
+                    'quantity'    => 1,
+                    'unit'        => 'rok',
+                    'unit_price'  => $hostingPrice,
+                    'total_price' => $hostingPrice,
+                ];
 
-                // Domain item (only if registered by us)
-                if ($domainPrice > 0 && $website->is_registered_by_us) {
+                // Domain items — domains linked to this hosting that we register
+                foreach ($hosting->domains as $domain) {
+                    if (!$domain->is_registered_by_us) continue;
+                    $domainPrice = (float) $domain->sell_yearly;
+                    if ($domainPrice <= 0) continue;
+
+                    // Domain period from domain expiration
+                    $domainPeriod = $periodStr;
+                    if ($domain->expires_at) {
+                        $domainExpiry = \Carbon\Carbon::parse($domain->expires_at);
+                        $domainPeriod = $domainExpiry->format('j. n. Y') . ' – ' . $domainExpiry->copy()->addYear()->format('j. n. Y');
+                    }
+
                     $items[] = [
-                        'website'     => $website,
-                        'description' => "Doména {$website->name} ({$periodStr})",
+                        'model'       => $domain,
+                        'model_type'  => 'domain',
+                        'description' => "Doména {$domain->name} ({$domainPeriod})",
                         'quantity'    => 1,
                         'unit'        => 'rok',
                         'unit_price'  => $domainPrice,
                         'total_price' => $domainPrice,
                     ];
-                }
-
-                // Alias domains — add their domain prices as separate line items
-                $aliases = $website->aliases()
-                    ->whereNull('deleted_at')
-                    ->where('is_registered_by_us', true)
-                    ->where('domain_sell_yearly', '>', 0)
-                    ->get();
-
-                foreach ($aliases as $alias) {
-                    // Alias uses its own domain expiration for period string
-                    $aliasPeriod = $periodStr; // fallback to parent period
-                    if ($alias->domain_expires_at) {
-                        $aliasExpiry = \Carbon\Carbon::parse($alias->domain_expires_at);
-                        $aliasPeriod = $aliasExpiry->format('j. n. Y') . ' – ' . $aliasExpiry->copy()->addYear()->format('j. n. Y');
-                    }
-
-                    $items[] = [
-                        'website'     => $alias,
-                        'description' => "Doména {$alias->name} ({$aliasPeriod})",
-                        'quantity'    => 1,
-                        'unit'        => 'rok',
-                        'unit_price'  => (float) $alias->domain_sell_yearly,
-                        'total_price' => (float) $alias->domain_sell_yearly,
-                    ];
-                    $aliasWebsiteIds[] = $alias->id;
                 }
             }
 
@@ -142,7 +124,7 @@ class AutoInvoiceWebsites extends Command
             }
 
             $total = collect($items)->sum('total_price');
-            $earliestExpiry = $siteGroup->min('hosting_expires_at');
+            $earliestExpiry = $hostingGroup->min('expires_at');
 
             if ($dryRun) {
                 $serviceNames = collect($items)->pluck('description')->implode(', ');
@@ -151,7 +133,7 @@ class AutoInvoiceWebsites extends Command
                 continue;
             }
 
-            DB::transaction(function () use ($customer, $items, $total, $earliestExpiry, $admin, $aliasWebsiteIds) {
+            DB::transaction(function () use ($customer, $items, $total, $earliestExpiry, $admin) {
                 $invoiceNumber = Invoice::getNextInvoiceNumber('6');
 
                 $invoice = Invoice::create([
@@ -168,7 +150,8 @@ class AutoInvoiceWebsites extends Command
                     'notes' => 'Automaticky vygenerovaná faktura za obnovu služeb.',
                 ]);
 
-                $attachedWebsiteIds = [];
+                $attachedHostingIds = [];
+                $attachedDomainIds = [];
                 foreach ($items as $i => $item) {
                     $invoice->items()->create([
                         'description' => $item['description'],
@@ -179,18 +162,28 @@ class AutoInvoiceWebsites extends Command
                         'sort_order'  => $i,
                     ]);
 
-                    $websiteId = $item['website']->id;
-                    if (!in_array($websiteId, $attachedWebsiteIds, true)) {
-                        $invoice->websites()->attach($websiteId, [
-                            'invoice_type' => 'hosting',
-                            'created_at'   => now(),
-                        ]);
-                        $attachedWebsiteIds[] = $websiteId;
+                    if ($item['model_type'] === 'hosting') {
+                        $hostingId = $item['model']->id;
+                        if (!in_array($hostingId, $attachedHostingIds, true)) {
+                            $invoice->hostings()->attach($hostingId, [
+                                'invoice_type' => 'hosting',
+                                'created_at'   => now(),
+                            ]);
+                            $attachedHostingIds[] = $hostingId;
+                        }
+                    } elseif ($item['model_type'] === 'domain') {
+                        $domainId = $item['model']->id;
+                        if (!in_array($domainId, $attachedDomainIds, true)) {
+                            $invoice->domains()->attach($domainId, [
+                                'created_at' => now(),
+                            ]);
+                            $attachedDomainIds[] = $domainId;
+                        }
                     }
                 }
 
                 if ($admin) {
-                    $names = collect($items)->pluck('website.name')->unique()->toArray();
+                    $names = collect($items)->pluck('model.name')->unique()->toArray();
                     $admin->notify(new WebsiteInvoiceCreated($invoice, $names));
                 }
             });
@@ -215,7 +208,6 @@ class AutoInvoiceWebsites extends Command
                 continue;
             }
 
-            // S1: Check no open invoice exists for this VPS (robustní FK check místo LIKE notes)
             $hasOpenInvoice = Invoice::where('vps_server_id', $vps->id)
                 ->whereIn('status', ['vystavena', 'odeslana'])
                 ->exists();
@@ -239,7 +231,7 @@ class AutoInvoiceWebsites extends Command
 
                 $invoice = Invoice::create([
                     'customer_id'    => $vps->customer_id,
-                    'vps_server_id'  => $vps->id, // S1: FK pro robustní open invoice check a processPayment
+                    'vps_server_id'  => $vps->id,
                     'invoice_number' => $invoiceNumber,
                     'variable_symbol' => $invoiceNumber,
                     'issue_date'     => now()->toDateString(),

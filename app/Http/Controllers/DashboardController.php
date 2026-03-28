@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Domain;
+use App\Models\Hosting;
+use App\Models\HostingPayment;
 use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\Task;
-use App\Models\Website;
-use App\Models\WebsitePayment;
 use App\Models\Ticket;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +25,7 @@ class DashboardController extends Controller
             'revenueData' => $this->getRevenueData(),
             'recentActivity' => $this->getRecentActivity(),
             'recentTickets' => $this->getRecentTickets(),
-            'websiteStats' => $this->getWebsiteStats(),
+            'servicesStats' => $this->getServicesStats(),
             'alerts' => static::getAttentionAlerts(),
             'ignoredAlerts' => static::getIgnoredAlerts(),
             'taskStats' => $this->getTaskStats(),
@@ -58,41 +59,48 @@ class DashboardController extends Controller
 
     private function getMRR(): array
     {
-        $ownWebsites = Website::where('status', 'aktivni')
+        // Hosting MRR
+        $ownHostings = Hosting::where('status', 'aktivni')
             ->where('is_external', false)
             ->where('is_free', false)
-            ->whereNull('alias_of_id')
             ->with('managementPlan')
             ->get();
 
-        // Revenue (what we charge) — monthly equivalent
-        // New simplified formula: always sell_yearly / 12 + management plan price
-        $mrrCalc = fn($website) =>
-            (float) ($website->sell_yearly ?: 0) / 12
-            + ($website->managementPlan?->price_monthly ?? 0);
+        $hostingMrr = $ownHostings->sum(fn ($h) => (float) ($h->sell_yearly ?: 0) / 12);
+        $mgmtMrr = $ownHostings->sum(fn ($h) => $h->managementPlan?->price_monthly ?? 0);
 
-        $totalMRR = $ownWebsites->sum($mrrCalc);
+        // Domain MRR
+        $domainMrr = (float) Domain::where('status', 'aktivni')
+            ->where('is_registered_by_us', true)
+            ->where('sell_yearly', '>', 0)
+            ->sum('sell_yearly') / 12;
+
+        // VPS MRR
         $vpsMRR = (float) \App\Models\VpsServer::active()->sum('price_yearly') / 12;
 
-        // Costs (what we pay) — monthly equivalent
-        $costCalc = fn($website) => (float) $website->cost_yearly / 12;
-        $websiteCosts = $ownWebsites->sum($costCalc);
-        $vpsCosts = $vpsMRR; // VPS price is our cost (we pay for servers)
+        $totalMRR = $hostingMrr + $domainMrr + $mgmtMrr + $vpsMRR;
 
-        $totalRevenue = $totalMRR + $vpsMRR;
-        $totalCosts = $websiteCosts + $vpsCosts;
+        // Costs
+        $hostingCosts = $ownHostings->sum(fn ($h) => (float) $h->cost_yearly / 12);
+        $domainCosts = (float) Domain::where('status', 'aktivni')
+            ->where('is_registered_by_us', true)
+            ->sum('cost_yearly') / 12;
+        $vpsCosts = $vpsMRR;
+
+        $totalCosts = $hostingCosts + $domainCosts + $vpsCosts;
 
         return [
-            'total' => round($totalRevenue),
-            'websites' => round($totalMRR),
+            'total' => round($totalMRR),
+            'hosting' => round($hostingMrr),
+            'domain' => round($domainMrr),
+            'management' => round($mgmtMrr),
             'vps' => round($vpsMRR),
-            'count' => $ownWebsites->count(),
+            'count' => $ownHostings->count(),
             'costs_monthly' => round($totalCosts),
-            'margin_monthly' => round($totalRevenue - $totalCosts),
-            // Annual totals for clarity
-            'arr_total' => round(($totalRevenue) * 12),
+            'margin_monthly' => round($totalMRR - $totalCosts),
+            'arr_total' => round($totalMRR * 12),
             'costs_annual' => round($totalCosts * 12),
-            'margin_annual' => round(($totalRevenue - $totalCosts) * 12),
+            'margin_annual' => round(($totalMRR - $totalCosts) * 12),
         ];
     }
 
@@ -115,7 +123,6 @@ class DashboardController extends Controller
         $startDate = now()->subMonths(12)->startOfMonth();
         $monthNames = ['Led', 'Úno', 'Bře', 'Dub', 'Kvě', 'Čvn', 'Čvc', 'Srp', 'Zář', 'Říj', 'Lis', 'Pro'];
 
-        // Revenue = cena zakázek (odvedená práce), ne faktur
         $revenue = Order::whereIn('status', ['hotovo', 'fakturovano'])
             ->where('created_at', '>=', $startDate)
             ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month, SUM(price) as revenue")
@@ -166,8 +173,9 @@ class DashboardController extends Controller
                     'Ticket'              => 'ticket',
                     'Task'                => 'task',
                     'Estimate'            => 'estimate',
-                    'Website'             => 'order',
-                    'WebsitePayment'      => 'payment',
+                    'Hosting'             => 'hosting',
+                    'Domain'              => 'domain',
+                    'HostingPayment'      => 'payment',
                     'VpsServer'           => 'order',
                     default               => 'order',
                 };
@@ -181,9 +189,13 @@ class DashboardController extends Controller
                     'Ticket'              => 'Ticket',
                     'Task'                => 'Úkol',
                     'Estimate'            => 'Kalkulace',
+                    'Hosting'             => 'Hosting',
+                    'Domain'              => 'Doména',
+                    'HostingPayment'      => 'Platba',
+                    'VpsServer'           => 'VPS',
+                    // Legacy support for old activity log entries
                     'Website'             => 'Web',
                     'WebsitePayment'      => 'Platba',
-                    'VpsServer'           => 'VPS',
                     default               => 'Záznam',
                 };
                 $actionLabel = match ($a->description) {
@@ -193,7 +205,6 @@ class DashboardController extends Controller
                     default   => $a->description,
                 };
 
-                // Try to get a meaningful name for the subject
                 $subjectName = null;
                 $subject = $a->subject;
                 if ($subject) {
@@ -203,13 +214,11 @@ class DashboardController extends Controller
                         ?? null;
                 }
 
-                // Build descriptive text
                 $text = "{$subjectLabel} {$actionLabel}";
                 if ($subjectName) {
                     $text = "{$subjectLabel} \"{$subjectName}\" {$actionLabel}";
                 }
 
-                // For updates, show what changed
                 $changes = null;
                 if ($a->description === 'updated') {
                     $rawAttrs = $a->properties['attributes'] ?? [];
@@ -220,8 +229,7 @@ class DashboardController extends Controller
                     $changedFields = array_keys(array_diff_assoc($attrs, $old));
                     $fieldLabels = [
                         'status' => 'stav', 'price' => 'cena', 'name' => 'název',
-                        'is_free' => 'zdarma', 'hosting_expires_at' => 'expirace hostingu',
-                        'domain_expires_at' => 'expirace domény',
+                        'is_free' => 'zdarma', 'expires_at' => 'expirace',
                         'customer_id' => 'zákazník', 'notes' => 'poznámky',
                         'sell_yearly' => 'prodejní cena', 'cost_yearly' => 'nákupní cena',
                         'management_plan_id' => 'plán správy',
@@ -232,6 +240,7 @@ class DashboardController extends Controller
                         'subject' => 'předmět', 'email' => 'e-mail', 'phone' => 'telefon',
                         'company' => 'firma', 'description' => 'popis',
                         'storage_quota_mb' => 'kvóta úložiště',
+                        'registrar' => 'registrátor', 'is_registered_by_us' => 'naše doména',
                     ];
                     $readable = array_map(fn($f) => $fieldLabels[$f] ?? $f, array_slice($changedFields, 0, 3));
                     if (count($readable) > 0) {
@@ -239,21 +248,26 @@ class DashboardController extends Controller
                     }
                 }
 
-                // Build link to the subject
                 $link = match ($subjectType) {
-                    'Customer'            => "/zakaznici/{$a->subject_id}",
+                    'Customer'                    => "/zakaznici/{$a->subject_id}",
                     'Order', 'TimeEntry', 'OrderCost', 'OrderItem' => $a->subject?->order_id
                         ? "/zakazky/{$a->subject->order_id}"
                         : ($subjectType === 'Order' ? "/zakazky/{$a->subject_id}" : null),
-                    'Invoice'             => "/faktury/{$a->subject_id}",
-                    'Ticket'              => "/zpravy/{$a->subject_id}",
-                    'Website', 'WebsitePayment' => $subjectType === 'WebsitePayment'
-                        ? ($a->subject?->website_id ? "/webove-sluzby/{$a->subject->website_id}" : null)
-                        : "/webove-sluzby/{$a->subject_id}",
-                    'Task'                => '/planovac',
-                    'VpsServer'           => '/webove-sluzby',
-                    'Estimate'            => "/kalkulator/{$a->subject_id}",
-                    default               => null,
+                    'Invoice'                     => "/faktury/{$a->subject_id}",
+                    'Ticket'                      => "/zpravy/{$a->subject_id}",
+                    'Hosting'                     => "/hostingy/{$a->subject_id}",
+                    'Domain'                      => "/domeny/{$a->subject_id}",
+                    'HostingPayment'              => $a->subject?->hosting_id
+                        ? "/hostingy/{$a->subject->hosting_id}"
+                        : null,
+                    // Legacy support for old activity log entries
+                    'Website', 'WebsitePayment'   => $subjectType === 'WebsitePayment'
+                        ? ($a->subject?->website_id ? "/hostingy/{$a->subject->website_id}" : null)
+                        : "/hostingy/{$a->subject_id}",
+                    'Task'                        => '/planovac',
+                    'VpsServer'                   => '/vps',
+                    'Estimate'                    => "/kalkulator/{$a->subject_id}",
+                    default                       => null,
                 };
 
                 return [
@@ -355,72 +369,112 @@ class DashboardController extends Controller
             ];
         }
 
-        // 4. Weby expirující do 7 dní (bez ignorovaných)
-        $expiringWebsites = Website::where('status', 'aktivni')
+        // 4. Hostingy expirující do 7 dní (bez ignorovaných)
+        $expiringHostings = Hosting::where('status', 'aktivni')
             ->whereNull('alerts_ignored_at')
-            ->whereNotNull('hosting_expires_at')
-            ->where('hosting_expires_at', '>=', now())
-            ->where('hosting_expires_at', '<=', now()->addDays(7))
-            ->orderBy('hosting_expires_at')
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '>=', now())
+            ->where('expires_at', '<=', now()->addDays(7))
+            ->orderBy('expires_at')
             ->get();
 
-        foreach ($expiringWebsites as $website) {
-            $days = (int) now()->diffInDays($website->hosting_expires_at);
+        foreach ($expiringHostings as $hosting) {
+            $days = (int) now()->diffInDays($hosting->expires_at);
             $label = $days === 0 ? 'dnes' : ($days === 1 ? 'zítra' : "za {$days} dní");
             $alerts[] = [
                 'type' => $days <= 1 ? 'danger' : 'warning',
-                'icon' => 'website',
-                'title' => "{$website->name} expiruje {$label}",
+                'icon' => 'hosting',
+                'title' => "{$hosting->name} expiruje {$label}",
                 'subtitle' => 'Hosting',
-                'link' => "/webove-sluzby/{$website->id}",
-                'website_id' => $website->id,
+                'link' => "/hostingy/{$hosting->id}",
+                'hosting_id' => $hosting->id,
             ];
         }
 
-        // 5. Weby po expiraci (stále aktivní, bez ignorovaných)
-        $expiredWebsites = Website::where('status', 'aktivni')
+        // 5. Hostingy po expiraci (stále aktivní, bez ignorovaných)
+        $expiredHostings = Hosting::where('status', 'aktivni')
             ->whereNull('alerts_ignored_at')
-            ->whereNotNull('hosting_expires_at')
-            ->where('hosting_expires_at', '<', now())
-            ->orderBy('hosting_expires_at')
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '<', now())
+            ->orderBy('expires_at')
             ->get();
 
-        foreach ($expiredWebsites as $website) {
-            $days = (int) abs(now()->diffInDays($website->hosting_expires_at));
+        foreach ($expiredHostings as $hosting) {
+            $days = (int) abs(now()->diffInDays($hosting->expires_at));
             $alerts[] = [
                 'type' => 'danger',
-                'icon' => 'website',
-                'title' => "{$website->name} — expirováno před {$days} dny",
+                'icon' => 'hosting',
+                'title' => "{$hosting->name} — expirováno před {$days} dny",
                 'subtitle' => 'Hosting · stále označeno jako aktivní',
-                'link' => "/webove-sluzby/{$website->id}",
-                'website_id' => $website->id,
+                'link' => "/hostingy/{$hosting->id}",
+                'hosting_id' => $hosting->id,
             ];
         }
 
         // 5b. Úložiště přes 90% kvóty
-        $storageWebsites = Website::where('status', 'aktivni')
+        $storageHostings = Hosting::where('status', 'aktivni')
             ->whereNull('alerts_ignored_at')
             ->where('storage_quota_mb', '>', 0)
             ->whereColumn('storage_used_mb', '>', DB::raw('storage_quota_mb * 0.9'))
             ->orderByRaw('storage_used_mb::float / storage_quota_mb DESC')
             ->get();
 
-        foreach ($storageWebsites as $website) {
-            $pct = round(($website->storage_used_mb / $website->storage_quota_mb) * 100);
-            $over = $website->storage_used_mb > $website->storage_quota_mb;
+        foreach ($storageHostings as $hosting) {
+            $pct = round(($hosting->storage_used_mb / $hosting->storage_quota_mb) * 100);
+            $over = $hosting->storage_used_mb > $hosting->storage_quota_mb;
             $alerts[] = [
                 'type' => $over ? 'danger' : 'warning',
-                'icon' => 'website',
-                'title' => "{$website->name} — úložiště {$pct}%",
-                'subtitle' => "{$website->storage_used_mb} / {$website->storage_quota_mb} MB",
-                'link' => "/webove-sluzby/{$website->id}",
-                'website_id' => $website->id,
+                'icon' => 'hosting',
+                'title' => "{$hosting->name} — úložiště {$pct}%",
+                'subtitle' => "{$hosting->storage_used_mb} / {$hosting->storage_quota_mb} MB",
+                'link' => "/hostingy/{$hosting->id}",
+                'hosting_id' => $hosting->id,
+            ];
+        }
+
+        // 5c. Domény expirující do 7 dní
+        $expiringDomains = Domain::where('status', 'aktivni')
+            ->where('is_registered_by_us', true)
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '>=', now())
+            ->where('expires_at', '<=', now()->addDays(7))
+            ->orderBy('expires_at')
+            ->get();
+
+        foreach ($expiringDomains as $domain) {
+            $days = (int) now()->diffInDays($domain->expires_at);
+            $label = $days === 0 ? 'dnes' : ($days === 1 ? 'zítra' : "za {$days} dní");
+            $alerts[] = [
+                'type' => $days <= 1 ? 'danger' : 'warning',
+                'icon' => 'domain',
+                'title' => "{$domain->name} expiruje {$label}",
+                'subtitle' => 'Doména',
+                'link' => "/domeny/{$domain->id}",
+            ];
+        }
+
+        // 5d. Domény po expiraci
+        $expiredDomains = Domain::where('status', 'aktivni')
+            ->where('is_registered_by_us', true)
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '<', now())
+            ->orderBy('expires_at')
+            ->get();
+
+        foreach ($expiredDomains as $domain) {
+            $days = (int) abs(now()->diffInDays($domain->expires_at));
+            $alerts[] = [
+                'type' => 'danger',
+                'icon' => 'domain',
+                'title' => "{$domain->name} — expirováno před {$days} dny",
+                'subtitle' => 'Doména · stále označeno jako aktivní',
+                'link' => "/domeny/{$domain->id}",
             ];
         }
 
         // 6. Nezaplacené platby po splatnosti
-        $overduePayments = WebsitePayment::where('status', 'po_splatnosti')
-            ->with('website:id,name')
+        $overduePayments = HostingPayment::where('status', 'po_splatnosti')
+            ->with('hosting:id,name')
             ->orderBy('period_end')
             ->get();
 
@@ -428,33 +482,33 @@ class DashboardController extends Controller
             $alerts[] = [
                 'type' => 'danger',
                 'icon' => 'payment',
-                'title' => "Nezaplacená platba: {$pay->website?->name}",
+                'title' => "Nezaplacená platba: {$pay->hosting?->name}",
                 'subtitle' => number_format($pay->amount, 0, ',', ' ') . ' Kč po splatnosti',
-                'link' => "/webove-sluzby/{$pay->website_id}",
+                'link' => "/hostingy/{$pay->hosting_id}",
             ];
         }
 
-        // 7. Websites to manually invoice (auto_invoice=false, expiring soon)
-        $manualInvoiceWebsites = Website::where('status', 'aktivni')
+        // 7. Hostings to manually invoice (auto_invoice=false, expiring soon)
+        $manualInvoiceHostings = Hosting::where('status', 'aktivni')
             ->whereNull('alerts_ignored_at')
             ->where('auto_invoice', false)
             ->where('is_free', false)
-            ->whereNotNull('hosting_expires_at')
-            ->where('hosting_expires_at', '>=', now())
-            ->where('hosting_expires_at', '<=', now()->addDays(30))
-            ->orderBy('hosting_expires_at')
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '>=', now())
+            ->where('expires_at', '<=', now()->addDays(30))
+            ->orderBy('expires_at')
             ->get();
 
-        foreach ($manualInvoiceWebsites as $website) {
-            $days = (int) now()->diffInDays($website->hosting_expires_at);
+        foreach ($manualInvoiceHostings as $hosting) {
+            $days = (int) now()->diffInDays($hosting->expires_at);
             $label = $days === 0 ? 'dnes' : ($days === 1 ? 'zítra' : "za {$days} dní");
             $alerts[] = [
                 'type' => 'warning',
                 'icon' => 'invoice',
-                'title' => "{$website->name} — ručně fakturovat ({$label})",
+                'title' => "{$hosting->name} — ručně fakturovat ({$label})",
                 'subtitle' => 'Auto-fakturace vypnuta',
-                'link' => "/webove-sluzby/{$website->id}",
-                'website_id' => $website->id,
+                'link' => "/hostingy/{$hosting->id}",
+                'hosting_id' => $hosting->id,
             ];
         }
 
@@ -466,15 +520,15 @@ class DashboardController extends Controller
 
     public static function getIgnoredAlerts(): array
     {
-        return Website::whereNotNull('alerts_ignored_at')
+        return Hosting::whereNotNull('alerts_ignored_at')
             ->where('status', 'aktivni')
             ->orderByDesc('alerts_ignored_at')
             ->get()
-            ->map(fn ($website) => [
-                'website_id' => $website->id,
-                'name' => $website->name,
-                'ignored_at' => $website->alerts_ignored_at->diffForHumans(),
-                'link' => "/webove-sluzby/{$website->id}",
+            ->map(fn ($hosting) => [
+                'hosting_id' => $hosting->id,
+                'name' => $hosting->name,
+                'ignored_at' => $hosting->alerts_ignored_at->diffForHumans(),
+                'link' => "/hostingy/{$hosting->id}",
             ])
             ->toArray();
     }
@@ -494,29 +548,36 @@ class DashboardController extends Controller
         ];
     }
 
-    private function getWebsiteStats(): array
+    private function getServicesStats(): array
     {
-        $activeWebsites = Website::where('status', 'aktivni')->whereNull('alias_of_id')->count();
-        $totalAliases = Website::where('status', 'aktivni')->whereNotNull('alias_of_id')->count();
+        $activeHostings = Hosting::where('status', 'aktivni')->count();
+        $activeDomains = Domain::where('status', 'aktivni')->count();
 
-        $expiringSoon = Website::where('status', 'aktivni')
-            ->whereNotNull('hosting_expires_at')
-            ->where('hosting_expires_at', '>=', now())
-            ->where('hosting_expires_at', '<=', now()->addDays(30))
+        $expiringHostings = Hosting::where('status', 'aktivni')
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '>=', now())
+            ->where('expires_at', '<=', now()->addDays(30))
             ->count();
 
-        $expired = Website::where('status', 'aktivni')
-            ->whereNotNull('hosting_expires_at')
-            ->where('hosting_expires_at', '<', now())
+        $expiringDomains = Domain::where('status', 'aktivni')
+            ->where('is_registered_by_us', true)
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '>=', now())
+            ->where('expires_at', '<=', now()->addDays(30))
             ->count();
 
-        $unpaidPayments = WebsitePayment::whereIn('status', ['nezaplaceno', 'po_splatnosti'])->count();
+        $expiredHostings = Hosting::where('status', 'aktivni')
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '<', now())
+            ->count();
 
-        $totalStorageMb = (int) Website::where('status', 'aktivni')
+        $unpaidPayments = HostingPayment::whereIn('status', ['nezaplaceno', 'po_splatnosti'])->count();
+
+        $totalStorageMb = (int) Hosting::where('status', 'aktivni')
             ->sum('storage_used_mb');
 
         // Storage by server
-        $storageByServer = Website::where('status', 'aktivni')
+        $storageByServer = Hosting::where('status', 'aktivni')
             ->whereNotNull('server')
             ->selectRaw("server, COUNT(*) as count, COALESCE(SUM(storage_used_mb), 0) as total_mb")
             ->groupBy('server')
@@ -529,30 +590,59 @@ class DashboardController extends Controller
             ])
             ->toArray();
 
-        // Top 5 expiring soon
-        $expiring = Website::where('status', 'aktivni')
-            ->whereNotNull('hosting_expires_at')
-            ->where('hosting_expires_at', '>=', now())
-            ->where('hosting_expires_at', '<=', now()->addDays(60))
+        // Top 5 expiring hostings
+        $expiringHostingsList = Hosting::where('status', 'aktivni')
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '>=', now())
+            ->where('expires_at', '<=', now()->addDays(60))
             ->with('customer:id,name')
-            ->orderBy('hosting_expires_at')
+            ->orderBy('expires_at')
             ->limit(5)
             ->get()
-            ->map(fn ($w) => [
-                'id' => $w->id,
-                'name' => $w->name,
-                'hosting_expires_at' => $w->hosting_expires_at->toDateString(),
-                'days' => $w->daysUntilExpiry(),
-                'urgency' => $w->expiryUrgency(),
-                'customer_name' => $w->customer?->name,
+            ->map(fn ($h) => [
+                'id' => $h->id,
+                'name' => $h->name,
+                'type' => 'hosting',
+                'expires_at' => $h->expires_at->toDateString(),
+                'days' => $h->daysUntilExpiry(),
+                'urgency' => $h->expiryUrgency(),
+                'customer_name' => $h->customer?->name,
+                'link' => "/hostingy/{$h->id}",
             ])
             ->toArray();
 
+        // Top 5 expiring domains
+        $expiringDomainsList = Domain::where('status', 'aktivni')
+            ->where('is_registered_by_us', true)
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '>=', now())
+            ->where('expires_at', '<=', now()->addDays(60))
+            ->with('customer:id,name')
+            ->orderBy('expires_at')
+            ->limit(5)
+            ->get()
+            ->map(fn ($d) => [
+                'id' => $d->id,
+                'name' => $d->name,
+                'type' => 'domain',
+                'expires_at' => $d->expires_at->toDateString(),
+                'days' => $d->daysUntilExpiry(),
+                'urgency' => $d->expiryUrgency(),
+                'customer_name' => $d->customer?->name,
+                'link' => "/domeny/{$d->id}",
+            ])
+            ->toArray();
+
+        $expiring = array_merge($expiringHostingsList, $expiringDomainsList);
+        usort($expiring, fn ($a, $b) => ($a['days'] ?? 999) - ($b['days'] ?? 999));
+        $expiring = array_slice($expiring, 0, 5);
+
         return [
-            'active_websites' => $activeWebsites,
-            'total_aliases' => $totalAliases,
-            'expiring_soon' => $expiringSoon,
-            'expired' => $expired,
+            'active_hostings' => $activeHostings,
+            'active_domains' => $activeDomains,
+            'expiring_hostings' => $expiringHostings,
+            'expiring_domains' => $expiringDomains,
+            'expired_hostings' => $expiredHostings,
             'unpaid_payments' => $unpaidPayments,
             'total_storage_mb' => $totalStorageMb,
             'storage_by_server' => $storageByServer,
@@ -562,23 +652,17 @@ class DashboardController extends Controller
 
     private function getFinancialSummary(): array
     {
-        // Finanční přehled = jen zakázky (jednorázová práce)
         $completedOrders = Order::whereIn('status', ['hotovo', 'fakturovano'])->get();
         $orderRevenue = (float) $completedOrders->sum('price');
-        // Náklady ze VŠECH zakázek — jsou to reálně utracené peníze bez ohledu na stav zakázky
         $orderCosts = (float) DB::table('order_costs')->sum('amount');
         $orderProfit = $orderRevenue - $orderCosts;
 
-        // Zaplaceno (zaplacené faktury za zakázky)
         $paid = (float) Invoice::where('status', 'zaplacena')->sum('total');
 
-        // Nezaplacené faktury
         $unpaidInvoices = (float) Invoice::whereIn('status', ['vystavena', 'odeslana', 'po_splatnosti'])->sum('total');
 
-        // Nezaplacené website platby
-        $unpaidWebsites = (float) WebsitePayment::whereIn('status', ['nezaplaceno', 'po_splatnosti'])->sum('amount');
+        $unpaidHostings = (float) HostingPayment::whereIn('status', ['nezaplaceno', 'po_splatnosti'])->sum('amount');
 
-        // Hotové zakázky bez faktury
         $notInvoiced = (float) Order::whereIn('status', ['hotovo', 'fakturovano'])
             ->whereDoesntHave('invoice')
             ->sum('price');
@@ -589,14 +673,13 @@ class DashboardController extends Controller
             'total_profit' => round($orderProfit),
             'paid' => round($paid),
             'unpaid_invoices' => round($unpaidInvoices),
-            'unpaid_websites' => round($unpaidWebsites),
+            'unpaid_websites' => round($unpaidHostings),
             'not_invoiced' => round($notInvoiced),
         ];
     }
 
     private function getReceivables(): array
     {
-        // Nezaplacené faktury seskupené po zákaznících
         $fromInvoices = Invoice::whereIn('status', ['vystavena', 'odeslana', 'po_splatnosti'])
             ->with('customer:id,name,company')
             ->get()
@@ -615,7 +698,6 @@ class DashboardController extends Controller
                 'link' => "/faktury/{$inv->id}",
             ]);
 
-        // Hotové zakázky BEZ faktury
         $fromOrders = Order::whereIn('status', ['hotovo', 'fakturovano'])
             ->whereDoesntHave('invoice')
             ->where('price', '>', 0)
@@ -634,26 +716,25 @@ class DashboardController extends Controller
                 'link' => "/zakazky/{$order->id}",
             ]);
 
-        // Nezaplacené website platby
-        $fromWebsites = WebsitePayment::whereIn('status', ['nezaplaceno', 'po_splatnosti'])
-            ->with(['website.customer:id,name,company'])
+        $fromHostings = HostingPayment::whereIn('status', ['nezaplaceno', 'po_splatnosti'])
+            ->with(['hosting.customer:id,name,company'])
             ->get()
             ->map(fn ($pay) => [
                 'id' => $pay->id,
-                'customer_id' => $pay->website?->customer_id,
-                'customer_name' => $pay->website?->customer?->company ?: $pay->website?->customer?->name ?? 'Neznámý',
-                'type' => 'website',
-                'label' => $pay->website?->name ?? 'Web',
+                'customer_id' => $pay->hosting?->customer_id,
+                'customer_name' => $pay->hosting?->customer?->company ?: $pay->hosting?->customer?->name ?? 'Neznámý',
+                'type' => 'hosting',
+                'label' => $pay->hosting?->name ?? 'Hosting',
                 'amount' => (float) $pay->amount,
                 'status' => $pay->status,
                 'due_date' => $pay->period_end?->toDateString() ?? null,
                 'days_overdue' => $pay->period_end && $pay->period_end->lt(now())
                     ? (int) now()->diffInDays($pay->period_end)
                     : null,
-                'link' => "/webove-sluzby/{$pay->website_id}",
+                'link' => "/hostingy/{$pay->hosting_id}",
             ]);
 
-        return $fromInvoices->concat($fromOrders)->concat($fromWebsites)
+        return $fromInvoices->concat($fromOrders)->concat($fromHostings)
             ->sortByDesc('amount')
             ->values()
             ->toArray();
