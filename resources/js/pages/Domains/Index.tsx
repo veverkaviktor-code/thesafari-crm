@@ -20,6 +20,9 @@ import {
     Bell,
     HardDrive,
     Server,
+    ShieldCheck,
+    Banknote,
+    TrendingUp,
 } from 'lucide-react';
 
 /* ─────── Interfaces ─────── */
@@ -68,10 +71,15 @@ interface Props {
     domains: PaginatedData<Domain>;
     stats: {
         total_domains: number;
-        vashosting_count: number;
+        vas_hosting_count: number;
         wedos_count: number;
-        expiring_soon_count: number;
+        expiring_soon: number;
+        expired: number;
+        standalone_count: number;
         pending_count: number;
+        registered_count: number;
+        arr_domains: number;
+        costs_domains: number;
     };
     customers: Customer[];
     filters: Record<string, string | undefined>;
@@ -244,20 +252,9 @@ export default function DomainsIndex({
             sortable: true,
             render: (d: Domain) => {
                 const sell = parseFloat(d.sell_yearly) || 0;
-                const cost = parseFloat(d.cost_yearly) || 0;
-                if (sell > 0) {
-                    return (
-                        <span className="text-sm text-muted-foreground">
-                            {formatCurrency(sell)}
-                            {cost > 0 && (
-                                <span className="text-red-400/70 text-xs ml-1" title={`Náklad: ${formatCurrency(cost)}`}>
-                                    −{formatCurrency(cost)}
-                                </span>
-                            )}
-                        </span>
-                    );
+                if (sell > 0 && d.is_registered_by_us) {
+                    return <span className="text-sm text-muted-foreground">{formatCurrency(sell)}</span>;
                 }
-                if (cost > 0) return <span className="text-sm text-red-400/70" title="Pouze náklad (nefakturujeme)">−{formatCurrency(cost)}</span>;
                 return <span className="text-sm text-muted-foreground/50">—</span>;
             },
         },
@@ -323,8 +320,8 @@ export default function DomainsIndex({
             breadcrumbs={[{ label: 'Domény' }]}
         >
             <div className="p-6 space-y-6">
-                {/* Stats bar — 4 key stats */}
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {/* Stats bar — 6 key stats */}
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                     <button
                         onClick={() => navigate({ expiry_filter: '' })}
                         className="bg-card border border-border rounded-xl px-4 py-3 text-left transition-colors hover:border-primary/40"
@@ -340,21 +337,11 @@ export default function DomainsIndex({
 
                     <div className="bg-card border border-border rounded-xl px-4 py-3 text-left">
                         <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
-                            <Server className="h-3 w-3" />
-                            vas-hosting
+                            <ShieldCheck className="h-3 w-3" />
+                            Ve správě
                         </p>
                         <p className="text-2xl font-semibold text-blue-400">
-                            {stats.vashosting_count}
-                        </p>
-                    </div>
-
-                    <div className="bg-card border border-border rounded-xl px-4 py-3 text-left">
-                        <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
-                            <Server className="h-3 w-3" />
-                            Wedos
-                        </p>
-                        <p className="text-2xl font-semibold text-orange-400">
-                            {stats.wedos_count}
+                            {stats.registered_count}
                         </p>
                     </div>
 
@@ -367,9 +354,39 @@ export default function DomainsIndex({
                             Expiruje brzy
                         </p>
                         <p className="text-2xl font-semibold text-amber-400">
-                            {stats.expiring_soon_count}
+                            {stats.expiring_soon}
                         </p>
                     </button>
+
+                    <div className="bg-card border border-border rounded-xl px-4 py-3 text-left">
+                        <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                            <Banknote className="h-3 w-3" />
+                            Roční příjem
+                        </p>
+                        <p className="text-2xl font-semibold text-emerald-400">
+                            {formatCurrency(stats.arr_domains)}
+                        </p>
+                    </div>
+
+                    <div className="bg-card border border-border rounded-xl px-4 py-3 text-left">
+                        <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                            <Banknote className="h-3 w-3" />
+                            Roční náklady
+                        </p>
+                        <p className="text-2xl font-semibold text-muted-foreground">
+                            {formatCurrency(stats.costs_domains)}
+                        </p>
+                    </div>
+
+                    <div className="bg-card border border-border rounded-xl px-4 py-3 text-left">
+                        <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                            <TrendingUp className="h-3 w-3" />
+                            Roční marže
+                        </p>
+                        <p className={`text-2xl font-semibold ${stats.arr_domains - stats.costs_domains > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {formatCurrency(stats.arr_domains - stats.costs_domains)}
+                        </p>
+                    </div>
                 </div>
 
                 {/* Action bar */}

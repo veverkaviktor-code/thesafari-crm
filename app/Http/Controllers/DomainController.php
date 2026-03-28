@@ -87,6 +87,8 @@ class DomainController extends Controller
         // Stats
         $active = fn () => Domain::where('status', 'aktivni');
 
+        $registered = fn () => Domain::where('status', 'aktivni')->where('is_registered_by_us', true);
+
         $stats = [
             'total_domains'    => $active()->count(),
             'vas_hosting_count' => $active()->where('registrar', 'vas-hosting')->count(),
@@ -101,6 +103,9 @@ class DomainController extends Controller
                                     ->where('expires_at', '<', now())->count(),
             'standalone_count' => $active()->whereNull('hosting_id')->count(),
             'pending_count'    => SyncPending::where('type', 'domain')->count(),
+            'registered_count' => $registered()->count(),
+            'arr_domains'      => (float) $registered()->sum('sell_yearly'),
+            'costs_domains'    => (float) $registered()->sum('cost_yearly'),
         ];
 
         return Inertia::render('Domains/Index', [
