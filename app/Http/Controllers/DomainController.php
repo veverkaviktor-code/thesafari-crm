@@ -127,7 +127,7 @@ class DomainController extends Controller
     {
         $domain->load([
             'customer',
-            'hosting.server',
+            'hosting.vpsServer',
             'invoices' => fn ($q) => $q->orderBy('issue_date', 'desc'),
         ]);
 
