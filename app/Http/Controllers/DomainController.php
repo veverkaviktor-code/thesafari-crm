@@ -307,22 +307,24 @@ class DomainController extends Controller
             $skipped = 0;
 
             foreach ($portalDomains as $domainName => $info) {
-                if (!($info['isRegisteredByUs'] ?? false)) {
-                    continue;
-                }
-
                 if ($blacklist->has($domainName)) {
                     $skipped++;
                     continue;
                 }
 
                 $domain = Domain::where('name', $domainName)->first();
+                $isRegisteredByUs = (bool) ($info['isRegisteredByUs'] ?? false);
 
                 $data = [
                     'ip_address'   => $info['ip'] ?? null,
                     'synced_at'    => now(),
-                    'is_registered_by_us' => true,
                 ];
+
+                // Only set is_registered_by_us from API if domain is new or API says true
+                // (don't override manually set true→false for domains we manage in Klienti folder)
+                if ($isRegisteredByUs) {
+                    $data['is_registered_by_us'] = true;
+                }
 
                 if ($info['expiration'] ?? null) {
                     $data['expires_at'] = $info['expiration'];
