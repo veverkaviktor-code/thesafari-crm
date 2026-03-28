@@ -1234,6 +1234,7 @@ export default function HostingsShow({ hosting, paymentStats }: Props) {
     const [activeTab, setActiveTab] = useState<TabId>('prehled');
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [blacklistOnDelete, setBlacklistOnDelete] = useState(false);
 
     const statusInfo = statusMap[hosting.status];
 
@@ -1336,11 +1337,23 @@ export default function HostingsShow({ hosting, paymentStats }: Props) {
 
             <ConfirmDialog
                 open={showDeleteConfirm}
-                onClose={() => setShowDeleteConfirm(false)}
-                onConfirm={() => router.delete(`/hostingy/${hosting.id}`)}
+                onClose={() => { setShowDeleteConfirm(false); setBlacklistOnDelete(false); }}
+                onConfirm={() => router.delete(`/hostingy/${hosting.id}`, { data: { blacklist: blacklistOnDelete } })}
                 title="Smazat hosting"
                 message={`Opravdu chcete smazat "${hosting.name}"?`}
-            />
+            >
+                <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={blacklistOnDelete}
+                        onChange={(e) => setBlacklistOnDelete(e.target.checked)}
+                        className="rounded border-border bg-background text-primary focus:ring-primary/50 h-4 w-4"
+                    />
+                    <span className="text-xs text-muted-foreground">
+                        Přidat do výjimek syncu (nebude se znovu objevovat při synchronizaci)
+                    </span>
+                </label>
+            </ConfirmDialog>
         </AuthenticatedLayout>
     );
 }

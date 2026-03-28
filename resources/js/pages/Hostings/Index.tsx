@@ -300,6 +300,7 @@ export default function HostingsIndex({
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
     const [deleteTarget, setDeleteTarget] = useState<Hosting | null>(null);
     const [deleting, setDeleting] = useState(false);
+    const [blacklistOnDelete, setBlacklistOnDelete] = useState(false);
 
     // Column config
     const [colConfigMap, setColConfigMap] = useState<Record<string, ColConfig>>(loadColConfig);
@@ -349,7 +350,8 @@ export default function HostingsIndex({
         if (!deleteTarget) return;
         setDeleting(true);
         router.delete(`/hostingy/${deleteTarget.id}`, {
-            onSuccess: () => { setDeleteTarget(null); setDeleting(false); },
+            data: { blacklist: blacklistOnDelete },
+            onSuccess: () => { setDeleteTarget(null); setDeleting(false); setBlacklistOnDelete(false); },
             onError: () => setDeleting(false),
         });
     };
@@ -928,13 +930,24 @@ export default function HostingsIndex({
             </div>
 
             {/* Modal: Delete hosting */}
-            <GlassModal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="Smazat hosting" maxWidth="max-w-md">
+            <GlassModal open={!!deleteTarget} onClose={() => { setDeleteTarget(null); setBlacklistOnDelete(false); }} title="Smazat hosting" maxWidth="max-w-md">
                 <div className="space-y-6">
                     <p className="text-sm text-muted-foreground">
                         Opravdu chcete smazat <span className="font-semibold text-foreground">{deleteTarget?.name}</span>? Tato akce se nedá vrátit.
                     </p>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={blacklistOnDelete}
+                            onChange={(e) => setBlacklistOnDelete(e.target.checked)}
+                            className="rounded border-border bg-background text-primary focus:ring-primary/50 h-4 w-4"
+                        />
+                        <span className="text-xs text-muted-foreground">
+                            Přidat do výjimek syncu (nebude se znovu objevovat při synchronizaci)
+                        </span>
+                    </label>
                     <div className="flex justify-end gap-3">
-                        <Button variant="ghost" className="text-muted-foreground hover:text-foreground" onClick={() => setDeleteTarget(null)}>Zrušit</Button>
+                        <Button variant="ghost" className="text-muted-foreground hover:text-foreground" onClick={() => { setDeleteTarget(null); setBlacklistOnDelete(false); }}>Zrušit</Button>
                         <Button variant="destructive" disabled={deleting} onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
                             <Trash2 className="h-4 w-4" />{deleting ? 'Mažu...' : 'Smazat'}
                         </Button>

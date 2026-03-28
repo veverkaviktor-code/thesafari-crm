@@ -120,6 +120,7 @@ export default function DomainsIndex({
     const [syncingWedos, setSyncingWedos] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<Domain | null>(null);
     const [deleting, setDeleting] = useState(false);
+    const [blacklistOnDelete, setBlacklistOnDelete] = useState(false);
 
     const handleSyncVashosting = () => {
         setSyncingVashosting(true);
@@ -135,7 +136,8 @@ export default function DomainsIndex({
         if (!deleteTarget) return;
         setDeleting(true);
         router.delete(`/domeny/${deleteTarget.id}`, {
-            onSuccess: () => { setDeleteTarget(null); setDeleting(false); },
+            data: { blacklist: blacklistOnDelete },
+            onSuccess: () => { setDeleteTarget(null); setDeleting(false); setBlacklistOnDelete(false); },
             onError: () => setDeleting(false),
         });
     };
@@ -483,11 +485,24 @@ export default function DomainsIndex({
             {/* Delete confirm */}
             <ConfirmDialog
                 open={deleteTarget !== null}
-                onClose={() => setDeleteTarget(null)}
+                onClose={() => { setDeleteTarget(null); setBlacklistOnDelete(false); }}
                 onConfirm={handleDelete}
                 title="Smazat doménu"
                 message={deleteTarget ? `Opravdu chcete smazat doménu "${deleteTarget.name}"?` : ''}
-            />
+                processing={deleting}
+            >
+                <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={blacklistOnDelete}
+                        onChange={(e) => setBlacklistOnDelete(e.target.checked)}
+                        className="rounded border-border bg-background text-primary focus:ring-primary/50 h-4 w-4"
+                    />
+                    <span className="text-xs text-muted-foreground">
+                        Přidat do výjimek syncu (nebude se znovu objevovat při synchronizaci)
+                    </span>
+                </label>
+            </ConfirmDialog>
         </AuthenticatedLayout>
     );
 }

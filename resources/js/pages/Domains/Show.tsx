@@ -119,6 +119,7 @@ function SectionHeader({ icon: Icon, title, count, action }: {
 
 export default function DomainShow({ domain }: Props) {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [blacklistOnDelete, setBlacklistOnDelete] = useState(false);
 
     const statusInfo = statusMap[domain.status];
     const regConfig = registrarConfig[domain.registrar] ?? registrarConfig.external;
@@ -334,11 +335,23 @@ export default function DomainShow({ domain }: Props) {
 
             <ConfirmDialog
                 open={showDeleteConfirm}
-                onClose={() => setShowDeleteConfirm(false)}
-                onConfirm={() => router.delete(`/domeny/${domain.id}`)}
+                onClose={() => { setShowDeleteConfirm(false); setBlacklistOnDelete(false); }}
+                onConfirm={() => router.delete(`/domeny/${domain.id}`, { data: { blacklist: blacklistOnDelete } })}
                 title="Smazat doménu"
                 message={`Opravdu chcete smazat doménu "${domain.name}"?`}
-            />
+            >
+                <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={blacklistOnDelete}
+                        onChange={(e) => setBlacklistOnDelete(e.target.checked)}
+                        className="rounded border-border bg-background text-primary focus:ring-primary/50 h-4 w-4"
+                    />
+                    <span className="text-xs text-muted-foreground">
+                        Přidat do výjimek syncu (nebude se znovu objevovat při synchronizaci)
+                    </span>
+                </label>
+            </ConfirmDialog>
         </AuthenticatedLayout>
     );
 }

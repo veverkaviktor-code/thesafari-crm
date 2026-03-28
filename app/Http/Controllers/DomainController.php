@@ -230,10 +230,21 @@ class DomainController extends Controller
 
     public function destroy(Domain $domain)
     {
+        $name = $domain->name;
         $domain->delete();
 
-        return redirect('/domeny')
-            ->with('success', 'Doména byla smazána.');
+        if (request()->boolean('blacklist')) {
+            SyncBlacklist::firstOrCreate(
+                ['domain_name' => $name],
+                ['reason' => 'deleted']
+            );
+        }
+
+        return redirect('/domeny')->with('success',
+            request()->boolean('blacklist')
+                ? "Doména {$name} smazána a přidána do výjimek."
+                : "Doména {$name} smazána."
+        );
     }
 
     /**

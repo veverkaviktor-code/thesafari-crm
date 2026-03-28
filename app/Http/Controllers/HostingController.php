@@ -308,10 +308,21 @@ class HostingController extends Controller
 
     public function destroy(Hosting $hosting)
     {
+        $name = $hosting->name;
         $hosting->delete();
 
-        return redirect('/hostingy')
-            ->with('success', 'Hosting smazán.');
+        if (request()->boolean('blacklist')) {
+            SyncBlacklist::firstOrCreate(
+                ['domain_name' => $name],
+                ['reason' => 'deleted']
+            );
+        }
+
+        return redirect('/hostingy')->with('success',
+            request()->boolean('blacklist')
+                ? "Hosting {$name} smazán a přidán do výjimek."
+                : "Hosting {$name} smazán."
+        );
     }
 
     /**

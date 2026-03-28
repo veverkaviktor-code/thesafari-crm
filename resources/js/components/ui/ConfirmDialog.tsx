@@ -11,6 +11,7 @@ interface ConfirmDialogProps {
     cancelLabel?: string;
     variant?: 'danger' | 'warning';
     processing?: boolean;
+    children?: React.ReactNode;
 }
 
 export default function ConfirmDialog({
@@ -23,6 +24,7 @@ export default function ConfirmDialog({
     cancelLabel = 'Zrušit',
     variant = 'danger',
     processing = false,
+    children,
 }: ConfirmDialogProps) {
     const overlayRef = useRef<HTMLDivElement>(null);
     const confirmRef = useRef<HTMLButtonElement>(null);
@@ -82,6 +84,7 @@ export default function ConfirmDialog({
                         <p id="confirm-dialog-message" className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
                             {message}
                         </p>
+                        {children && <div className="mt-3">{children}</div>}
                     </div>
                 </div>
 
