@@ -72,6 +72,13 @@ class Hosting extends Model
             ->setDescriptionForEvent(fn ($event) => "Hosting {$event}");
     }
 
+    protected static function booted(): void
+    {
+        static::deleted(function (Hosting $hosting) {
+            \App\Models\Domain::where('hosting_id', $hosting->id)->update(['hosting_id' => null]);
+        });
+    }
+
     // ── Relationships ──────────────────────────────────────────────
 
     public function customer(): BelongsTo

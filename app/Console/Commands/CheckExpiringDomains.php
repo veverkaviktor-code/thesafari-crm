@@ -29,11 +29,17 @@ class CheckExpiringDomains extends Command
                     now()->addDays($days)->startOfDay(),
                     now()->addDays($days)->endOfDay(),
                 ])
+                ->where(function ($q) use ($days) {
+                    $q->whereNull('last_expiry_notified_at')
+                      ->orWhere('last_expiry_notified_at', '<', now()->subDays($days === 30 ? 20 : ($days === 14 ? 10 : 5)));
+                })
                 ->with('customer')
                 ->get();
 
             foreach ($expiring as $domain) {
                 $admin->notify(new DomainExpiring($domain, $days));
+
+                $domain->update(['last_expiry_notified_at' => now()]);
                 $notified++;
             }
         }

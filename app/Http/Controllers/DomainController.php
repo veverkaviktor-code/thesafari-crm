@@ -390,6 +390,10 @@ class DomainController extends Controller
      */
     public function createInvoice(Domain $domain)
     {
+        if ($domain->hosting_id) {
+            return back()->with('error', 'Tato doména je propojena s hostingem — fakturujte přes hosting.');
+        }
+
         if (!$domain->customer_id) {
             return back()->with('error', 'Nelze vystavit fakturu — doména nemá přiřazeného zákazníka.');
         }
@@ -481,6 +485,7 @@ class DomainController extends Controller
         $validated = $request->validate([
             'id'          => 'required|exists:sync_pending,id',
             'customer_id' => 'nullable|exists:customers,id',
+            'hosting_id'  => 'nullable|exists:hostings,id',
         ]);
 
         $pendingItem = SyncPending::findOrFail($validated['id']);
@@ -498,6 +503,7 @@ class DomainController extends Controller
             'status'        => 'aktivni',
             'auto_invoice'  => false,
             'customer_id'   => $validated['customer_id'] ?? null,
+            'hosting_id'    => $validated['hosting_id'] ?? null,
         ]);
 
         $pendingItem->delete();

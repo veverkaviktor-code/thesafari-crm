@@ -31,6 +31,7 @@ class Domain extends Model
         'owner_name',
         'setup_date',
         'synced_at',
+        'last_expiry_notified_at',
         'status',
         'notes',
     ];
@@ -45,6 +46,7 @@ class Domain extends Model
             'expires_at' => 'date',
             'setup_date' => 'date',
             'synced_at' => 'datetime',
+            'last_expiry_notified_at' => 'datetime',
             'is_registered_by_us' => 'boolean',
             'auto_invoice' => 'boolean',
             'sell_yearly' => 'decimal:2',
