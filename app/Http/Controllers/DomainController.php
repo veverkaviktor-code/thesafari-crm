@@ -47,7 +47,8 @@ class DomainController extends Controller
                     default => null,
                 };
             })
-            ->when($request->input('filter_has_hosting'), function ($q, $v) {
+            ->when($request->filled('filter_has_hosting'), function ($q) use ($request) {
+                $v = $request->input('filter_has_hosting');
                 if ($v === '1' || $v === 'with') {
                     $q->whereNotNull('hosting_id');
                 } elseif ($v === '0' || $v === 'without') {
@@ -55,7 +56,8 @@ class DomainController extends Controller
                 }
             })
             ->when($request->input('filter_customer') ?? $request->input('customer'), fn ($q, $v) => $q->whereIn('customer_id', explode(',', $v)))
-            ->when($request->input('filter_auto_invoice') ?? $request->input('auto_invoice'), function ($q, $v) {
+            ->when($request->filled('filter_auto_invoice') || $request->filled('auto_invoice'), function ($q) use ($request) {
+                $v = $request->input('filter_auto_invoice') ?? $request->input('auto_invoice');
                 $q->where('auto_invoice', $v === '1' || $v === 'true');
             });
 
