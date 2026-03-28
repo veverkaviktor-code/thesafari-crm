@@ -11,9 +11,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
-class Website extends Model
+class Hosting extends Model
 {
     use HasFactory, LogsActivity, SoftDeletes;
+
+    protected $table = 'hostings';
 
     protected $fillable = [
         'customer_id',
@@ -22,54 +24,43 @@ class Website extends Model
         'status',
         'notes',
         'starts_at',
-        'is_registered_by_us',
         'ip_address',
         'storage_quota_mb',
         'storage_used_mb',
         'synced_at',
-        'auto_renew',
         'auto_invoice',
         'is_free',
         'is_external',
         'sell_yearly',
         'cost_yearly',
-        'domain_sell_yearly',
-        'domain_cost_yearly',
-        'hosting_sell_yearly',
-        'hosting_cost_yearly',
         'alerts_ignored_at',
         'admin_url',
-        'domain_expires_at',
-        'hosting_expires_at',
-        'hosting_server_id',
-        'alias_of_id',
+        'expires_at',
+        'server_id',
         'management_plan_id',
         'management_cycle',
         'auto_invoice_management',
         'last_expiry_notified_at',
     ];
 
+    protected $logFillable = true;
+
+    protected $logOnlyDirty = true;
+
     protected function casts(): array
     {
         return [
-            'domain_expires_at' => 'datetime',
-            'hosting_expires_at' => 'datetime',
+            'expires_at' => 'datetime',
             'starts_at' => 'date',
             'alerts_ignored_at' => 'datetime',
             'last_expiry_notified_at' => 'datetime',
             'synced_at' => 'datetime',
-            'auto_renew' => 'boolean',
             'auto_invoice' => 'boolean',
             'auto_invoice_management' => 'boolean',
             'is_free' => 'boolean',
             'is_external' => 'boolean',
-            'is_registered_by_us' => 'boolean',
             'sell_yearly' => 'decimal:2',
             'cost_yearly' => 'decimal:2',
-            'domain_sell_yearly' => 'decimal:2',
-            'domain_cost_yearly' => 'decimal:2',
-            'hosting_sell_yearly' => 'decimal:2',
-            'hosting_cost_yearly' => 'decimal:2',
         ];
     }
 
@@ -78,7 +69,7 @@ class Website extends Model
         return LogOptions::defaults()
             ->logFillable()
             ->logOnlyDirty()
-            ->setDescriptionForEvent(fn ($event) => "Website {$event}");
+            ->setDescriptionForEvent(fn ($event) => "Hosting {$event}");
     }
 
     // ── Relationships ──────────────────────────────────────────────
@@ -88,34 +79,34 @@ class Website extends Model
         return $this->belongsTo(Customer::class);
     }
 
+    public function domains(): HasMany
+    {
+        return $this->hasMany(Domain::class);
+    }
+
+    public function primaryDomain(): ?Domain
+    {
+        return $this->domains()->where('name', $this->name)->first();
+    }
+
     public function payments(): HasMany
     {
-        return $this->hasMany(WebsitePayment::class);
+        return $this->hasMany(HostingPayment::class);
     }
 
     public function emailAccounts(): HasMany
     {
-        return $this->hasMany(EmailAccount::class);
+        return $this->hasMany(EmailAccount::class, 'hosting_id');
     }
 
     public function credentials(): HasMany
     {
-        return $this->hasMany(WebsiteCredential::class);
+        return $this->hasMany(HostingCredential::class);
     }
 
-    public function hostingServer(): BelongsTo
+    public function server(): BelongsTo
     {
-        return $this->belongsTo(VpsServer::class, 'hosting_server_id');
-    }
-
-    public function aliasOf(): BelongsTo
-    {
-        return $this->belongsTo(Website::class, 'alias_of_id');
-    }
-
-    public function aliases(): HasMany
-    {
-        return $this->hasMany(Website::class, 'alias_of_id');
+        return $this->belongsTo(VpsServer::class, 'server_id');
     }
 
     public function managementPlan(): BelongsTo
@@ -125,7 +116,7 @@ class Website extends Model
 
     public function invoices(): BelongsToMany
     {
-        return $this->belongsToMany(Invoice::class, 'invoice_website', 'website_id', 'invoice_id')
+        return $this->belongsToMany(Invoice::class, 'invoice_hosting', 'hosting_id', 'invoice_id')
             ->withPivot('invoice_type', 'created_at');
     }
 
@@ -139,19 +130,19 @@ class Website extends Model
     public function scopeExpiringSoon($query, int $days = 30)
     {
         return $query->where('status', 'aktivni')
-            ->where('hosting_expires_at', '<=', now()->addDays($days))
-            ->where('hosting_expires_at', '>=', now());
+            ->where('expires_at', '<=', now()->addDays($days))
+            ->where('expires_at', '>=', now());
     }
 
     // ── Helper methods ─────────────────────────────────────────────
 
     public function daysUntilExpiry(): ?int
     {
-        if (! $this->hosting_expires_at) {
+        if (! $this->expires_at) {
             return null;
         }
 
-        return (int) now()->diffInDays($this->hosting_expires_at, false);
+        return (int) now()->diffInDays($this->expires_at, false);
     }
 
     public function expiryUrgency(): string
@@ -178,12 +169,18 @@ class Website extends Model
 
     public function totalSellYearly(): float
     {
-        return (float) $this->domain_sell_yearly + (float) $this->hosting_sell_yearly;
+        $hostingSell = (float) $this->sell_yearly;
+        $domainsSell = $this->domains->where('is_registered_by_us', true)->sum(fn ($d) => (float) $d->sell_yearly);
+
+        return $hostingSell + $domainsSell;
     }
 
     public function totalCostYearly(): float
     {
-        return (float) $this->domain_cost_yearly + (float) $this->hosting_cost_yearly;
+        $hostingCost = (float) $this->cost_yearly;
+        $domainsCost = $this->domains->where('is_registered_by_us', true)->sum(fn ($d) => (float) $d->cost_yearly);
+
+        return $hostingCost + $domainsCost;
     }
 
     public function totalMarginYearly(): float
@@ -211,7 +208,7 @@ class Website extends Model
         return $this->payments()->whereIn('status', ['nezaplaceno', 'po_splatnosti'])->exists();
     }
 
-    public function lastPayment(): ?WebsitePayment
+    public function lastPayment(): ?HostingPayment
     {
         return $this->payments()->latest('period_end')->first();
     }

@@ -9,12 +9,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
-class WebsitePayment extends Model
+class HostingPayment extends Model
 {
     use HasFactory, LogsActivity, SoftDeletes;
 
+    protected $table = 'hosting_payments';
+
     protected $fillable = [
-        'website_id',
+        'hosting_id',
         'amount',
         'period_start',
         'period_end',
@@ -24,6 +26,10 @@ class WebsitePayment extends Model
         'payment_method',
         'notes',
     ];
+
+    protected $logFillable = true;
+
+    protected $logOnlyDirty = true;
 
     protected function casts(): array
     {
@@ -42,9 +48,9 @@ class WebsitePayment extends Model
             ->logOnlyDirty();
     }
 
-    public function website(): BelongsTo
+    public function hosting(): BelongsTo
     {
-        return $this->belongsTo(Website::class);
+        return $this->belongsTo(Hosting::class);
     }
 
     public function invoice(): BelongsTo

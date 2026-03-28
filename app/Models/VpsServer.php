@@ -50,12 +50,7 @@ class VpsServer extends Model
 
     public function hostings(): HasMany
     {
-        return $this->hasMany(Website::class, 'hosting_server_id');
-    }
-
-    public function websites(): HasMany
-    {
-        return $this->hasMany(Website::class, 'hosting_server_id');
+        return $this->hasMany(Hosting::class, 'server_id');
     }
 
     public function scopeActive($query)

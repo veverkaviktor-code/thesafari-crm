@@ -12,7 +12,7 @@ class EmailAccount extends Model
     use LogsActivity;
 
     protected $fillable = [
-        'website_id',
+        'hosting_id',
         'email',
         'password',
         'quota_mb',
@@ -35,8 +35,8 @@ class EmailAccount extends Model
             ->logOnlyDirty();
     }
 
-    public function website(): BelongsTo
+    public function hosting(): BelongsTo
     {
-        return $this->belongsTo(Website::class);
+        return $this->belongsTo(Hosting::class);
     }
 }

@@ -63,9 +63,14 @@ class Customer extends Model
         return $this->hasMany(Invoice::class);
     }
 
-    public function websites(): HasMany
+    public function hostings(): HasMany
     {
-        return $this->hasMany(Website::class);
+        return $this->hasMany(Hosting::class);
+    }
+
+    public function domains(): HasMany
+    {
+        return $this->hasMany(Domain::class);
     }
 
     public function tickets(): HasMany

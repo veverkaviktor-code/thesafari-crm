@@ -13,5 +13,6 @@ class SyncPending extends Model
     protected $fillable = [
         'domain_name',
         'source',
+        'type',
     ];
 }

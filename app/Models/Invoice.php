@@ -120,10 +120,16 @@ class Invoice extends Model
         });
     }
 
-    public function websites(): BelongsToMany
+    public function hostings(): BelongsToMany
     {
-        return $this->belongsToMany(Website::class, 'invoice_website', 'invoice_id', 'website_id')
+        return $this->belongsToMany(Hosting::class, 'invoice_hosting', 'invoice_id', 'hosting_id')
             ->withPivot('invoice_type', 'created_at');
+    }
+
+    public function domains(): BelongsToMany
+    {
+        return $this->belongsToMany(Domain::class, 'invoice_domain', 'invoice_id', 'domain_id')
+            ->withPivot('created_at');
     }
 
     public function bankTransaction(): BelongsTo

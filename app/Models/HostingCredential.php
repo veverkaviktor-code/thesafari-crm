@@ -7,12 +7,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
-class WebsiteCredential extends Model
+class HostingCredential extends Model
 {
     use LogsActivity;
 
+    protected $table = 'hosting_credentials';
+
     protected $fillable = [
-        'website_id',
+        'hosting_id',
         'label',
         'login',
         'password',
@@ -22,6 +24,10 @@ class WebsiteCredential extends Model
     ];
 
     protected $hidden = ['password'];
+
+    protected $logFillable = true;
+
+    protected $logOnlyDirty = true;
 
     protected function casts(): array
     {
@@ -38,8 +44,8 @@ class WebsiteCredential extends Model
             ->dontLogIfAttributesChangedOnly(['password']);
     }
 
-    public function website(): BelongsTo
+    public function hosting(): BelongsTo
     {
-        return $this->belongsTo(Website::class);
+        return $this->belongsTo(Hosting::class);
     }
 }
