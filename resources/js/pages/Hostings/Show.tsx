@@ -964,6 +964,31 @@ function CredentialForm({
 
 /* ─────── Email Accounts Section ─────── */
 
+function CopyEmailButton({ email }: { email: EmailAccount }) {
+    const [copied, setCopied] = useState(false);
+
+    function handleCopy() {
+        const lines: string[] = [];
+        lines.push(`E-mail: ${email.email}`);
+        if (email.password) lines.push(`Heslo: ${email.password}`);
+        if (email.notes) lines.push(`Poznámka: ${email.notes}`);
+
+        navigator.clipboard.writeText(lines.join('\n'));
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    }
+
+    return (
+        <button
+            onClick={handleCopy}
+            className={`rounded p-1.5 transition-colors ${copied ? 'text-emerald-500' : 'text-muted-foreground hover:bg-background hover:text-foreground'}`}
+            title={copied ? 'Zkopírováno!' : 'Kopírovat e-mail a heslo'}
+        >
+            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+        </button>
+    );
+}
+
 function EmailAccountsSection({ hostingId, emailAccounts }: { hostingId: number; emailAccounts: EmailAccount[] }) {
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
@@ -1025,6 +1050,7 @@ function EmailAccountsSection({ hostingId, emailAccounts }: { hostingId: number;
                                 </div>
                                 {ea.password && <PasswordField password={ea.password} />}
                                 <div className="flex shrink-0 gap-0.5">
+                                    <CopyEmailButton email={ea} />
                                     <button onClick={() => setEditingId(ea.id)} className="rounded p-1.5 text-muted-foreground hover:bg-background hover:text-foreground" title="Upravit">
                                         <Pencil className="h-3.5 w-3.5" />
                                     </button>
