@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { router } from '@inertiajs/react';
 import { formatCurrency } from '@/lib/utils';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
@@ -6,6 +6,15 @@ import DataTable from '@/components/ui/DataTable';
 import ExpirationBadge from '@/components/shared/ExpirationBadge';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { Button } from '@/components/ui/button';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Globe,
     Plus,
@@ -23,6 +32,13 @@ import {
     ShieldCheck,
     Banknote,
     TrendingUp,
+    X,
+    UserPlus,
+    SlidersHorizontal,
+    CheckCircle,
+    Ban,
+    ToggleLeft,
+    ToggleRight,
 } from 'lucide-react';
 
 /* ─────── Interfaces ─────── */
@@ -108,6 +124,109 @@ function RegistrarBadge({ registrar }: { registrar: string }) {
     );
 }
 
+/* ─────── Column visibility ─────── */
+
+const STORAGE_KEY = 'domains-col-config';
+
+interface ColConfig {
+    hidden: string[];
+    order: string[];
+}
+
+function loadColConfig(): Record<string, ColConfig> {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return {};
+        return JSON.parse(raw);
+    } catch {
+        return {};
+    }
+}
+
+function saveColConfig(data: Record<string, ColConfig>) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+const LOCKED_COLUMNS = new Set(['name', 'actions']);
+
+function applyColumnConfig<T extends { key: string }>(
+    columns: T[],
+    config: ColConfig | undefined,
+): T[] {
+    if (!config) return columns;
+    let result = columns.filter((c) => LOCKED_COLUMNS.has(c.key) || !config.hidden.includes(c.key));
+    if (config.order.length > 0) {
+        const nameCol = result.find((c) => c.key === 'name');
+        const actionsCol = result.find((c) => c.key === 'actions');
+        const middle = result.filter((c) => !LOCKED_COLUMNS.has(c.key));
+        middle.sort((a, b) => {
+            const ai = config.order.indexOf(a.key);
+            const bi = config.order.indexOf(b.key);
+            if (ai === -1 && bi === -1) return 0;
+            if (ai === -1) return 1;
+            if (bi === -1) return -1;
+            return ai - bi;
+        });
+        result = [...(nameCol ? [nameCol] : []), ...middle, ...(actionsCol ? [actionsCol] : [])];
+    }
+    return result;
+}
+
+function ColumnConfigDropdown({
+    columns,
+    config,
+    onToggle,
+    onMove,
+}: {
+    columns: { key: string; label: string }[];
+    config: ColConfig;
+    onToggle: (key: string) => void;
+    onMove: (key: string, direction: 'up' | 'down') => void;
+}) {
+    const ordered = applyColumnConfig(
+        columns.filter((c) => !LOCKED_COLUMNS.has(c.key) && c.label),
+        { hidden: [], order: config.order },
+    );
+    if (ordered.length === 0) return null;
+
+    return (
+        <Popover>
+            <PopoverTrigger asChild>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground border border-border"
+                >
+                    <SlidersHorizontal className="h-3.5 w-3.5 mr-1.5" />
+                    Sloupce
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-64 p-2 border-border bg-card">
+                <p className="text-xs font-medium text-muted-foreground px-2 pb-2">Zobrazené sloupce</p>
+                {ordered.map((col, idx) => {
+                    const isHidden = config.hidden.includes(col.key);
+                    return (
+                        <div key={col.key} className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-foreground hover:bg-accent">
+                            <label className="flex items-center gap-2 flex-1 cursor-pointer">
+                                <Checkbox checked={!isHidden} onCheckedChange={() => onToggle(col.key)} />
+                                <span className={isHidden ? 'text-muted-foreground/50' : ''}>{col.label}</span>
+                            </label>
+                            <div className="flex items-center gap-0.5">
+                                <button onClick={() => onMove(col.key, 'up')} disabled={idx === 0} className="rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-20 disabled:pointer-events-none">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9V3M3.5 5.5L6 3l2.5 2.5" /></svg>
+                                </button>
+                                <button onClick={() => onMove(col.key, 'down')} disabled={idx === ordered.length - 1} className="rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-20 disabled:pointer-events-none">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3v6M3.5 6.5L6 9l2.5-2.5" /></svg>
+                                </button>
+                            </div>
+                        </div>
+                    );
+                })}
+            </PopoverContent>
+        </Popover>
+    );
+}
+
 /* ─────── Main Component ─────── */
 
 export default function DomainsIndex({
@@ -118,9 +237,39 @@ export default function DomainsIndex({
 }: Props) {
     const [syncingVashosting, setSyncingVashosting] = useState(false);
     const [syncingWedos, setSyncingWedos] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
     const [deleteTarget, setDeleteTarget] = useState<Domain | null>(null);
     const [deleting, setDeleting] = useState(false);
     const [blacklistOnDelete, setBlacklistOnDelete] = useState(false);
+
+    // Column config
+    const [colConfigMap, setColConfigMap] = useState<Record<string, ColConfig>>(loadColConfig);
+    const getConfig = useCallback((tab: string): ColConfig => colConfigMap[tab] ?? { hidden: [], order: [] }, [colConfigMap]);
+    const toggleColumn = useCallback((tab: string, key: string) => {
+        setColConfigMap((prev) => {
+            const cfg = prev[tab] ?? { hidden: [], order: [] };
+            const hidden = cfg.hidden.includes(key) ? cfg.hidden.filter((k) => k !== key) : [...cfg.hidden, key];
+            const updated = { ...prev, [tab]: { ...cfg, hidden } };
+            saveColConfig(updated);
+            return updated;
+        });
+    }, []);
+    const moveColumn = useCallback((tab: string, key: string, direction: 'up' | 'down', allColumns: { key: string }[]) => {
+        setColConfigMap((prev) => {
+            const cfg = prev[tab] ?? { hidden: [], order: [] };
+            const nonLocked = allColumns.filter((c) => !LOCKED_COLUMNS.has(c.key)).map((c) => c.key);
+            const currentOrder = cfg.order.length > 0 ? [...cfg.order, ...nonLocked.filter((k) => !cfg.order.includes(k))] : [...nonLocked];
+            const idx = currentOrder.indexOf(key);
+            if (idx === -1) return prev;
+            const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+            if (swapIdx < 0 || swapIdx >= currentOrder.length) return prev;
+            const newOrder = [...currentOrder];
+            [newOrder[idx], newOrder[swapIdx]] = [newOrder[swapIdx], newOrder[idx]];
+            const updated = { ...prev, [tab]: { ...cfg, order: newOrder } };
+            saveColConfig(updated);
+            return updated;
+        });
+    }, []);
 
     const handleSyncVashosting = () => {
         setSyncingVashosting(true);
@@ -140,6 +289,14 @@ export default function DomainsIndex({
             onSuccess: () => { setDeleteTarget(null); setDeleting(false); setBlacklistOnDelete(false); },
             onError: () => setDeleting(false),
         });
+    };
+
+    const handleBulkAction = (action: string, value?: string) => {
+        router.post('/domeny/bulk-update', {
+            ids: Array.from(selectedIds),
+            action,
+            value: value ?? null,
+        }, { onSuccess: () => setSelectedIds(new Set()) });
     };
 
     function navigate(params: Record<string, string>) {
@@ -449,10 +606,61 @@ export default function DomainsIndex({
                     </div>
                 </div>
 
+                {/* Bulk toolbar */}
+                {selectedIds.size > 0 && (
+                    <div className="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5">
+                        <span className="text-sm font-medium text-foreground">{selectedIds.size} vybráno</span>
+                        <div className="flex items-center gap-1.5 ml-auto">
+                            <Select onValueChange={(v) => handleBulkAction('set_customer', v)}>
+                                <SelectTrigger className="h-7 w-auto gap-1 px-2.5 text-xs border-0 bg-transparent text-blue-400 hover:text-blue-300 hover:bg-blue-500/10">
+                                    <UserPlus className="h-3.5 w-3.5" />
+                                    Zákazník
+                                </SelectTrigger>
+                                <SelectContent position="popper" align="end" sideOffset={4}>
+                                    {customers.map((c) => (
+                                        <SelectItem key={c.id} value={String(c.id)}>
+                                            {c.company ? `${c.company} (${c.name})` : c.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Select onValueChange={(v) => handleBulkAction('set_registrar', v)}>
+                                <SelectTrigger className="h-7 w-auto gap-1 px-2.5 text-xs border-0 bg-transparent text-violet-400 hover:text-violet-300 hover:bg-violet-500/10">
+                                    <Globe className="h-3.5 w-3.5" />
+                                    Registrátor
+                                </SelectTrigger>
+                                <SelectContent position="popper" align="end" sideOffset={4}>
+                                    <SelectItem value="vas-hosting">vas-hosting</SelectItem>
+                                    <SelectItem value="wedos">Wedos</SelectItem>
+                                    <SelectItem value="external">Externí</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Button size="sm" variant="ghost" onClick={() => handleBulkAction('set_auto_invoice')} className="h-7 px-2.5 text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10">
+                                <ToggleRight className="h-3.5 w-3.5 mr-1" />FA Ano
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => handleBulkAction('unset_auto_invoice')} className="h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground">
+                                <ToggleLeft className="h-3.5 w-3.5 mr-1" />FA Ne
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => handleBulkAction('set_status', 'aktivni')} className="h-7 px-2.5 text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10">
+                                <CheckCircle className="h-3.5 w-3.5 mr-1" />Aktivní
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => handleBulkAction('set_status', 'pozastaveno')} className="h-7 px-2.5 text-xs text-amber-400 hover:text-amber-300 hover:bg-amber-500/10">
+                                <Clock className="h-3.5 w-3.5 mr-1" />Pozastavit
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => handleBulkAction('set_status', 'zruseno')} className="h-7 px-2.5 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10">
+                                <Ban className="h-3.5 w-3.5 mr-1" />Zrušit
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())} className="h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground">
+                                <X className="h-3.5 w-3.5" />
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
                 {/* Table */}
                 <DataTable
                     data={domains.data}
-                    columns={domainColumns}
+                    columns={applyColumnConfig(domainColumns, getConfig('domains'))}
                     pagination={{
                         current_page: domains.current_page,
                         last_page: domains.last_page,
@@ -477,8 +685,22 @@ export default function DomainsIndex({
                     onPerPageChange={(n) => navigate({ per_page: String(n), page: '1' })}
                     onRowClick={(d) => router.visit(`/domeny/${d.id}`)}
                     emptyMessage="Žádné domény"
+                    selectable
+                    selectedIds={selectedIds}
+                    onSelectionChange={(ids) => setSelectedIds(ids)}
+                    getItemId={(d) => d.id}
                     columnFilters={columnFilters}
                     onColumnFilterChange={handleColumnFilter}
+                    toolbar={
+                        <div className="flex items-center gap-1.5">
+                            <ColumnConfigDropdown
+                                columns={domainColumns}
+                                config={getConfig('domains')}
+                                onToggle={(key) => toggleColumn('domains', key)}
+                                onMove={(key, dir) => moveColumn('domains', key, dir, domainColumns)}
+                            />
+                        </div>
+                    }
                 />
             </div>
 

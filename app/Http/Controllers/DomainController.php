@@ -248,6 +248,35 @@ class DomainController extends Controller
     }
 
     /**
+     * Bulk update domains
+     */
+    public function bulkUpdate(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'exists:domains,id',
+            'action' => 'required|in:set_customer,set_registrar,set_auto_invoice,unset_auto_invoice,set_status',
+            'value' => 'nullable|string',
+        ]);
+
+        $domains = Domain::whereIn('id', $validated['ids']);
+
+        match ($validated['action']) {
+            'set_customer' => $domains->update(['customer_id' => $validated['value'] ?: null]),
+            'set_registrar' => in_array($validated['value'], ['vas-hosting', 'wedos', 'external'])
+                ? $domains->update(['registrar' => $validated['value']])
+                : null,
+            'set_auto_invoice' => $domains->update(['auto_invoice' => true]),
+            'unset_auto_invoice' => $domains->update(['auto_invoice' => false]),
+            'set_status' => in_array($validated['value'], ['aktivni', 'pozastaveno', 'zruseno'])
+                ? $domains->update(['status' => $validated['value']])
+                : null,
+        };
+
+        return back()->with('success', count($validated['ids']) . ' domén aktualizováno.');
+    }
+
+    /**
      * Sync domains from vas-hosting Portal API.
      * Existing domains are updated, new ones go to sync_pending.
      */

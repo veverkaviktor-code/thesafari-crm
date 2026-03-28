@@ -108,6 +108,7 @@ Route::middleware('auth')->group(function () {
     // Static routes BEFORE resource (so {domain} parameter doesn't capture literals)
     Route::post('/domeny/sync-vashosting', [DomainController::class, 'syncVasHosting'])->name('domains.sync-vashosting');
     Route::post('/domeny/sync-wedos', [DomainController::class, 'syncWedos'])->name('domains.sync-wedos');
+    Route::post('/domeny/bulk-update', [DomainController::class, 'bulkUpdate'])->name('domains.bulk-update');
     Route::get('/domeny/vytvorit', [DomainController::class, 'create'])->name('domains.create');
     Route::get('/domeny/ke-schvaleni', [DomainController::class, 'pending'])->name('domains.pending');
     Route::post('/domeny/ke-schvaleni/approve', [DomainController::class, 'approvePending'])->name('domains.pending.approve');
