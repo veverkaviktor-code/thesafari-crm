@@ -140,7 +140,7 @@ export default function DomainShow({ domain }: Props) {
                 <div className="space-y-2">
                     {/* Row 1: Actions top-right */}
                     <div className="flex items-center justify-end gap-2">
-                        {domain.is_registered_by_us && domain.customer && !domain.hosting_id && (
+                        {domain.is_registered_by_us && domain.customer && sell > 0 && (
                             <Button
                                 onClick={() => router.post(`/domeny/${domain.id}/faktura`)}
                                 className="bg-amber-600 text-white hover:bg-amber-700 border-0"

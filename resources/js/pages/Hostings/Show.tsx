@@ -591,28 +591,6 @@ function TabPrehled({ hosting }: { hosting: Hosting }) {
                                         {formatCurrency((parseFloat(String(hosting.sell_yearly)) || 0) - (parseFloat(String(hosting.cost_yearly)) || 0))}
                                     </td>
                                 </tr>
-                                {/* Domain rows from linked domains */}
-                                {hosting.domains?.filter((d) => parseFloat(String(d.sell_yearly)) > 0 || parseFloat(String(d.cost_yearly)) > 0).map((domain) => (
-                                    <tr key={domain.id}>
-                                        <td className="py-2 text-muted-foreground">
-                                            Doména {domain.name}
-                                            {domain.expires_at && (
-                                                <span className="ml-2 text-xs text-muted-foreground/60">
-                                                    (exp. {format(new Date(domain.expires_at), 'd. M. yyyy', { locale: cs })})
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="py-2 text-right text-foreground">
-                                            {parseFloat(String(domain.cost_yearly)) ? formatCurrency(domain.cost_yearly) : <span className="text-muted-foreground/50">—</span>}
-                                        </td>
-                                        <td className="py-2 text-right text-foreground">
-                                            {formatCurrency(domain.sell_yearly)}
-                                        </td>
-                                        <td className={`py-2 text-right ${(parseFloat(String(domain.sell_yearly)) - parseFloat(String(domain.cost_yearly))) > 0 ? 'text-emerald-400' : 'text-foreground'}`}>
-                                            {formatCurrency((parseFloat(String(domain.sell_yearly)) || 0) - (parseFloat(String(domain.cost_yearly)) || 0))}
-                                        </td>
-                                    </tr>
-                                ))}
                                 {/* Management row */}
                                 {managementMonthly > 0 && (
                                     <tr>
@@ -627,10 +605,8 @@ function TabPrehled({ hosting }: { hosting: Hosting }) {
                                 <tr className="border-t border-border font-semibold">
                                     <td className="pt-3 text-foreground">Celkem ročně</td>
                                     {(() => {
-                                        const domainCost = (hosting.domains || []).reduce((sum, d) => sum + (parseFloat(String(d.cost_yearly)) || 0), 0);
-                                        const domainSell = (hosting.domains || []).reduce((sum, d) => sum + (parseFloat(String(d.sell_yearly)) || 0), 0);
-                                        const totalCost = (parseFloat(String(hosting.cost_yearly)) || 0) + domainCost;
-                                        const totalSell = (parseFloat(String(hosting.sell_yearly)) || 0) + domainSell + managementYearly;
+                                        const totalCost = parseFloat(String(hosting.cost_yearly)) || 0;
+                                        const totalSell = (parseFloat(String(hosting.sell_yearly)) || 0) + managementYearly;
                                         const totalMargin = totalSell - totalCost;
                                         return (
                                             <>
@@ -654,7 +630,7 @@ function TabPrehled({ hosting }: { hosting: Hosting }) {
                                 onCheckedChange={(v) => router.put(`/hostingy/${hosting.id}`, { auto_invoice: v }, { preserveScroll: true })}
                                 className="scale-90"
                             />
-                            <span className="text-muted-foreground">Auto-fakturace (hosting + domény)</span>
+                            <span className="text-muted-foreground">Auto-fakturace hosting</span>
                         </div>
                         {hosting.management_plan && (
                             <div className="flex items-center gap-2 text-sm">

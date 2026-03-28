@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
-use App\Models\Domain;
 use App\Models\Hosting;
 use App\Models\HostingPayment;
 use App\Models\Invoice;
@@ -436,7 +435,7 @@ class HostingController extends Controller
                 $periodStr = $expiry->format('j. n. Y') . ' – ' . $expiry->copy()->addYear()->format('j. n. Y');
             }
 
-            // Hosting item
+            // Hosting item (only hosting price — domains are invoiced independently)
             $hostingPrice = (float) $hosting->sell_yearly;
             if ($hostingPrice > 0) {
                 $items[] = [
@@ -446,31 +445,6 @@ class HostingController extends Controller
                     'unit_price' => $hostingPrice,
                     'total_price' => $hostingPrice,
                 ];
-            }
-
-            // Domain items — all linked domains that we register and have a price
-            $invoiceDomains = $hosting->domains()
-                ->where('is_registered_by_us', true)
-                ->where('sell_yearly', '>', 0)
-                ->get();
-
-            $domainIds = [];
-            foreach ($invoiceDomains as $domain) {
-                $domainPeriod = $periodStr; // fallback to hosting period
-                if ($domain->expires_at) {
-                    $domainExpiry = \Carbon\Carbon::parse($domain->expires_at);
-                    $domainPeriod = $domainExpiry->format('j. n. Y') . ' – ' . $domainExpiry->copy()->addYear()->format('j. n. Y');
-                }
-
-                $items[] = [
-                    'description' => "Doména {$domain->name} ({$domainPeriod})",
-                    'quantity' => 1,
-                    'unit' => 'rok',
-                    'unit_price' => (float) $domain->sell_yearly,
-                    'total_price' => (float) $domain->sell_yearly,
-                ];
-
-                $domainIds[] = $domain->id;
             }
 
             if (empty($items)) {
@@ -514,16 +488,11 @@ class HostingController extends Controller
             // Attach hosting via invoice_hosting pivot
             $invoice->hostings()->attach($hosting->id, ['invoice_type' => 'hosting', 'created_at' => now()]);
 
-            // Attach domains via invoice_domain pivot
-            foreach ($domainIds as $domainId) {
-                $invoice->domains()->attach($domainId, ['created_at' => now()]);
-            }
-
             return $invoice;
         });
 
         if (!$invoice) {
-            return back()->with('error', 'Hosting má nulovou cenu a žádné fakturovatelné domény — nelze vystavit fakturu.');
+            return back()->with('error', 'Hosting má nulovou cenu — nelze vystavit fakturu.');
         }
 
         return redirect("/faktury/{$invoice->id}")
@@ -551,7 +520,6 @@ class HostingController extends Controller
         $invoice = DB::transaction(function () use ($hostings, $customer) {
             $items = [];
             $attachedHostingIds = [];
-            $attachedDomainIds = [];
 
             // Determine splatnost = nejbližší expirace hostingu
             $earliestExpiry = null;
@@ -576,7 +544,7 @@ class HostingController extends Controller
                     }
                 }
 
-                // Hosting item
+                // Hosting item (only hosting price — domains are invoiced independently)
                 if ($hostingPrice > 0) {
                     $items[] = [
                         'description' => "Hosting {$hosting->name} ({$periodStr})",
@@ -589,32 +557,6 @@ class HostingController extends Controller
 
                 if (!in_array($hosting->id, $attachedHostingIds, true)) {
                     $attachedHostingIds[] = $hosting->id;
-                }
-
-                // Domain items — all linked domains registered by us with a price
-                $invoiceDomains = $hosting->domains()
-                    ->where('is_registered_by_us', true)
-                    ->where('sell_yearly', '>', 0)
-                    ->get();
-
-                foreach ($invoiceDomains as $domain) {
-                    $domainPeriod = $periodStr; // fallback to hosting period
-                    if ($domain->expires_at) {
-                        $domainExpiry = \Carbon\Carbon::parse($domain->expires_at);
-                        $domainPeriod = $domainExpiry->format('j. n. Y') . ' – ' . $domainExpiry->copy()->addYear()->format('j. n. Y');
-                    }
-
-                    $items[] = [
-                        'description' => "Doména {$domain->name} ({$domainPeriod})",
-                        'quantity'    => 1,
-                        'unit'        => 'rok',
-                        'unit_price'  => (float) $domain->sell_yearly,
-                        'total_price' => (float) $domain->sell_yearly,
-                    ];
-
-                    if (!in_array($domain->id, $attachedDomainIds, true)) {
-                        $attachedDomainIds[] = $domain->id;
-                    }
                 }
             }
 
@@ -663,18 +605,11 @@ class HostingController extends Controller
                 ]);
             }
 
-            // Attach domains via invoice_domain pivot
-            foreach ($attachedDomainIds as $domainId) {
-                $invoice->domains()->attach($domainId, [
-                    'created_at' => now(),
-                ]);
-            }
-
             return $invoice;
         });
 
         if (!$invoice) {
-            return back()->with('error', 'Hostingy mají nulovou cenu nebo všechny mají otevřenou fakturu — nelze vystavit fakturu.');
+            return back()->with('error', 'Hostingy mají nulovou cenu nebo všechny již mají otevřenou fakturu — nelze vystavit fakturu.');
         }
 
         return redirect("/faktury/{$invoice->id}")

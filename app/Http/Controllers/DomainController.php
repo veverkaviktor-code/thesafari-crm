@@ -435,10 +435,6 @@ class DomainController extends Controller
      */
     public function createInvoice(Domain $domain)
     {
-        if ($domain->hosting_id) {
-            return back()->with('error', 'Tato doména je propojena s hostingem — fakturujte přes hosting.');
-        }
-
         if (!$domain->customer_id) {
             return back()->with('error', 'Nelze vystavit fakturu — doména nemá přiřazeného zákazníka.');
         }

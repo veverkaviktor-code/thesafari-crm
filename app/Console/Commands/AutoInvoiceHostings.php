@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Domain;
 use App\Models\Hosting;
 use App\Models\Invoice;
 use App\Models\User;
@@ -47,7 +46,7 @@ class AutoInvoiceHostings extends Command
             ->whereDoesntHave('invoices', function ($q) {
                 $q->whereIn('status', ['vystavena', 'odeslana']);
             })
-            ->with(['customer', 'domains'])
+            ->with(['customer'])
             ->get();
 
         if ($hostings->isEmpty()) {
@@ -83,7 +82,7 @@ class AutoInvoiceHostings extends Command
                     $periodStr = $expiry->format('j. n. Y') . ' – ' . $expiry->copy()->addYear()->format('j. n. Y');
                 }
 
-                // Hosting item
+                // Hosting item (only hosting price — domains are invoiced independently via domains:auto-invoice)
                 $items[] = [
                     'model'       => $hosting,
                     'model_type'  => 'hosting',
@@ -93,30 +92,6 @@ class AutoInvoiceHostings extends Command
                     'unit_price'  => $hostingPrice,
                     'total_price' => $hostingPrice,
                 ];
-
-                // Domain items — domains linked to this hosting that we register
-                foreach ($hosting->domains as $domain) {
-                    if (!$domain->is_registered_by_us) continue;
-                    $domainPrice = (float) $domain->sell_yearly;
-                    if ($domainPrice <= 0) continue;
-
-                    // Domain period from domain expiration
-                    $domainPeriod = $periodStr;
-                    if ($domain->expires_at) {
-                        $domainExpiry = \Carbon\Carbon::parse($domain->expires_at);
-                        $domainPeriod = $domainExpiry->format('j. n. Y') . ' – ' . $domainExpiry->copy()->addYear()->format('j. n. Y');
-                    }
-
-                    $items[] = [
-                        'model'       => $domain,
-                        'model_type'  => 'domain',
-                        'description' => "Doména {$domain->name} ({$domainPeriod})",
-                        'quantity'    => 1,
-                        'unit'        => 'rok',
-                        'unit_price'  => $domainPrice,
-                        'total_price' => $domainPrice,
-                    ];
-                }
             }
 
             if (empty($items)) {
@@ -151,7 +126,6 @@ class AutoInvoiceHostings extends Command
                 ]);
 
                 $attachedHostingIds = [];
-                $attachedDomainIds = [];
                 foreach ($items as $i => $item) {
                     $invoice->items()->create([
                         'description' => $item['description'],
@@ -162,23 +136,13 @@ class AutoInvoiceHostings extends Command
                         'sort_order'  => $i,
                     ]);
 
-                    if ($item['model_type'] === 'hosting') {
-                        $hostingId = $item['model']->id;
-                        if (!in_array($hostingId, $attachedHostingIds, true)) {
-                            $invoice->hostings()->attach($hostingId, [
-                                'invoice_type' => 'hosting',
-                                'created_at'   => now(),
-                            ]);
-                            $attachedHostingIds[] = $hostingId;
-                        }
-                    } elseif ($item['model_type'] === 'domain') {
-                        $domainId = $item['model']->id;
-                        if (!in_array($domainId, $attachedDomainIds, true)) {
-                            $invoice->domains()->attach($domainId, [
-                                'created_at' => now(),
-                            ]);
-                            $attachedDomainIds[] = $domainId;
-                        }
+                    $hostingId = $item['model']->id;
+                    if (!in_array($hostingId, $attachedHostingIds, true)) {
+                        $invoice->hostings()->attach($hostingId, [
+                            'invoice_type' => 'hosting',
+                            'created_at'   => now(),
+                        ]);
+                        $attachedHostingIds[] = $hostingId;
                     }
                 }
 

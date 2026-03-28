@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Log;
 class AutoInvoiceDomains extends Command
 {
     protected $signature = 'domains:auto-invoice {--dry-run : Only show what would be invoiced}';
-    protected $description = 'Create invoices for standalone domains expiring within 30 days';
+    protected $description = 'Create invoices for domains expiring within 30 days';
 
     public function handle(): int
     {
@@ -35,9 +35,8 @@ class AutoInvoiceDomains extends Command
         $dryRun = $this->option('dry-run');
         $admin = User::admin();
 
-        // Only standalone domains (not linked to a hosting — those are invoiced via hostings:auto-invoice)
-        $domains = Domain::whereNull('hosting_id')
-            ->where('status', 'aktivni')
+        // All domains with auto_invoice — invoiced independently based on their own expiration
+        $domains = Domain::where('status', 'aktivni')
             ->where('auto_invoice', true)
             ->where('is_registered_by_us', true)
             ->where('sell_yearly', '>', 0)
@@ -51,7 +50,7 @@ class AutoInvoiceDomains extends Command
             ->get();
 
         if ($domains->isEmpty()) {
-            $this->info('No standalone domains to invoice.');
+            $this->info('No domains to invoice.');
             return 0;
         }
 
