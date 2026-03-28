@@ -68,8 +68,8 @@ interface VpsFormData {
 }
 
 const statusIconMap: Record<string, { icon: typeof Play; className: string; title: string }> = {
-    aktivni: { icon: Play, className: 'text-emerald-400', title: 'Aktivni' },
-    neaktivni: { icon: Pause, className: 'text-zinc-400', title: 'Neaktivni' },
+    aktivni: { icon: Play, className: 'text-emerald-400', title: 'Aktivní' },
+    neaktivni: { icon: Pause, className: 'text-zinc-400', title: 'Neaktivní' },
 };
 
 export default function VpsIndex({ vpsServers, customers }: Props) {

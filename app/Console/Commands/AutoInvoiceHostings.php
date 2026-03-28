@@ -39,6 +39,7 @@ class AutoInvoiceHostings extends Command
         $hostings = Hosting::where('status', 'aktivni')
             ->where('auto_invoice', true)
             ->where('is_free', false)
+            ->where('is_external', false)
             ->whereNotNull('expires_at')
             ->where('expires_at', '>', now())
             ->where('expires_at', '<=', now()->addDays(30))
@@ -199,7 +200,9 @@ class AutoInvoiceHostings extends Command
                     'invoice_number' => $invoiceNumber,
                     'variable_symbol' => $invoiceNumber,
                     'issue_date'     => now()->toDateString(),
-                    'due_date'       => $expiry->toDateString(),
+                    'due_date'       => $expiry->greaterThan(now()->addDays(14))
+                        ? $expiry->toDateString()
+                        : now()->addDays(14)->toDateString(),
                     'status'         => 'vystavena',
                     'payment_method' => 'banka',
                     'total'          => $price,
