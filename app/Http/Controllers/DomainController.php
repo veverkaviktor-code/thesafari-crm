@@ -175,6 +175,16 @@ class DomainController extends Controller
         $validated['sell_yearly'] = $validated['sell_yearly'] ?? 0;
         $validated['cost_yearly'] = $validated['cost_yearly'] ?? 0;
 
+        // Auto-link to hosting with same name if not explicitly set
+        if (empty($validated['hosting_id'])) {
+            $matchingHosting = Hosting::where('name', $validated['name'])
+                ->whereNull('deleted_at')
+                ->first();
+            if ($matchingHosting) {
+                $validated['hosting_id'] = $matchingHosting->id;
+            }
+        }
+
         $domain = Domain::create($validated);
 
         return redirect("/domeny/{$domain->id}")

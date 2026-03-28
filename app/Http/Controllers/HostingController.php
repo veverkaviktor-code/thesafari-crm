@@ -244,6 +244,15 @@ class HostingController extends Controller
 
         $hosting = Hosting::create($validated);
 
+        // Auto-link domain with same name (if exists and not yet linked)
+        Domain::where('name', $hosting->name)
+            ->whereNull('hosting_id')
+            ->whereNull('deleted_at')
+            ->update([
+                'hosting_id' => $hosting->id,
+                'customer_id' => $hosting->customer_id ?? \DB::raw('customer_id'),
+            ]);
+
         return redirect("/hostingy/{$hosting->id}")
             ->with('success', 'Hosting vytvořen.');
     }
@@ -851,7 +860,7 @@ class HostingController extends Controller
         // Find VPS server ID
         $serverId = $server ? VpsServer::where('name', $server)->value('id') : null;
 
-        Hosting::create([
+        $hosting = Hosting::create([
             'name' => $pendingItem->domain_name,
             'status' => 'aktivni',
             'auto_invoice' => false,
@@ -859,6 +868,15 @@ class HostingController extends Controller
             'server' => $server,
             'server_id' => $serverId,
         ]);
+
+        // Auto-link domain with same name
+        Domain::where('name', $hosting->name)
+            ->whereNull('hosting_id')
+            ->whereNull('deleted_at')
+            ->update([
+                'hosting_id' => $hosting->id,
+                'customer_id' => $hosting->customer_id ?? \DB::raw('customer_id'),
+            ]);
 
         $pendingItem->delete();
 
