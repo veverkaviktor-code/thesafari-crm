@@ -332,7 +332,7 @@ class HostingController extends Controller
         $validated = $request->validate([
             'ids' => 'required|array|min:1',
             'ids.*' => 'exists:hostings,id',
-            'action' => 'required|in:set_free,unset_free,set_status,set_customer,clear_expiry,set_external,unset_external,set_management_plan',
+            'action' => 'required|in:set_free,unset_free,set_status,set_customer,clear_expiry,set_external,unset_external,set_management_plan,set_auto_invoice,unset_auto_invoice',
             'value' => 'nullable|string',
         ]);
 
@@ -351,6 +351,8 @@ class HostingController extends Controller
             'set_management_plan' => $hostings->update([
                 'management_plan_id' => $validated['value'] === 'none' ? null : $validated['value'],
             ]),
+            'set_auto_invoice' => $hostings->update(['auto_invoice' => true]),
+            'unset_auto_invoice' => $hostings->update(['auto_invoice' => false]),
         };
 
         return back()->with('success', count($validated['ids']) . ' položek aktualizováno.');
