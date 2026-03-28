@@ -907,6 +907,65 @@ class HostingController extends Controller
     }
 
     /**
+     * Sync a single hosting from its server API (updates storage, expiry).
+     */
+    public function syncSingle(Hosting $hosting, VasHostingService $vasHosting)
+    {
+        $serverName = $hosting->server;
+        if (!$serverName) {
+            return response()->json(['message' => 'Hosting nemá přiřazený server.'], 422);
+        }
+
+        if (str_contains($serverName, 'sss06')) {
+            // sss06: Server API returns storage in bytes
+            $info = $vasHosting->getPortalDomainInfo($hosting->name);
+            $serverHostings = $vasHosting->listServerHostings();
+            $serverData = $serverHostings[$hosting->name] ?? null;
+
+            $data = ['synced_at' => now()];
+            if ($serverData) {
+                $data['storage_quota_mb'] = (int) round(($serverData['storageQuota'] ?? 0) / 1048576);
+                $data['storage_used_mb'] = (int) round(($serverData['storageUsed'] ?? 0) / 1048576);
+                if ($serverData['expiration'] ?? null) {
+                    $data['expires_at'] = $serverData['expiration'];
+                }
+            }
+            $hosting->update($data);
+
+        } else {
+            // VPS Centrum (ond08, thaimassage): find config by server name
+            $vpscServers = $vasHosting->getVpsCentrumServers();
+            $serverConfig = null;
+            foreach ($vpscServers as $srv) {
+                if (str_contains($serverName, str_replace('.vas-server.cz', '', $srv['name'] ?? ''))) {
+                    $serverConfig = $srv;
+                    break;
+                }
+                if (str_contains($serverName, $srv['name'] ?? '')) {
+                    $serverConfig = $srv;
+                    break;
+                }
+            }
+
+            if (!$serverConfig) {
+                return response()->json(['message' => "Konfigurace serveru {$serverName} nenalezena."], 422);
+            }
+
+            $size = $vasHosting->getVpsCentrumDomainSize($serverConfig['url'], $serverConfig['api_key'], $hosting->name);
+            $data = [
+                'storage_quota_mb' => 4096,
+                'synced_at' => now(),
+            ];
+            if ($size) {
+                $data['storage_used_mb'] = (int) (($size['mail_size_mb'] ?? 0) + ($size['db_size_mb'] ?? 0) + ($size['ftp_size_mb'] ?? 0));
+            }
+            $hosting->update($data);
+        }
+
+        return response()->json(['message' => "Hosting {$hosting->name} synchronizován ze serveru {$serverName}."]);
+    }
+
+    /**
      * Activate a domain on vas-hosting server (create hosting space).
      */
     public function activateDomain(Request $request, VasHostingService $vasHosting)

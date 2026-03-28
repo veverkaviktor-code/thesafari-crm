@@ -129,6 +129,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/hostingy/ke-schvaleni/ignore', [HostingController::class, 'ignorePending'])->name('hostings.pending.ignore');
     Route::post('/hostingy/{hosting}/faktura', [HostingController::class, 'createInvoice'])->name('hostings.invoice.create');
     Route::post('/hostingy/{hosting}/toggle-ignore', [HostingController::class, 'toggleIgnoreAlerts'])->name('hostings.toggleIgnore');
+    Route::post('/hostingy/{hosting}/sync', [HostingController::class, 'syncSingle'])->name('hostings.sync-single');
     Route::post('/hostingy/{hosting}/credentials', [HostingCredentialController::class, 'store'])->name('credentials.store');
     Route::put('/hostingy/credentials/{credential}', [HostingCredentialController::class, 'update'])->name('credentials.update');
     Route::delete('/hostingy/credentials/{credential}', [HostingCredentialController::class, 'destroy'])->name('credentials.destroy');

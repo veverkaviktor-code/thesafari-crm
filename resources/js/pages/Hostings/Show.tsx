@@ -425,6 +425,32 @@ function TabPrehled({ hosting }: { hosting: Hosting }) {
             });
             const data = await response.json();
             if (response.ok) {
+                setActivateResult({ success: true, message: data.message ?? 'Hosting aktivován.' });
+                setTimeout(() => router.reload(), 1500);
+            } else {
+                setActivateResult({ success: false, message: data.message ?? 'Aktivace selhala.' });
+            }
+        } catch {
+            setActivateResult({ success: false, message: 'Síťová chyba.' });
+        } finally {
+            setActivatingHosting(false);
+        }
+    };
+
+    const handleSyncHosting = async () => {
+        setActivatingHosting(true);
+        setActivateResult(null);
+        try {
+            const response = await fetch(`/hostingy/${hosting.id}/sync`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-XSRF-TOKEN': decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? ''),
+                    'Accept': 'application/json',
+                },
+            });
+            const data = await response.json();
+            if (response.ok) {
                 setActivateResult({ success: true, message: data.message ?? 'Hosting synchronizován.' });
                 setTimeout(() => router.reload(), 1500);
             } else {
@@ -507,7 +533,7 @@ function TabPrehled({ hosting }: { hosting: Hosting }) {
                         <Button
                             variant="ghost"
                             size="sm"
-                            onClick={handleActivateHosting}
+                            onClick={handleSyncHosting}
                             disabled={activatingHosting}
                             className="text-muted-foreground hover:text-foreground hover:bg-accent border border-border"
                         >
