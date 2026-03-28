@@ -742,7 +742,7 @@ function TabPristupy({ hosting }: { hosting: Hosting }) {
     return (
         <div className="space-y-4">
             <CredentialsSection hostingId={hosting.id} credentials={hosting.credentials} adminUrl={hosting.admin_url} />
-            <EmailAccountsSection hostingId={hosting.id} emailAccounts={hosting.email_accounts ?? []} />
+            <EmailAccountsSection hostingId={hosting.id} hostingName={hosting.name} hostingServer={hosting.server} emailAccounts={hosting.email_accounts ?? []} />
         </div>
     );
 }
@@ -964,13 +964,24 @@ function CredentialForm({
 
 /* ─────── Email Accounts Section ─────── */
 
-function CopyEmailButton({ email }: { email: EmailAccount }) {
+function getMailServer(hostingServer: string | null): string {
+    if (!hostingServer) return '';
+    if (hostingServer.includes('sss06')) return 'webje.cz';
+    // For other servers, use the server hostname directly
+    return hostingServer.replace(/\.vas-server\.cz$/, '.vas-server.cz');
+}
+
+function CopyEmailButton({ email, hostingServer }: { email: EmailAccount; hostingServer: string | null }) {
     const [copied, setCopied] = useState(false);
 
     function handleCopy() {
         const lines: string[] = [];
         lines.push(`E-mail: ${email.email}`);
         if (email.password) lines.push(`Heslo: ${email.password}`);
+        const mailServer = getMailServer(hostingServer);
+        if (mailServer) {
+            lines.push(`IMAP/SMTP server: ${mailServer}`);
+        }
         if (email.notes) lines.push(`Poznámka: ${email.notes}`);
 
         navigator.clipboard.writeText(lines.join('\n'));
@@ -989,7 +1000,7 @@ function CopyEmailButton({ email }: { email: EmailAccount }) {
     );
 }
 
-function EmailAccountsSection({ hostingId, emailAccounts }: { hostingId: number; emailAccounts: EmailAccount[] }) {
+function EmailAccountsSection({ hostingId, hostingName, hostingServer, emailAccounts }: { hostingId: number; hostingName: string; hostingServer: string | null; emailAccounts: EmailAccount[] }) {
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -1019,6 +1030,7 @@ function EmailAccountsSection({ hostingId, emailAccounts }: { hostingId: number;
                 {showForm && (
                     <EmailAccountForm
                         hostingId={hostingId}
+                        hostingName={hostingName}
                         onCancel={() => setShowForm(false)}
                         onSuccess={() => setShowForm(false)}
                     />
@@ -1034,6 +1046,7 @@ function EmailAccountsSection({ hostingId, emailAccounts }: { hostingId: number;
                             <EmailAccountForm
                                 key={ea.id}
                                 hostingId={hostingId}
+                                hostingName={hostingName}
                                 emailAccount={ea}
                                 onCancel={() => setEditingId(null)}
                                 onSuccess={() => setEditingId(null)}
@@ -1050,7 +1063,7 @@ function EmailAccountsSection({ hostingId, emailAccounts }: { hostingId: number;
                                 </div>
                                 {ea.password && <PasswordField password={ea.password} />}
                                 <div className="flex shrink-0 gap-0.5">
-                                    <CopyEmailButton email={ea} />
+                                    <CopyEmailButton email={ea} hostingServer={hostingServer} />
                                     <button onClick={() => setEditingId(ea.id)} className="rounded p-1.5 text-muted-foreground hover:bg-background hover:text-foreground" title="Upravit">
                                         <Pencil className="h-3.5 w-3.5" />
                                     </button>
@@ -1082,22 +1095,34 @@ function EmailAccountsSection({ hostingId, emailAccounts }: { hostingId: number;
 
 function EmailAccountForm({
     hostingId,
+    hostingName,
     emailAccount,
     onCancel,
     onSuccess,
 }: {
     hostingId: number;
+    hostingName: string;
     emailAccount?: EmailAccount;
     onCancel: () => void;
     onSuccess: () => void;
 }) {
     const isEdit = !!emailAccount;
+    const domain = hostingName;
+    const existingUsername = emailAccount?.email?.split('@')[0] ?? '';
+
     const form = useForm({
         email: emailAccount?.email ?? '',
         password: '',
         quota_mb: emailAccount?.quota_mb ?? 3072,
         notes: emailAccount?.notes ?? '',
     });
+
+    // Helper: set full email from username
+    const setUsername = (username: string) => {
+        form.setData('email', username ? `${username}@${domain}` : '');
+    };
+
+    const currentUsername = form.data.email.includes('@') ? form.data.email.split('@')[0] : form.data.email;
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
@@ -1113,7 +1138,10 @@ function EmailAccountForm({
             <div className="grid grid-cols-2 gap-3">
                 <div>
                     <Label className="text-xs text-muted-foreground">E-mail *</Label>
-                    <Input type="email" value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} placeholder="info@domena.cz" className="h-8 text-sm bg-background" />
+                    <div className="flex">
+                        <Input type="text" value={currentUsername} onChange={(e) => setUsername(e.target.value)} placeholder="info" className="h-8 text-sm bg-background rounded-r-none" />
+                        <span className="inline-flex items-center rounded-r-md border border-l-0 border-border bg-muted px-2.5 text-xs text-muted-foreground">@{domain}</span>
+                    </div>
                     {form.errors.email && <p className="text-xs text-red-400 mt-0.5">{form.errors.email}</p>}
                 </div>
                 <div>
