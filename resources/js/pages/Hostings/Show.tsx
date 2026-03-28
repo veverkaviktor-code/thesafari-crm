@@ -1057,7 +1057,7 @@ function EmailAccountsSection({ hostingId, hostingName, hostingServer, emailAcco
                                 <div className="min-w-0 flex-1">
                                     <p className="text-sm font-medium text-foreground">{ea.email}</p>
                                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                        <span>{ea.quota_mb >= 1024 ? `${(ea.quota_mb / 1024).toFixed(0)} GB` : `${ea.quota_mb} MB`}</span>
+                                        <span>{ea.quota_mb === 0 ? 'Neomezeně' : ea.quota_mb >= 1024 ? `${(ea.quota_mb / 1024).toFixed(0)} GB` : `${ea.quota_mb} MB`}</span>
                                         {ea.notes && <span>&middot; {ea.notes}</span>}
                                     </div>
                                 </div>
@@ -1138,9 +1138,9 @@ function EmailAccountForm({
             <div className="grid grid-cols-2 gap-3">
                 <div>
                     <Label className="text-xs text-muted-foreground">E-mail *</Label>
-                    <div className="flex">
-                        <Input type="text" value={currentUsername} onChange={(e) => setUsername(e.target.value)} placeholder="info" className="h-8 text-sm bg-background rounded-r-none" />
-                        <span className="inline-flex items-center rounded-r-md border border-l-0 border-border bg-muted px-2.5 text-xs text-muted-foreground">@{domain}</span>
+                    <div className="flex items-center gap-0">
+                        <Input type="text" value={currentUsername} onChange={(e) => setUsername(e.target.value.trim())} placeholder="info" className="h-8 text-sm bg-background rounded-r-none flex-1 min-w-0" />
+                        <span className="inline-flex items-center rounded-r-md border border-l-0 border-border bg-muted px-2 h-8 text-xs text-muted-foreground whitespace-nowrap shrink-0">@{domain}</span>
                     </div>
                     {form.errors.email && <p className="text-xs text-red-400 mt-0.5">{form.errors.email}</p>}
                 </div>
@@ -1151,8 +1151,8 @@ function EmailAccountForm({
             </div>
             <div className="grid grid-cols-2 gap-3">
                 <div>
-                    <Label className="text-xs text-muted-foreground">Kvóta (MB)</Label>
-                    <Input type="number" value={form.data.quota_mb} onChange={(e) => form.setData('quota_mb', parseInt(e.target.value) || 3072)} className="h-8 text-sm bg-background" />
+                    <Label className="text-xs text-muted-foreground">Kvóta (MB) <span className="text-muted-foreground/50">— 0 = neomezeně</span></Label>
+                    <Input type="number" value={form.data.quota_mb} onChange={(e) => form.setData('quota_mb', parseInt(e.target.value) || 0)} min={0} className="h-8 text-sm bg-background" />
                 </div>
                 <div>
                     <Label className="text-xs text-muted-foreground">Poznámka</Label>

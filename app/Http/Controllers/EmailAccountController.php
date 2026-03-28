@@ -13,7 +13,7 @@ class EmailAccountController extends Controller
         $validated = $request->validate([
             'email' => ['required', 'email', 'max:255'],
             'password' => ['nullable', 'string', 'max:255'],
-            'quota_mb' => ['required', 'integer', 'min:100'],
+            'quota_mb' => ['required', 'integer', 'min:0'],
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
 
@@ -27,7 +27,7 @@ class EmailAccountController extends Controller
         $validated = $request->validate([
             'email' => ['required', 'email', 'max:255'],
             'password' => ['nullable', 'string', 'max:255'],
-            'quota_mb' => ['required', 'integer', 'min:100'],
+            'quota_mb' => ['required', 'integer', 'min:0'],
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
 
