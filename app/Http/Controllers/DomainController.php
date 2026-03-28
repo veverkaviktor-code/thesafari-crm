@@ -28,8 +28,8 @@ class DomainController extends Controller
                         ->orWhereHas('customer', fn ($cq) => $cq->where('name', 'ilike', "%{$term}%"));
                 });
             })
-            ->when($request->input('registrar'), fn ($q, $v) => $q->where('registrar', $v))
-            ->when($request->input('status'), fn ($q, $v) => $q->where('status', $v))
+            ->when($request->input('filter_registrar') ?? $request->input('registrar'), fn ($q, $v) => $q->whereIn('registrar', explode(',', $v)))
+            ->when($request->input('filter_status') ?? $request->input('status'), fn ($q, $v) => $q->whereIn('status', explode(',', $v)))
             ->when($request->input('expiry_filter'), function ($q, $filter) {
                 match ($filter) {
                     'expired' => $q->where('status', 'aktivni')
@@ -47,17 +47,16 @@ class DomainController extends Controller
                     default => null,
                 };
             })
-            ->when($request->input('has_hosting'), function ($q, $v) {
-                match ($v) {
-                    'with' => $q->whereNotNull('hosting_id'),
-                    'without' => $q->whereNull('hosting_id'),
-                    default => null,
-                };
+            ->when($request->input('filter_has_hosting'), function ($q, $v) {
+                if ($v === '1' || $v === 'with') {
+                    $q->whereNotNull('hosting_id');
+                } elseif ($v === '0' || $v === 'without') {
+                    $q->whereNull('hosting_id');
+                }
             })
-            ->when($request->input('customer'), fn ($q, $v) => $q->where('customer_id', $v))
-            ->when($request->filled('auto_invoice'), function ($q) use ($request) {
-                $v = $request->input('auto_invoice');
-                $q->where('auto_invoice', $v === '1');
+            ->when($request->input('filter_customer') ?? $request->input('customer'), fn ($q, $v) => $q->whereIn('customer_id', explode(',', $v)))
+            ->when($request->input('filter_auto_invoice') ?? $request->input('auto_invoice'), function ($q, $v) {
+                $q->where('auto_invoice', $v === '1' || $v === 'true');
             });
 
         $allowedSorts = ['name', 'expires_at', 'sell_yearly'];
@@ -113,8 +112,9 @@ class DomainController extends Controller
             'stats'         => $stats,
             'customers'     => Customer::select('id', 'name', 'company')->orderBy('name')->get(),
             'filters'       => $request->only([
-                'search', 'registrar', 'status', 'expiry_filter', 'has_hosting',
-                'customer', 'auto_invoice', 'sort_by', 'sort_dir',
+                'search', 'registrar', 'status', 'expiry_filter', 'filter_has_hosting',
+                'customer', 'auto_invoice', 'filter_registrar', 'filter_customer',
+                'filter_status', 'filter_auto_invoice', 'sort_by', 'sort_dir',
             ]),
             'filterOptions' => [
                 'registrars' => ['vas-hosting', 'wedos', 'external'],
