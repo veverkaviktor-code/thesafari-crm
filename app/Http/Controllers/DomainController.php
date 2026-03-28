@@ -525,10 +525,15 @@ class DomainController extends Controller
             ->get();
 
         $customers = Customer::orderBy('name')->get(['id', 'name']);
+        $hostings = Hosting::where('status', 'aktivni')
+            ->whereNull('deleted_at')
+            ->orderBy('name')
+            ->get(['id', 'name']);
 
         return Inertia::render('Domains/Pending', [
             'pendingItems' => $pendingItems,
             'customers'    => $customers,
+            'hostings'     => $hostings,
         ]);
     }
 
