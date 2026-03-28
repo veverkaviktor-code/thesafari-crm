@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Models\Estimate;
+use App\Models\Hosting;
 use App\Models\Invoice;
 use App\Models\Order;
-use App\Models\Website;
 use App\Models\Task;
 use App\Models\Ticket;
 use Illuminate\Http\JsonResponse;
@@ -73,7 +73,7 @@ class SearchController extends Controller
                 'type' => 'invoice',
             ]);
 
-        $websites = Website::where(function ($q) use ($term) {
+        $websites = Hosting::where(function ($q) use ($term) {
                 $q->where('name', 'ilike', $term)
                   ->orWhereHas('customer', fn ($cq) => $cq->where('name', 'ilike', $term)->orWhere('company', 'ilike', $term));
             })
@@ -81,11 +81,11 @@ class SearchController extends Controller
             ->select('id', 'name', 'status', 'customer_id')
             ->limit(5)
             ->get()
-            ->map(fn ($w) => [
-                'id' => $w->id,
-                'title' => $w->name,
-                'subtitle' => $w->customer?->name ?? '',
-                'link' => "/webove-sluzby/{$w->id}",
+            ->map(fn ($h) => [
+                'id' => $h->id,
+                'title' => $h->name,
+                'subtitle' => $h->customer?->name ?? '',
+                'link' => "/hostingy/{$h->id}",
                 'type' => 'website',
             ]);
 

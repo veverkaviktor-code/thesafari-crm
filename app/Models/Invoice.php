@@ -175,24 +175,19 @@ class Invoice extends Model
             $this->order?->update(['status' => 'fakturovano']);
         }
 
-        // Websites: create payment records + extend expiry dates
-        $this->load('websites');
-        foreach ($this->websites as $website) {
-            $pivotType = $website->pivot->invoice_type ?? 'hosting';
-            $isAlias = $website->alias_of_id !== null;
+        // Hostings: create payment records + extend expiry dates
+        $this->load('hostings');
+        foreach ($this->hostings as $hosting) {
+            $pivotType = $hosting->pivot->invoice_type ?? 'hosting';
 
-            // Payment amount: alias = domain price only, parent = full sell_yearly
-            $amount = $isAlias
-                ? (float) $website->domain_sell_yearly
-                : ((float) $website->sell_yearly ?: (float) $website->cost_yearly);
+            // Payment amount: full sell_yearly (or cost_yearly as fallback)
+            $amount = (float) $hosting->sell_yearly ?: (float) $hosting->cost_yearly;
 
-            // Period: alias uses domain_expires_at, parent uses hosting_expires_at
-            $periodStart = $isAlias
-                ? ($website->domain_expires_at ?? now())
-                : ($website->hosting_expires_at ?? now());
+            // Period: use hosting expires_at
+            $periodStart = $hosting->expires_at ?? now();
             $periodEnd = $periodStart->copy()->addYear();
 
-            $website->payments()->create([
+            $hosting->payments()->create([
                 'amount'         => $amount,
                 'period_start'   => $periodStart,
                 'period_end'     => $periodEnd,
@@ -202,17 +197,10 @@ class Invoice extends Model
                 'payment_method' => $paymentMethod,
             ]);
 
-            if ($isAlias) {
-                // Alias: only extend domain expiration, NOT hosting
-                $website->domain_expires_at = $website->domain_expires_at?->addYear() ?? now()->addYear();
-                $website->save();
-            } elseif ($pivotType === 'hosting') {
-                // Parent: extend hosting + domain
-                $website->hosting_expires_at = $website->hosting_expires_at?->addYear() ?? now()->addYear();
-                if ($website->is_registered_by_us) {
-                    $website->domain_expires_at = $website->domain_expires_at?->addYear() ?? now()->addYear();
-                }
-                $website->save();
+            if ($pivotType === 'hosting') {
+                // Extend hosting expiry
+                $hosting->expires_at = $hosting->expires_at?->addYear() ?? now()->addYear();
+                $hosting->save();
             }
         }
 

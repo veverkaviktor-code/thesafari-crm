@@ -38,16 +38,16 @@ class CustomerController extends Controller
     public function show(Customer $zakaznici)
     {
         $customer = $zakaznici;
-        $customer->load(['websites']);
+        $customer->load(['hostings', 'domains']);
 
         $orderCosts = (float) \App\Models\OrderCost::whereHas('order', fn ($q) =>
             $q->where('customer_id', $customer->id)
         )->sum('amount');
-        // Website costs = what WE pay for hosting/domains we manage
-        $websiteCosts = (float) $customer->websites()
+        // Hosting costs = what WE pay for hosting/domains we manage
+        $hostingCosts = (float) $customer->hostings()
             ->where('status', 'aktivni')
             ->sum('cost_yearly');
-        $totalCosts = $orderCosts + $websiteCosts;
+        $totalCosts = $orderCosts + $hostingCosts;
 
         $invoiced = (float) $customer->invoices()->sum('total');
         $paid = (float) $customer->invoices()->where('status', 'zaplacena')->sum('total');
@@ -62,7 +62,7 @@ class CustomerController extends Controller
             'invoiced' => $invoiced,
             'paid' => $paid,
             'uninvoiced' => round($invoiced - $paid, 2),
-            'active_websites' => $customer->websites()->where('status', 'aktivni')->count(),
+            'active_websites' => $customer->hostings()->where('status', 'aktivni')->count(),
             'vps_yearly' => $vpsYearly,
         ];
 
@@ -171,13 +171,13 @@ class CustomerController extends Controller
         $activeOrders = $customer->orders()->withTrashed()->whereNull('deleted_at')->count();
         $unpaidInvoices = $customer->invoices()->withTrashed()->whereNull('deleted_at')
             ->where('status', '!=', 'zaplacena')->count();
-        $activeWebsites = $customer->websites()->where('status', 'aktivni')->count();
+        $activeHostings = $customer->hostings()->where('status', 'aktivni')->count();
 
-        if ($activeOrders > 0 || $unpaidInvoices > 0 || $activeWebsites > 0) {
+        if ($activeOrders > 0 || $unpaidInvoices > 0 || $activeHostings > 0) {
             $reasons = [];
             if ($activeOrders > 0) $reasons[] = "{$activeOrders} aktivních zakázek";
             if ($unpaidInvoices > 0) $reasons[] = "{$unpaidInvoices} nezaplacených faktur";
-            if ($activeWebsites > 0) $reasons[] = "{$activeWebsites} aktivních webů";
+            if ($activeHostings > 0) $reasons[] = "{$activeHostings} aktivních hostingů";
 
             return back()->with('error', 'Zákazníka nelze trvale smazat — má: ' . implode(', ', $reasons) . '.');
         }
@@ -212,7 +212,7 @@ class CustomerController extends Controller
         foreach ($customers as $customer) {
             $hasActive = $customer->orders()->withTrashed()->whereNull('deleted_at')->exists()
                 || $customer->invoices()->withTrashed()->whereNull('deleted_at')->where('status', '!=', 'zaplacena')->exists()
-                || $customer->websites()->where('status', 'aktivni')->exists();
+                || $customer->hostings()->where('status', 'aktivni')->exists();
             if ($hasActive) {
                 $blocked[] = $customer->name;
             } else {
@@ -236,7 +236,7 @@ class CustomerController extends Controller
         foreach ($customers as $customer) {
             $hasActive = $customer->orders()->withTrashed()->whereNull('deleted_at')->exists()
                 || $customer->invoices()->withTrashed()->whereNull('deleted_at')->where('status', '!=', 'zaplacena')->exists()
-                || $customer->websites()->where('status', 'aktivni')->exists();
+                || $customer->hostings()->where('status', 'aktivni')->exists();
             if ($hasActive) {
                 $blocked++;
             } else {
@@ -264,9 +264,9 @@ class CustomerController extends Controller
         $customer->orders()->update(['customer_id' => null]);
         $customer->invoices()->update(['customer_id' => null]);
 
-        // Websites — smazat neaktivní, nullify zbytek
-        $customer->websites()->where('status', '!=', 'aktivni')->delete();
-        $customer->websites()->update(['customer_id' => null]);
+        // Hostings — smazat neaktivní, nullify zbytek
+        $customer->hostings()->where('status', '!=', 'aktivni')->delete();
+        $customer->hostings()->update(['customer_id' => null]);
     }
 
     private function prepareData(array $validated): array

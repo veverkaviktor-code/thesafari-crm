@@ -22,8 +22,8 @@ class ManagementPlan extends Model
         ];
     }
 
-    public function websites(): HasMany
+    public function hostings(): HasMany
     {
-        return $this->hasMany(Website::class);
+        return $this->hasMany(Hosting::class);
     }
 }

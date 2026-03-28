@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Hosting;
 use App\Models\ManagementPlan;
-use App\Models\Website;
 use Illuminate\Http\Request;
 
 class ManagementPlanController extends Controller
@@ -41,8 +41,8 @@ class ManagementPlanController extends Controller
 
     public function destroy(ManagementPlan $plan)
     {
-        // Nullify references on websites
-        Website::where('management_plan_id', $plan->id)->update(['management_plan_id' => null]);
+        // Nullify references on hostings
+        Hosting::where('management_plan_id', $plan->id)->update(['management_plan_id' => null]);
 
         $plan->delete();
 

@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\Hosting;
 use App\Models\Invoice;
 use App\Models\Order;
-use App\Models\Website;
 use App\Models\Task;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -74,15 +74,15 @@ class TaskController extends Controller
                 'priority' => $t->priority,
             ]);
 
-        $expiringWebsites = Website::where('status', 'aktivni')
-            ->whereNotNull('hosting_expires_at')
-            ->whereBetween('hosting_expires_at', [$calendarStart, $calendarEnd])
-            ->select('id', 'name', 'hosting_expires_at')
+        $expiringWebsites = Hosting::where('status', 'aktivni')
+            ->whereNotNull('expires_at')
+            ->whereBetween('expires_at', [$calendarStart, $calendarEnd])
+            ->select('id', 'name', 'expires_at')
             ->get()
-            ->map(fn ($w) => [
-                'id'      => $w->id,
-                'title'   => $w->name,
-                'date'    => $w->hosting_expires_at->toDateString(),
+            ->map(fn ($h) => [
+                'id'      => $h->id,
+                'title'   => $h->name,
+                'date'    => $h->expires_at->toDateString(),
                 'type'    => 'website',
             ]);
 

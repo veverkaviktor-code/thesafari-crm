@@ -2,7 +2,7 @@
 
 namespace App\Notifications;
 
-use App\Models\Website;
+use App\Models\Hosting;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
@@ -10,7 +10,7 @@ class WebsiteExpiring extends Notification
 {
     use Queueable;
 
-    public function __construct(public Website $website, public int $daysLeft) {}
+    public function __construct(public Hosting $hosting, public int $daysLeft) {}
 
     public function via(object $notifiable): array
     {
@@ -19,13 +19,13 @@ class WebsiteExpiring extends Notification
 
     public function toArray(object $notifiable): array
     {
-        $label = $this->website->is_registered_by_us ? 'Web (doména + hosting)' : 'Web (hosting)';
+        $label = 'Hosting';
         return [
             'type' => 'website_expiring',
-            'title' => "{$label} {$this->website->name} expiruje za {$this->daysLeft} dní",
-            'message' => "{$label} {$this->website->name} ({$this->website->customer->name}) expiruje {$this->website->hosting_expires_at->format('d.m.Y')}.",
-            'link' => "/webove-sluzby/{$this->website->id}",
-            'website_id' => $this->website->id,
+            'title' => "{$label} {$this->hosting->name} expiruje za {$this->daysLeft} dní",
+            'message' => "{$label} {$this->hosting->name} ({$this->hosting->customer->name}) expiruje {$this->hosting->expires_at->format('d.m.Y')}.",
+            'link' => "/hostingy/{$this->hosting->id}",
+            'hosting_id' => $this->hosting->id,
         ];
     }
 }
