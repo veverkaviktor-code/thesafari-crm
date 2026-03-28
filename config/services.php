@@ -60,6 +60,12 @@ return [
         'base_url' => env('FIO_API_URL', 'https://fioapi.fio.cz/v1/rest'),
     ],
 
+    'wedos' => [
+        'api_url' => env('WEDOS_WAPI_URL', 'https://api.wedos.com/wapi/json'),
+        'login' => env('WEDOS_WAPI_LOGIN'),
+        'password' => env('WEDOS_WAPI_PASSWORD'),
+    ],
+
     'turnstile' => [
         'site_key' => env('TURNSTILE_SITE_KEY'),
         'secret' => env('TURNSTILE_SECRET'),
