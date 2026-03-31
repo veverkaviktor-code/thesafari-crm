@@ -57,6 +57,8 @@ ssh root@sss06.vas-server.cz "cd /var/www/hq.thesafari.cz && php artisan migrate
 - **PHP `when('0', ...)` je falsy** — pro filtry s hodnotou '0' použít `$request->filled()` místo `$request->input()`
 - **Hosting a doména se fakturují NEZÁVISLE** — každý má svou expiraci, cenu, auto_invoice toggle
 - **Thaimassage hostingy = is_free=true** — VPS se fakturuje celé ročně, jednotlivé hostingy ne
+- **Carbon 3 `diffInDays`** vrací záporné číslo (signed) — VŽDY `abs()` při výpočtu dní po splatnosti/do expirace
+- **Po v1.3.0 rename**: `websites` relace neexistuje → `hostings`. Zkontrolovat VŠECHNY commands/services při budoucích úpravách
 
 ## Domény + Hostingy + VPS (v1.3.0)
 
@@ -73,6 +75,14 @@ ssh root@sss06.vas-server.cz "cd /var/www/hq.thesafari.cz && php artisan migrate
 - **Wedos WAPI** (`api.wedos.com`) — sync domén z Wedos (23 domén, `domains-list` + `domain-info`)
 - Per-hosting sync: tlačítko na detailu volá `POST /hostingy/{id}/sync` (detekuje server automaticky)
 - Nové záznamy → `sync_pending` (type: domain/hosting) → admin schválí
+- **Auto-párování**: při každém syncu se domény automaticky propojí s hostingem podle shodného názvu
+
+### Redirect hostingy
+- `redirect_of_id` FK na hostings(id) — redirect na parent hosting
+- Automaticky: `is_free=true`, bez expirace, bez fakturace, bez management plánu
+- UI: fialový badge `↪ parent.cz`, zjednodušený detail (jen tab Přehled)
+- Formulář: select "Redirect na hosting" skryje pravý sloupec (server, ceny, správa)
+- Pending approval: možnost rovnou označit jako redirect
 
 ### Fakturace
 - `AutoInvoiceHostings` (09:00) — hosting.sell_yearly, 30d před expirací, série 6XXX
