@@ -24,6 +24,11 @@ interface ManagementPlanOption {
     is_active: boolean;
 }
 
+interface HostingForRedirect {
+    id: number;
+    name: string;
+}
+
 interface Hosting {
     id: number;
     customer_id: number | null;
@@ -43,6 +48,7 @@ interface Hosting {
     management_plan_id: number | null;
     management_cycle: string | null;
     storage_quota_mb: number;
+    redirect_of_id: number | null;
 }
 
 interface Props {
@@ -50,9 +56,10 @@ interface Props {
     customers: Customer[];
     vpsServers: VpsServerOption[];
     managementPlans: ManagementPlanOption[];
+    hostingsForRedirect: HostingForRedirect[];
 }
 
-export default function HostingsEdit({ hosting, customers, vpsServers, managementPlans }: Props) {
+export default function HostingsEdit({ hosting, customers, vpsServers, managementPlans, hostingsForRedirect }: Props) {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const form = useForm<HostingFormData>({
         customer_id: hosting.customer_id ? String(hosting.customer_id) : '',
@@ -72,6 +79,7 @@ export default function HostingsEdit({ hosting, customers, vpsServers, managemen
         management_plan_id: hosting.management_plan_id ? String(hosting.management_plan_id) : '',
         management_cycle: hosting.management_cycle || '',
         storage_quota_mb: String(hosting.storage_quota_mb || ''),
+        redirect_of_id: hosting.redirect_of_id ? String(hosting.redirect_of_id) : '',
     });
 
     const handleSubmit = (e: FormEvent) => {
@@ -118,6 +126,7 @@ export default function HostingsEdit({ hosting, customers, vpsServers, managemen
                         customers={customers}
                         vpsServers={vpsServers}
                         managementPlans={managementPlans}
+                        hostingsForRedirect={hostingsForRedirect}
                         onCancel={() => router.visit(`/hostingy/${hosting.id}`)}
                     />
                 </div>

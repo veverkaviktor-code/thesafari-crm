@@ -20,7 +20,7 @@ class SendTestReminder extends Command
         $reminderNumber = (int) $this->option('reminder');
         $company = CompanySetting::get();
 
-        $invoice = Invoice::with(['customer', 'items', 'websites'])->first();
+        $invoice = Invoice::with(['customer', 'items', 'hostings'])->first();
         if (!$invoice) {
             $this->error('Žádná faktura v DB.');
             return 1;

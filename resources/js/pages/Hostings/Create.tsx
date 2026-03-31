@@ -26,13 +26,19 @@ interface ManagementPlanOption {
     is_active: boolean;
 }
 
+interface HostingForRedirect {
+    id: number;
+    name: string;
+}
+
 interface Props {
     customers: Customer[];
     vpsServers: VpsServerOption[];
     managementPlans: ManagementPlanOption[];
+    hostingsForRedirect: HostingForRedirect[];
 }
 
-export default function HostingsCreate({ customers, vpsServers, managementPlans }: Props) {
+export default function HostingsCreate({ customers, vpsServers, managementPlans, hostingsForRedirect }: Props) {
     const form = useForm<HostingFormData>({
         ...defaultHostingData,
     });
@@ -68,6 +74,7 @@ export default function HostingsCreate({ customers, vpsServers, managementPlans 
                         customers={customers}
                         vpsServers={vpsServers}
                         managementPlans={managementPlans}
+                        hostingsForRedirect={hostingsForRedirect}
                         onCancel={() => router.visit('/hostingy')}
                     />
                 </div>

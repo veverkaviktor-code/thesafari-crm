@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/select';
 import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
-import { CheckCircle, Ban, Globe, ArrowLeft, Server } from 'lucide-react';
+import { CheckCircle, Ban, Globe, ArrowLeft, Server, CornerDownRight } from 'lucide-react';
 
 const sourceToServer: Record<string, string> = {
     sss06: 'sss06.vas-server.cz',
@@ -31,13 +31,20 @@ interface Customer {
     name: string;
 }
 
+interface HostingForRedirect {
+    id: number;
+    name: string;
+}
+
 interface Props {
     pendingItems: PendingItem[];
     customers: Customer[];
+    hostingsForRedirect: HostingForRedirect[];
 }
 
-export default function Pending({ pendingItems, customers }: Props) {
+export default function Pending({ pendingItems, customers, hostingsForRedirect }: Props) {
     const [selectedCustomers, setSelectedCustomers] = useState<Record<string, string>>({});
+    const [selectedRedirects, setSelectedRedirects] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState<string | null>(null);
 
     const handleApprove = (domainName: string) => {
@@ -45,6 +52,7 @@ export default function Pending({ pendingItems, customers }: Props) {
         router.post('/hostingy/ke-schvaleni/approve', {
             domain_name: domainName,
             customer_id: selectedCustomers[domainName] || null,
+            redirect_of_id: selectedRedirects[domainName] || null,
         }, {
             preserveState: false,
             onFinish: () => setProcessing(null),
@@ -73,7 +81,7 @@ export default function Pending({ pendingItems, customers }: Props) {
                     <div>
                         <h2 className="text-lg font-semibold">Ke schválení</h2>
                         <p className="text-sm text-muted-foreground">
-                            Nové hostingy nalezené při sync z API — schvalte nebo ignorujte.
+                            Nové hostingy nalezené při sync z API — schvalte, označte jako redirect, nebo ignorujte.
                         </p>
                     </div>
                     <Button
@@ -99,7 +107,8 @@ export default function Pending({ pendingItems, customers }: Props) {
                                     <th className="px-4 py-3 text-left font-medium">Doména</th>
                                     <th className="px-4 py-3 text-left font-medium">Server</th>
                                     <th className="px-4 py-3 text-left font-medium">Nalezeno</th>
-                                    <th className="px-4 py-3 text-left font-medium">Přiřadit zákazníkovi</th>
+                                    <th className="px-4 py-3 text-left font-medium">Zákazník</th>
+                                    <th className="px-4 py-3 text-left font-medium">Redirect na</th>
                                     <th className="px-4 py-3 text-right font-medium">Akce</th>
                                 </tr>
                             </thead>
@@ -125,7 +134,7 @@ export default function Pending({ pendingItems, customers }: Props) {
                                                     setSelectedCustomers((prev) => ({ ...prev, [item.domain_name]: val }))
                                                 }
                                             >
-                                                <SelectTrigger className="w-[220px]">
+                                                <SelectTrigger className="w-[180px]">
                                                     <SelectValue placeholder="Bez zákazníka" />
                                                 </SelectTrigger>
                                                 <SelectContent>
@@ -137,16 +146,42 @@ export default function Pending({ pendingItems, customers }: Props) {
                                                 </SelectContent>
                                             </Select>
                                         </td>
+                                        <td className="px-4 py-3">
+                                            <Select
+                                                value={selectedRedirects[item.domain_name] || ''}
+                                                onValueChange={(val) =>
+                                                    setSelectedRedirects((prev) => ({ ...prev, [item.domain_name]: val === 'none' ? '' : val }))
+                                                }
+                                            >
+                                                <SelectTrigger className="w-[180px]">
+                                                    <SelectValue placeholder="Samostatný" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="none">Samostatný</SelectItem>
+                                                    {hostingsForRedirect.map((h) => (
+                                                        <SelectItem key={h.id} value={String(h.id)}>
+                                                            ↪ {h.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </td>
                                         <td className="px-4 py-3 text-right">
                                             <div className="flex items-center justify-end gap-2">
                                                 <Button
                                                     size="sm"
                                                     onClick={() => handleApprove(item.domain_name)}
                                                     disabled={processing === item.domain_name}
-                                                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                                    className={selectedRedirects[item.domain_name]
+                                                        ? 'bg-violet-600 hover:bg-violet-700 text-white'
+                                                        : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                                    }
                                                 >
-                                                    <CheckCircle className="h-4 w-4 mr-1" />
-                                                    Schválit
+                                                    {selectedRedirects[item.domain_name] ? (
+                                                        <><CornerDownRight className="h-4 w-4 mr-1" />Redirect</>
+                                                    ) : (
+                                                        <><CheckCircle className="h-4 w-4 mr-1" />Schválit</>
+                                                    )}
                                                 </Button>
                                                 <Button
                                                     size="sm"

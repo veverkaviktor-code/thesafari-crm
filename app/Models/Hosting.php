@@ -40,6 +40,7 @@ class Hosting extends Model
         'management_cycle',
         'auto_invoice_management',
         'last_expiry_notified_at',
+        'redirect_of_id',
     ];
 
     protected $logFillable = true;
@@ -109,6 +110,16 @@ class Hosting extends Model
         return $this->hasMany(HostingCredential::class);
     }
 
+    public function redirectOf(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'redirect_of_id');
+    }
+
+    public function redirects(): HasMany
+    {
+        return $this->hasMany(self::class, 'redirect_of_id');
+    }
+
     public function vpsServer(): BelongsTo
     {
         return $this->belongsTo(VpsServer::class, 'server_id');
@@ -140,6 +151,11 @@ class Hosting extends Model
     }
 
     // ── Helper methods ─────────────────────────────────────────────
+
+    public function isRedirect(): bool
+    {
+        return $this->redirect_of_id !== null;
+    }
 
     public function daysUntilExpiry(): ?int
     {

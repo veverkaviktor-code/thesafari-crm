@@ -2,7 +2,7 @@ import { type FormEvent, useEffect, useState, useRef } from 'react';
 import { type InertiaFormProps, router } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
-import { CalendarIcon, X, Globe, HardDrive, Settings } from 'lucide-react';
+import { CalendarIcon, X, Globe, HardDrive, Settings, CornerDownRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
@@ -41,6 +41,7 @@ export interface HostingFormData {
     management_plan_id: string;
     management_cycle: string;
     storage_quota_mb: string;
+    redirect_of_id: string;
 }
 
 export const defaultHostingData: HostingFormData = {
@@ -61,6 +62,7 @@ export const defaultHostingData: HostingFormData = {
     management_plan_id: '',
     management_cycle: '',
     storage_quota_mb: '',
+    redirect_of_id: '',
 };
 
 interface Customer {
@@ -81,6 +83,11 @@ interface ManagementPlanOption {
     is_active: boolean;
 }
 
+interface HostingForRedirect {
+    id: number;
+    name: string;
+}
+
 interface HostingFormProps {
     form: InertiaFormProps<HostingFormData>;
     onSubmit: (e: FormEvent) => void;
@@ -88,6 +95,7 @@ interface HostingFormProps {
     customers: Customer[];
     vpsServers?: VpsServerOption[];
     managementPlans?: ManagementPlanOption[];
+    hostingsForRedirect?: HostingForRedirect[];
     onCancel?: () => void;
 }
 
@@ -249,9 +257,11 @@ export default function HostingForm({
     customers,
     vpsServers = [],
     managementPlans = [],
+    hostingsForRedirect = [],
     onCancel,
 }: HostingFormProps) {
     const { data, setData, errors, processing } = form;
+    const isRedirect = !!data.redirect_of_id;
 
     const handleCancel = () => {
         if (onCancel) {
@@ -302,37 +312,70 @@ export default function HostingForm({
                     {errors.customer_id && <p className="mt-1 text-xs text-red-400">{errors.customer_id}</p>}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                    {/* Status */}
+                {/* Redirect */}
+                {hostingsForRedirect.length > 0 && (
                     <div>
-                        <Label className="text-muted-foreground">Stav</Label>
-                        <Select value={data.status} onValueChange={(v) => setData('status', v)}>
-                            <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground"><SelectValue /></SelectTrigger>
+                        <Label className="text-muted-foreground">Redirect na hosting</Label>
+                        <Select
+                            value={data.redirect_of_id || 'none'}
+                            onValueChange={(v) => setData('redirect_of_id', v === 'none' ? '' : v)}
+                        >
+                            <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
+                                <SelectValue placeholder="Samostatný hosting" />
+                            </SelectTrigger>
                             <SelectContent className="bg-card border-border">
-                                <SelectItem value="aktivni">Aktivní</SelectItem>
-                                <SelectItem value="pozastaveno">Pozastaveno</SelectItem>
-                                <SelectItem value="zruseno">Zrušeno</SelectItem>
+                                <SelectItem value="none">Samostatný hosting</SelectItem>
+                                {hostingsForRedirect.map((h) => (
+                                    <SelectItem key={h.id} value={String(h.id)}>
+                                        ↪ {h.name}
+                                    </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
+                        {isRedirect && (
+                            <p className="mt-1.5 text-xs text-amber-400">
+                                Redirect — bez expirace, bez fakturace, automaticky zdarma
+                            </p>
+                        )}
+                        {errors.redirect_of_id && <p className="mt-1 text-xs text-red-400">{errors.redirect_of_id}</p>}
                     </div>
-                    {/* Starts at */}
-                    <DatePickerField
-                        label="Začátek"
-                        value={data.starts_at}
-                        onChange={(d) => setData('starts_at', d)}
-                    />
-                </div>
+                )}
+
+                {!isRedirect && (
+                    <div className="grid grid-cols-2 gap-4">
+                        {/* Status */}
+                        <div>
+                            <Label className="text-muted-foreground">Stav</Label>
+                            <Select value={data.status} onValueChange={(v) => setData('status', v)}>
+                                <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground"><SelectValue /></SelectTrigger>
+                                <SelectContent className="bg-card border-border">
+                                    <SelectItem value="aktivni">Aktivní</SelectItem>
+                                    <SelectItem value="pozastaveno">Pozastaveno</SelectItem>
+                                    <SelectItem value="zruseno">Zrušeno</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        {/* Starts at */}
+                        <DatePickerField
+                            label="Začátek"
+                            value={data.starts_at}
+                            onChange={(d) => setData('starts_at', d)}
+                        />
+                    </div>
+                )}
 
                 {/* Admin URL */}
-                <div>
-                    <Label className="text-muted-foreground">Admin URL</Label>
-                    <Input
-                        value={data.admin_url}
-                        onChange={(e) => setData('admin_url', e.target.value)}
-                        placeholder="https://example.cz/wp-admin"
-                        className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
-                    />
-                </div>
+                {!isRedirect && (
+                    <div>
+                        <Label className="text-muted-foreground">Admin URL</Label>
+                        <Input
+                            value={data.admin_url}
+                            onChange={(e) => setData('admin_url', e.target.value)}
+                            placeholder="https://example.cz/wp-admin"
+                            className="mt-1.5 bg-muted border-border text-foreground placeholder:text-muted-foreground"
+                        />
+                    </div>
+                )}
 
                 {/* Notes */}
                 <div>
@@ -347,7 +390,8 @@ export default function HostingForm({
             </FormSection>
             </div>
 
-            {/* RIGHT COLUMN */}
+            {/* RIGHT COLUMN — hidden for redirects */}
+            {!isRedirect && (
             <div className="space-y-6">
             {/* Hosting */}
             <FormSection icon={HardDrive} title="Hosting">
@@ -471,6 +515,7 @@ export default function HostingForm({
             )}
 
             </div>
+            )}
             </div>
 
             {/* Actions */}

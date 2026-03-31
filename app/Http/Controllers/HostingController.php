@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\Domain;
 use App\Models\Hosting;
 use App\Models\HostingPayment;
 use App\Models\Invoice;
@@ -22,8 +23,8 @@ class HostingController extends Controller
         $perPage = min((int) ($request->input('per_page') ?: 50), 100);
 
         $query = Hosting::query()
-            ->with(['customer:id,name,company', 'vpsServer', 'managementPlan', 'credentials', 'emailAccounts'])
-            ->withCount('domains')
+            ->with(['customer:id,name,company', 'vpsServer', 'managementPlan', 'credentials', 'emailAccounts', 'redirectOf:id,name'])
+            ->withCount(['domains', 'redirects'])
             ->when($request->input('search'), function ($q, $term) {
                 $q->where(function ($sub) use ($term) {
                     $sub->where('name', 'ilike', "%{$term}%")
@@ -47,6 +48,7 @@ class HostingController extends Controller
                     'no_expiry' => $q->where('status', 'aktivni')
                         ->whereNull('expires_at'),
                     'free' => $q->where('is_free', true),
+                    'redirect' => $q->whereNotNull('redirect_of_id'),
                     default => null,
                 };
             })
@@ -115,6 +117,7 @@ class HostingController extends Controller
             'unpaid_amount'    => (float) HostingPayment::whereIn('status', ['nezaplaceno', 'po_splatnosti'])->sum('amount'),
             'arr_hosting'      => (float) Hosting::where('status', 'aktivni')
                                     ->where('is_free', false)
+                                    ->whereNull('redirect_of_id')
                                     ->sum('sell_yearly'),
             'to_invoice_count' => Hosting::where('status', 'aktivni')
                                     ->whereNotNull('expires_at')
@@ -132,6 +135,7 @@ class HostingController extends Controller
                                     ->selectRaw("COALESCE(SUM(COALESCE(NULLIF(sell_yearly, 0), 0)), 0) as total")
                                     ->value('total'),
             'pending_count'    => SyncPending::where('type', 'hosting')->count(),
+            'redirect_count'   => Hosting::whereNotNull('redirect_of_id')->whereNull('deleted_at')->count(),
         ];
 
         // Unique server hostnames for filter dropdown
@@ -165,6 +169,8 @@ class HostingController extends Controller
             'credentials',
             'vpsServer',
             'managementPlan',
+            'redirectOf:id,name',
+            'redirects' => fn ($q) => $q->select('id', 'name', 'redirect_of_id')->orderBy('name'),
         ]);
 
         $paymentStats = [
@@ -199,11 +205,16 @@ class HostingController extends Controller
         $customers = Customer::select('id', 'name', 'company')->orderBy('name')->get();
         $vpsServers = VpsServer::active()->select('id', 'name')->orderBy('name')->get();
         $managementPlans = ManagementPlan::where('is_active', true)->orderBy('sort_order')->get();
+        $hostingsForRedirect = Hosting::whereNull('redirect_of_id')
+            ->where('status', 'aktivni')
+            ->orderBy('name')
+            ->get(['id', 'name']);
 
         return Inertia::render('Hostings/Create', [
             'customers' => $customers,
             'vpsServers' => $vpsServers,
             'managementPlans' => $managementPlans,
+            'hostingsForRedirect' => $hostingsForRedirect,
         ]);
     }
 
@@ -227,7 +238,19 @@ class HostingController extends Controller
             'management_plan_id'     => 'nullable|exists:management_plans,id',
             'management_cycle'       => 'nullable|in:quarterly,semi_annual,annual',
             'storage_quota_mb'       => 'nullable|integer|min:0',
+            'redirect_of_id'         => 'nullable|exists:hostings,id',
         ]);
+
+        // Redirects: force free, no expiry, no prices, no invoice
+        if ($validated['redirect_of_id'] ?? null) {
+            $validated['is_free'] = true;
+            $validated['auto_invoice'] = false;
+            $validated['sell_yearly'] = 0;
+            $validated['cost_yearly'] = 0;
+            $validated['expires_at'] = null;
+            $validated['management_plan_id'] = null;
+            $validated['management_cycle'] = null;
+        }
 
         $validated['sell_yearly'] = $validated['sell_yearly'] ?? 0;
         $validated['cost_yearly'] = $validated['cost_yearly'] ?? 0;
@@ -253,12 +276,18 @@ class HostingController extends Controller
         $customers = Customer::select('id', 'name', 'company')->orderBy('name')->get();
         $vpsServers = VpsServer::active()->select('id', 'name')->orderBy('name')->get();
         $managementPlans = ManagementPlan::where('is_active', true)->orderBy('sort_order')->get();
+        $hostingsForRedirect = Hosting::whereNull('redirect_of_id')
+            ->where('status', 'aktivni')
+            ->where('id', '!=', $hosting->id)
+            ->orderBy('name')
+            ->get(['id', 'name']);
 
         return Inertia::render('Hostings/Edit', [
             'hosting' => $hosting,
             'customers' => $customers,
             'vpsServers' => $vpsServers,
             'managementPlans' => $managementPlans,
+            'hostingsForRedirect' => $hostingsForRedirect,
         ]);
     }
 
@@ -292,7 +321,19 @@ class HostingController extends Controller
             'management_plan_id'     => 'nullable|exists:management_plans,id',
             'management_cycle'       => 'nullable|in:quarterly,semi_annual,annual',
             'storage_quota_mb'       => 'nullable|integer|min:0',
+            'redirect_of_id'         => 'nullable|exists:hostings,id',
         ]);
+
+        // Redirects: force free, no expiry, no prices, no invoice
+        if ($validated['redirect_of_id'] ?? null) {
+            $validated['is_free'] = true;
+            $validated['auto_invoice'] = false;
+            $validated['sell_yearly'] = 0;
+            $validated['cost_yearly'] = 0;
+            $validated['expires_at'] = null;
+            $validated['management_plan_id'] = null;
+            $validated['management_cycle'] = null;
+        }
 
         $validated['sell_yearly'] = $validated['sell_yearly'] ?? 0;
         $validated['cost_yearly'] = $validated['cost_yearly'] ?? 0;
@@ -662,6 +703,11 @@ class HostingController extends Controller
                             $data['server_id'] = $sss06VpsId;
                         }
                         $hosting->update($data);
+                        // Auto-link unlinked domain with same name
+                        Domain::where('name', $domainName)
+                            ->whereNull('hosting_id')
+                            ->whereNull('deleted_at')
+                            ->update(['hosting_id' => $hosting->id]);
                         $updated++;
                     } else {
                         SyncPending::firstOrCreate(
@@ -781,6 +827,11 @@ class HostingController extends Controller
                             $data['server_id'] = $vpsId;
                         }
                         $hosting->update($data);
+                        // Auto-link unlinked domain with same name
+                        Domain::where('name', $domainName)
+                            ->whereNull('hosting_id')
+                            ->whereNull('deleted_at')
+                            ->update(['hosting_id' => $hosting->id]);
                         $updated++;
                     } else {
                         // Map full server name to short name for source
@@ -815,10 +866,15 @@ class HostingController extends Controller
             ->orderBy('discovered_at', 'desc')
             ->get();
         $customers = Customer::orderBy('name')->get(['id', 'name']);
+        $hostingsForRedirect = Hosting::whereNull('redirect_of_id')
+            ->where('status', 'aktivni')
+            ->orderBy('name')
+            ->get(['id', 'name']);
 
         return Inertia::render('Hostings/Pending', [
             'pendingItems' => $pendingItems,
             'customers' => $customers,
+            'hostingsForRedirect' => $hostingsForRedirect,
         ]);
     }
 
@@ -830,11 +886,36 @@ class HostingController extends Controller
         $validated = $request->validate([
             'domain_name' => 'required|string|max:255',
             'customer_id' => 'nullable|exists:customers,id',
+            'redirect_of_id' => 'nullable|exists:hostings,id',
         ]);
 
         $pendingItem = SyncPending::where('domain_name', $validated['domain_name'])
             ->where('type', 'hosting')
             ->firstOrFail();
+
+        // Check if hosting already exists (e.g. from previous failed attempt)
+        $existing = Hosting::where('name', $pendingItem->domain_name)->whereNull('deleted_at')->first();
+        if ($existing) {
+            // Update existing with customer/redirect if provided
+            $updates = [];
+            if ($validated['customer_id'] ?? null) {
+                $updates['customer_id'] = $validated['customer_id'];
+            }
+            if ($validated['redirect_of_id'] ?? null) {
+                $updates['redirect_of_id'] = $validated['redirect_of_id'];
+                $updates['is_free'] = true;
+                $updates['auto_invoice'] = false;
+                $updates['sell_yearly'] = 0;
+                $updates['cost_yearly'] = 0;
+                $updates['expires_at'] = null;
+            }
+            if ($updates) {
+                $existing->update($updates);
+            }
+            $pendingItem->delete();
+
+            return back()->with('success', "Hosting {$pendingItem->domain_name} již existoval — pending odstraněn.");
+        }
 
         // Map source to full server name
         $server = match ($pendingItem->source) {
@@ -847,27 +928,35 @@ class HostingController extends Controller
         // Find VPS server ID
         $serverId = $server ? VpsServer::where('name', $server)->value('id') : null;
 
-        $hosting = Hosting::create([
-            'name' => $pendingItem->domain_name,
-            'status' => 'aktivni',
-            'auto_invoice' => false,
-            'customer_id' => $validated['customer_id'] ?? null,
-            'server' => $server,
-            'server_id' => $serverId,
-        ]);
+        $isRedirect = (bool) ($validated['redirect_of_id'] ?? null);
 
-        // Auto-link domain with same name
-        Domain::where('name', $hosting->name)
-            ->whereNull('hosting_id')
-            ->whereNull('deleted_at')
-            ->update([
-                'hosting_id' => $hosting->id,
-                'customer_id' => $hosting->customer_id ?? \DB::raw('customer_id'),
+        DB::transaction(function () use ($pendingItem, $validated, $server, $serverId, $isRedirect) {
+            $hosting = Hosting::create([
+                'name' => $pendingItem->domain_name,
+                'status' => 'aktivni',
+                'auto_invoice' => $isRedirect ? false : false,
+                'is_free' => $isRedirect,
+                'customer_id' => $validated['customer_id'] ?? null,
+                'redirect_of_id' => $validated['redirect_of_id'] ?? null,
+                'server' => $server,
+                'server_id' => $serverId,
             ]);
 
-        $pendingItem->delete();
+            // Auto-link domain with same name
+            Domain::where('name', $hosting->name)
+                ->whereNull('hosting_id')
+                ->whereNull('deleted_at')
+                ->update([
+                    'hosting_id' => $hosting->id,
+                    'customer_id' => $hosting->customer_id ?? DB::raw('customer_id'),
+                ]);
 
-        return back()->with('success', "Hosting {$pendingItem->domain_name} schválen a vytvořen.");
+            $pendingItem->delete();
+        });
+
+        $label = $isRedirect ? 'schválen jako redirect' : 'schválen a vytvořen';
+
+        return back()->with('success', "Hosting {$pendingItem->domain_name} {$label}.");
     }
 
     /**

@@ -334,6 +334,13 @@ class DomainController extends Controller
 
                 if ($domain) {
                     $domain->update($data);
+                    // Auto-link to hosting with same name if not yet linked
+                    if (!$domain->hosting_id) {
+                        $matchingHosting = Hosting::where('name', $domainName)->whereNull('deleted_at')->first();
+                        if ($matchingHosting) {
+                            $domain->update(['hosting_id' => $matchingHosting->id]);
+                        }
+                    }
                     $updated++;
                 } else {
                     SyncPending::firstOrCreate(
@@ -392,6 +399,13 @@ class DomainController extends Controller
                         $data['expires_at'] = $domainInfo['expiration'];
                     }
                     $domain->update($data);
+                    // Auto-link to hosting with same name if not yet linked
+                    if (!$domain->hosting_id) {
+                        $matchingHosting = Hosting::where('name', $domainName)->whereNull('deleted_at')->first();
+                        if ($matchingHosting) {
+                            $domain->update(['hosting_id' => $matchingHosting->id]);
+                        }
+                    }
                     $updated++;
                 } else {
                     SyncPending::firstOrCreate(
@@ -557,13 +571,22 @@ class DomainController extends Controller
             default   => 'external',
         };
 
+        // Auto-link to hosting with same name if user didn't select one
+        $hostingId = $validated['hosting_id'] ?? null;
+        if (!$hostingId) {
+            $matchingHosting = Hosting::where('name', $pendingItem->domain_name)->whereNull('deleted_at')->first();
+            if ($matchingHosting) {
+                $hostingId = $matchingHosting->id;
+            }
+        }
+
         Domain::create([
             'name'          => $pendingItem->domain_name,
             'registrar'     => $registrar,
             'status'        => 'aktivni',
             'auto_invoice'  => false,
             'customer_id'   => $validated['customer_id'] ?? null,
-            'hosting_id'    => $validated['hosting_id'] ?? null,
+            'hosting_id'    => $hostingId,
         ]);
 
         $pendingItem->delete();

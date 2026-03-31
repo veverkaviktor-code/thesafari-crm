@@ -113,6 +113,11 @@ interface Domain {
     cost_yearly: number;
 }
 
+interface RedirectHosting {
+    id: number;
+    name: string;
+}
+
 interface Hosting {
     id: number;
     name: string;
@@ -145,6 +150,9 @@ interface Hosting {
     payments: Payment[];
     invoices: Invoice[];
     domains: Domain[];
+    redirect_of_id: number | null;
+    redirect_of: RedirectHosting | null;
+    redirects: RedirectHosting[];
 }
 
 interface Customer {
@@ -585,6 +593,27 @@ function TabPrehled({ hosting }: { hosting: Hosting }) {
                     )}
                 </div>
             </div>
+
+            {/* Redirecty card — only on parent hostings */}
+            {hosting.redirects && hosting.redirects.length > 0 && (
+                <div className="bg-card border border-border rounded-lg overflow-hidden">
+                    <SectionHeader icon={Link2} title="Redirecty" count={hosting.redirects.length} />
+                    <div className="px-5 py-4">
+                        <div className="space-y-2">
+                            {hosting.redirects.map((r) => (
+                                <a
+                                    key={r.id}
+                                    href={`/hostingy/${r.id}`}
+                                    className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted/50 transition-colors group"
+                                >
+                                    <span className="text-violet-400">↪</span>
+                                    <span className="text-sm font-medium text-foreground group-hover:text-violet-400 transition-colors">{r.name}</span>
+                                </a>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Financial summary — Cena tabulka */}
             <div className="bg-card border border-border rounded-lg overflow-hidden">
@@ -1293,6 +1322,10 @@ export default function HostingsShow({ hosting, paymentStats }: Props) {
     const [blacklistOnDelete, setBlacklistOnDelete] = useState(false);
 
     const statusInfo = statusMap[hosting.status];
+    const isRedirect = !!hosting.redirect_of_id;
+    const visibleTabs = isRedirect
+        ? tabs.filter(t => t.id === 'prehled')
+        : tabs;
 
     return (
         <AuthenticatedLayout
@@ -1307,7 +1340,7 @@ export default function HostingsShow({ hosting, paymentStats }: Props) {
                 <div className="space-y-2">
                     {/* Row 1: Actions top-right */}
                     <div className="flex items-center justify-end gap-2">
-                        {!hosting.is_free && hosting.customer && (
+                        {!hosting.is_free && !isRedirect && hosting.customer && (
                             <Button onClick={() => router.post(`/hostingy/${hosting.id}/faktura`)} className="bg-amber-600 text-white hover:bg-amber-700 border-0" size="sm">
                                 <FileText className="h-3.5 w-3.5 mr-1.5" />
                                 Vystavit fakturu
@@ -1335,10 +1368,25 @@ export default function HostingsShow({ hosting, paymentStats }: Props) {
                         <HardDrive className="h-6 w-6 text-sky-400 shrink-0" />
                         <h1 className="text-2xl font-semibold tracking-tight text-foreground">{hosting.name}</h1>
                         {statusInfo && <StatusBadge status={statusInfo.variant}>{statusInfo.label}</StatusBadge>}
-                        {hosting.is_free && (
+                        {hosting.redirect_of && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-violet-500/15 border border-violet-500/25 px-2 py-0.5 text-[10px] font-semibold text-violet-400">
+                                ↪ REDIRECT
+                            </span>
+                        )}
+                        {hosting.is_free && !hosting.redirect_of_id && (
                             <span className="inline-flex items-center rounded-full bg-emerald-500/15 border border-emerald-500/25 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">ZDARMA</span>
                         )}
                     </div>
+
+                    {/* Redirect info */}
+                    {hosting.redirect_of && (
+                        <div className="pl-10 flex items-center gap-2 text-sm text-violet-400">
+                            <span>Redirect na</span>
+                            <a href={`/hostingy/${hosting.redirect_of.id}`} className="font-medium hover:text-violet-300 transition-colors underline underline-offset-2">
+                                {hosting.redirect_of.name}
+                            </a>
+                        </div>
+                    )}
 
                     {/* Row 3: Customer */}
                     {hosting.customer && (
@@ -1353,7 +1401,7 @@ export default function HostingsShow({ hosting, paymentStats }: Props) {
                 {/* TABS */}
                 <div className="border-b border-border">
                     <nav className="flex gap-0 -mb-px">
-                        {tabs.map((tab) => {
+                        {visibleTabs.map((tab) => {
                             const isActive = activeTab === tab.id;
                             const Icon = tab.icon;
                             return (

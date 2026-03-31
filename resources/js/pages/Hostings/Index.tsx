@@ -86,6 +86,9 @@ interface Hosting {
     credentials: { id: number; label: string }[];
     email_accounts: { id: number; email: string }[];
     domains_count: number;
+    redirects_count: number;
+    redirect_of_id: number | null;
+    redirect_of: { id: number; name: string } | null;
     // Computed
     days_until_expiry: number | null;
     urgency: string;
@@ -391,6 +394,7 @@ export default function HostingsIndex({
         { value: 'expired', label: 'Po expiraci' },
         { value: 'no_expiry', label: 'Bez expirace' },
         { value: 'free', label: 'Zdarma' },
+        { value: 'redirect', label: 'Redirecty' },
     ];
 
     // Column filter options
@@ -427,7 +431,12 @@ export default function HostingsIndex({
                     {h.has_unpaid && <span className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0" />}
                     <HardDrive className="h-4 w-4 text-sky-400 shrink-0" />
                     <span className="font-medium text-foreground">{h.name}</span>
-                    {h.is_free && (
+                    {h.redirect_of && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-violet-500/15 border border-violet-500/25 px-1.5 py-0 text-[10px] font-semibold text-violet-400">
+                            ↪ {h.redirect_of.name}
+                        </span>
+                    )}
+                    {h.is_free && !h.redirect_of_id && (
                         <span className="inline-flex items-center rounded-full bg-emerald-500/15 border border-emerald-500/25 px-1.5 py-0 text-[10px] font-semibold text-emerald-400">
                             ZDARMA
                         </span>

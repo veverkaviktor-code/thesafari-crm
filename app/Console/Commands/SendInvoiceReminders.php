@@ -35,7 +35,7 @@ class SendInvoiceReminders extends Command
         $company = CompanySetting::get();
         $sent = 0;
 
-        $invoices = Invoice::with(['customer', 'items', 'websites'])
+        $invoices = Invoice::with(['customer', 'items', 'hostings'])
             ->where('status', 'po_splatnosti')
             ->where('reminder_count', '<', 3)
             ->whereNotNull('due_date')
@@ -47,7 +47,7 @@ class SendInvoiceReminders extends Command
                 continue;
             }
 
-            $daysOverdue = (int) now()->diffInDays($invoice->due_date);
+            $daysOverdue = (int) abs(now()->diffInDays($invoice->due_date));
             $nextReminder = $this->getNextReminderNumber($invoice->reminder_count, $daysOverdue);
 
             if ($nextReminder === null) {
