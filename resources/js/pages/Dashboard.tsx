@@ -2,6 +2,7 @@ import {
     CalendarCheck,
     ClipboardList,
     CreditCard,
+    Landmark,
     MessageSquare,
     TrendingUp,
 } from 'lucide-react';
@@ -124,9 +125,13 @@ interface Props {
         days_overdue: number | null;
         link: string;
     }[];
+    bankBalance?: {
+        balance: number;
+        currency: string;
+    } | null;
 }
 
-export default function Dashboard({ stats, mrr, revenueByDivision, revenueData, recentTickets, alerts, ignoredAlerts, recentActivity, servicesStats, taskStats, financialSummary, receivables }: Props) {
+export default function Dashboard({ stats, mrr, revenueByDivision, revenueData, recentTickets, alerts, ignoredAlerts, recentActivity, servicesStats, taskStats, financialSummary, receivables, bankBalance }: Props) {
     const s = stats ?? { active_orders: 0, unpaid_amount: 0, open_tickets: 0, upcoming_deadlines: 0 };
     const mrrData = mrr ?? { total: 0, hosting: 0, domain: 0, management: 0, vps: 0, count: 0, costs_monthly: 0, margin_monthly: 0, arr_total: 0, costs_annual: 0, margin_annual: 0 };
 
@@ -147,7 +152,15 @@ export default function Dashboard({ stats, mrr, revenueByDivision, revenueData, 
         >
             <div className="space-y-6">
                 {/* Row 1: Stat cards */}
-                <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-5">
+                <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-6">
+                    <StatCard
+                        label="Stav účtu"
+                        value={bankBalance ? formatCurrency(bankBalance.balance) : '—'}
+                        icon={Landmark}
+                        iconColor="text-blue-500"
+                        iconBg="bg-blue-500/10"
+                        subtitle={bankBalance ? 'Fio banka' : 'Nedostupné'}
+                    />
                     <StatCard
                         label="Aktivní zakázky"
                         value={String(s.active_orders)}

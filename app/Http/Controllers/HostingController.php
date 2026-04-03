@@ -492,7 +492,7 @@ class HostingController extends Controller
             }
 
             $total = collect($items)->sum('total_price');
-            $invoiceNumber = Invoice::getNextInvoiceNumber('6');
+            $invoiceNumber = Invoice::getNextInvoiceNumber('banka');
 
             // Due date = hosting expiry, minimum 14 days from now
             $minDue = now()->addDays(14);
@@ -604,7 +604,7 @@ class HostingController extends Controller
             }
 
             $total = collect($items)->sum('total_price');
-            $invoiceNumber = Invoice::getNextInvoiceNumber('6');
+            $invoiceNumber = Invoice::getNextInvoiceNumber('banka');
 
             // Due date = earliest expiry, min 14 days from now
             $minDue = now()->addDays(14);

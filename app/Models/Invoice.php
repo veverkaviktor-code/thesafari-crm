@@ -81,13 +81,13 @@ class Invoice extends Model
         return $this->status !== 'zaplacena' && $this->due_date->isPast();
     }
 
-    public static function getNextInvoiceNumber(string $series = '1'): string
+    public static function getNextInvoiceNumber(string $paymentMethod = 'banka'): string
     {
-        return DB::transaction(function () use ($series) {
-            $year = now()->year;
-            $prefix = $year . $series;
+        return DB::transaction(function () use ($paymentMethod) {
+            $year = (string) now()->year;
+            $isCash = $paymentMethod === 'hotove';
+            $prefix = $year . ($isCash ? '_cash' : '_bank');
 
-            // Atomic increment on sequence table — safe even after hard delete
             $seq = DB::table('invoice_sequences')
                 ->where('prefix', $prefix)
                 ->lockForUpdate()
@@ -101,7 +101,8 @@ class Invoice extends Model
                 return (string) $next;
             }
 
-            $firstNumber = (int) ($prefix . '001');
+            // Fallback — create sequence
+            $firstNumber = $isCash ? ((int) ($year . '9001')) : ((int) ($year . '0001'));
             DB::table('invoice_sequences')->insert([
                 'prefix' => $prefix,
                 'last_number' => $firstNumber,

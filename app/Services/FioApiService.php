@@ -105,6 +105,48 @@ class FioApiService
     }
 
     /**
+     * Vrátí aktuální zůstatek účtu.
+     */
+    public function getBalance(): ?array
+    {
+        if (empty($this->token)) {
+            return null;
+        }
+
+        // Stáhneme transakce za dnes — response vždy obsahuje info s closingBalance
+        $today = date('Y-m-d');
+        $url = "{$this->baseUrl}/periods/{$this->token}/{$today}/{$today}/transactions.json";
+
+        try {
+            $response = Http::timeout(30)->get($url);
+
+            if ($response->status() === 409) {
+                return null; // rate limit
+            }
+
+            if (!$response->successful()) {
+                return null;
+            }
+
+            $statement = $response->json('accountStatement.info');
+            if (!$statement) {
+                return null;
+            }
+
+            return [
+                'balance' => (float) ($statement['closingBalance'] ?? 0),
+                'currency' => $statement['currency'] ?? 'CZK',
+                'account_id' => $statement['accountId'] ?? null,
+                'bank_id' => $statement['bankId'] ?? null,
+                'iban' => $statement['iban'] ?? null,
+            ];
+        } catch (\Exception $e) {
+            Log::error('Fio API: Chyba při čtení zůstatku', ['message' => $e->getMessage()]);
+            return null;
+        }
+    }
+
+    /**
      * Parsuje Fio JSON response do pole transakcí.
      */
     private function parseResponse(array $data): array

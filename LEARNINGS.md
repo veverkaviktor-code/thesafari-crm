@@ -279,3 +279,59 @@
 **Learning**: PostgreSQL decimal(10,2) → PHP float konverze může mít drobné odchylky. `===` je příliš striktní.
 **Pattern**: Pro finanční porovnání vždy `abs($a - $b) < 0.01`, nikdy `===` nebo `==`.
 **Action**: Grep pro `=== $amount` nebo `== $amount` v kontextu financí → nahradit abs() < epsilon.
+
+---
+
+### 2026-04-02 — PostgreSQL CHECK constrainty blokují záporné hodnoty
+**Context**: Povolení záporných cen na fakturách (kompenzace -520 Kč). Laravel validace opravena, ale INSERT stále padal.
+**Learning**: PostgreSQL CHECK constrainty (`invoice_items_total_price_check`, `invoice_items_unit_price_check`) fungují nezávisle na Laravel validaci. Tři vrstvy blokace: (1) HTML `<input min="0">`, (2) Laravel `'numeric|min:0'`, (3) DB CHECK constraint.
+**Pattern**: Při změně validačních pravidel VŽDY kontrolovat 3 vrstvy. `SELECT conname FROM pg_constraint WHERE conrelid = 'tabulka'::regclass AND contype = 'c'`.
+**Action**: Před povolením nových hodnot ověřit DB constrainty. Po změně: test INSERT přes tinker.
+
+---
+
+### 2026-04-02 — DataTable selectable bez getItemId → posunuté sloupce
+**Context**: Zakázky index — header měl checkbox ale data řádky ne → sloupce posunuté o 1.
+**Learning**: DataTable s `selectable` přidá checkbox do headeru vždy, ale data řádky renderují checkbox jen když `getItemId` vrátí hodnotu. Bez prop = `undefined` = žádný checkbox v řádku.
+**Pattern**: `selectable` + `selectedIds` + `onSelectionChange` VŽDY vyžadují i `getItemId={(o) => o.id}`.
+**Action**: Přidat runtime warning do DataTable pokud je selectable bez getItemId.
+
+---
+
+### 2026-04-02 — Invoice sloupec `total` (ne `total_amount`)
+**Context**: Ruční update celkové částky faktury přes tinker — `$inv->total_amount = X` → update šel do prázdna.
+**Learning**: Sloupec se jmenuje `total`, cast `decimal:2`. Vždy ověřit přes model casts nebo schema, nikdy hádat.
+**Pattern**: Před ručním DB updatem přes tinker: `\Schema::getColumnListing('table')` nebo zkontrolovat `$casts` v modelu.
+**Action**: V CLAUDE.md je to zaznamenáno jako gotcha.
+
+---
+
+### 2026-04-02 — Divize VARCHAR → JSONB multi-select
+**Context**: Přestrukturace z 5 jednoduchých divizí na 4 skupiny s multi-selectem.
+**Learning**: `ALTER COLUMN division TYPE jsonb USING jsonb_build_array(division)` konvertuje string na JSON pole v jednom kroku. Scope `whereJsonContains` pro filtrování. Dashboard agregace vyžaduje PHP loop místo SQL GROUP BY (JSONB pole nelze jednoduše groupovat).
+**Pattern**: JSONB pole v PostgreSQL = flexibilní multi-select bez pivot tabulky. Pro jednoduché tagy/kategorie lepší než M:N.
+**Action**: Pro budoucí multi-select fieldy zvážit JSONB pole jako první volbu.
+
+---
+
+### 2026-04-02 — Fakturační řady: sjednocení a oddělení převodem/hotově
+**Context**: Staré řady 1XXX (zakázky) a 6XXX (hosting) → sjednoceno na převodem 0XXX + hotově 9XXX.
+**Learning**: Sequence tabulka s `prefix` + `last_number` je flexibilní. Při změně řad: (1) nastavit last_number aby nové číslo nekolidovalo, (2) ověřit VŠECHNA volání `getNextInvoiceNumber()` v codebase. `grep -r "getNextInvoiceNumber" app/` = 8 míst (controllers + commands).
+**Pattern**: Při změně číslování vždy grep celý codebase pro volání. Staré faktury nechat beze změny.
+**Action**: Při jakékoliv změně invoice numbering → otestovat přes tinker: `Invoice::getNextInvoiceNumber('banka')` a `Invoice::getNextInvoiceNumber('hotove')`.
+
+---
+
+### 2026-04-01 — Reusable CustomerCombobox pattern
+**Context**: 6+ formulářů s plain Select pro zákazníka — uživatel chtěl vyhledávání.
+**Learning**: Shadcn Command + Popover = searchable combobox. `value` prop na CommandItem musí obsahovat searchable text (jméno + firma), ne ID. `w-[--radix-popover-trigger-width]` pro šířku odpovídající triggeru.
+**Pattern**: Když se Select používá na 3+ místech se stejnými daty → extrahovat do reusable Combobox.
+**Action**: Pro další entity (hosting, doména) stejný pattern pokud seznam naroste.
+
+---
+
+### 2026-04-01 — Fio API obsahuje balance v response info
+**Context**: Stávající parser zahazoval `accountStatement.info` — četl jen `transactionList`.
+**Learning**: Fio API response obsahuje `closingBalance`, `openingBalance`, `currency`, `iban` v `accountStatement.info`. Cache 5 min kvůli rate limitu.
+**Pattern**: Při práci s API parsery vždy zkontrolovat celou raw response — může obsahovat užitečná data.
+**Action**: Dashboard StatCard "Stav účtu" z FioApiService::getBalance().

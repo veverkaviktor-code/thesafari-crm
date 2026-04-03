@@ -64,7 +64,7 @@ interface Order {
     description: string | null;
     customer_id: number;
     customer: Customer;
-    division: Division;
+    division: Division[];
     status: OrderStatus;
     price: number;
     deadline: string | null;
@@ -153,7 +153,9 @@ export default function Show({ order, stats }: Props) {
                                 {order.title}
                             </h1>
                             <OrderStatusBadge status={order.status} />
-                            <DivisionBadge division={order.division} />
+                            {(Array.isArray(order.division) ? order.division : [order.division]).map((d) => (
+                                <DivisionBadge key={d} division={d} />
+                            ))}
                         </div>
                         <div className="mt-2 flex items-center gap-4 text-sm">
                             <Link

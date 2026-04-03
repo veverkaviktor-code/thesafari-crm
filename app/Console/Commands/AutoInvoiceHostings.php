@@ -109,7 +109,7 @@ class AutoInvoiceHostings extends Command
             }
 
             DB::transaction(function () use ($customer, $items, $total, $earliestExpiry, $admin) {
-                $invoiceNumber = Invoice::getNextInvoiceNumber('6');
+                $invoiceNumber = Invoice::getNextInvoiceNumber('banka');
 
                 $invoice = Invoice::create([
                     'customer_id' => $customer->id,
@@ -191,7 +191,7 @@ class AutoInvoiceHostings extends Command
             }
 
             DB::transaction(function () use ($vps, $price, $periodStr, $expiry, $admin) {
-                $invoiceNumber = Invoice::getNextInvoiceNumber('6');
+                $invoiceNumber = Invoice::getNextInvoiceNumber('banka');
 
                 $invoice = Invoice::create([
                     'customer_id'    => $vps->customer_id,

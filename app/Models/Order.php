@@ -29,6 +29,7 @@ class Order extends Model
     protected function casts(): array
     {
         return [
+            'division' => 'array',
             'price' => 'decimal:2',
             'deadline' => 'date',
         ];
@@ -103,7 +104,7 @@ class Order extends Model
         if (! $division) {
             return $query;
         }
-        return $query->where('division', $division);
+        return $query->whereJsonContains('division', $division);
     }
 
     public function scopeSearch($query, ?string $term)

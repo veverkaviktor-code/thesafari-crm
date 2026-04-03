@@ -174,7 +174,6 @@ export default function OrderItems({ orderId, items }: Props) {
                                 value={unitPrice}
                                 onChange={(e) => setUnitPrice(e.target.value)}
                                 type="number"
-                                min="0"
                                 step="1"
                                 placeholder="Cena/ks"
                                 className="border-border bg-card pr-10 text-sm"
@@ -272,7 +271,6 @@ export default function OrderItems({ orderId, items }: Props) {
                                                     setEditForm((f) => ({ ...f, unit_price: e.target.value }))
                                                 }
                                                 type="number"
-                                                min="0"
                                                 className="border-border bg-card pr-10 text-sm"
                                             />
                                             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">

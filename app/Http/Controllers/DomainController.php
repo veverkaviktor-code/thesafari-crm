@@ -488,7 +488,7 @@ class DomainController extends Controller
             }
 
             $total = (float) $domain->sell_yearly;
-            $invoiceNumber = Invoice::getNextInvoiceNumber('6');
+            $invoiceNumber = Invoice::getNextInvoiceNumber('banka');
 
             // Due date: max(domain.expires_at, now()+14 days)
             $minDue = now()->addDays(14);

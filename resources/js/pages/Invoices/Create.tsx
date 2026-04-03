@@ -20,6 +20,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import CustomerCombobox from '@/components/ui/CustomerCombobox';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import InvoiceItemsEditor, {
@@ -44,12 +45,22 @@ interface OrderItem {
     total: number;
 }
 
+interface TimeEntry {
+    id: number;
+    description: string | null;
+    duration_minutes: number | null;
+    hourly_rate: string | number;
+    billable_hours: number;
+    cost: number;
+}
+
 interface Order {
     id: number;
     title: string;
     price: number;
     customer_id: number;
     items?: OrderItem[];
+    time_entries?: TimeEntry[];
 }
 
 interface Props {
@@ -82,21 +93,43 @@ export default function Create({
     );
 
     const initialItems: InvoiceItemRow[] = prefill_order
-        ? prefill_order.items && prefill_order.items.length > 0
-            ? prefill_order.items.map((item) => ({
-                  description: item.name + (item.description ? ` — ${item.description}` : ''),
-                  quantity: String(item.quantity),
-                  unit: item.unit,
-                  unit_price: String(item.unit_price),
-              }))
-            : [
-                  {
-                      description: prefill_order.title,
-                      quantity: '1',
-                      unit: 'komplet',
-                      unit_price: String(prefill_order.price),
-                  },
-              ]
+        ? (() => {
+              // Order items (materiál/služby)
+              const itemRows: InvoiceItemRow[] =
+                  prefill_order.items && prefill_order.items.length > 0
+                      ? prefill_order.items.map((item) => ({
+                            description: item.name + (item.description ? ` — ${item.description}` : ''),
+                            quantity: String(item.quantity),
+                            unit: item.unit,
+                            unit_price: String(item.unit_price),
+                        }))
+                      : [];
+
+              // Time entries (natrackovaný čas)
+              const timeRows: InvoiceItemRow[] =
+                  prefill_order.time_entries && prefill_order.time_entries.length > 0
+                      ? prefill_order.time_entries
+                            .filter((te) => te.cost > 0)
+                            .map((te) => ({
+                                description: te.description || 'Práce',
+                                quantity: String(te.billable_hours),
+                                unit: 'hod',
+                                unit_price: String(parseFloat(String(te.hourly_rate))),
+                            }))
+                      : [];
+
+              const allRows = [...itemRows, ...timeRows];
+
+              // Fallback — pokud zakázka nemá ani items ani time entries
+              return allRows.length > 0
+                  ? allRows
+                  : [{
+                        description: prefill_order.title,
+                        quantity: '1',
+                        unit: 'komplet',
+                        unit_price: String(prefill_order.price),
+                    }];
+          })()
         : [{ description: '', quantity: '1', unit: 'ks', unit_price: '' }];
 
     const form = useForm<FormData>({
@@ -157,31 +190,14 @@ export default function Create({
                                     <Label className="text-muted-foreground">
                                         Zákazník *
                                     </Label>
-                                    <Select
+                                    <CustomerCombobox
+                                        customers={customers}
                                         value={data.customer_id}
-                                        onValueChange={(v) => {
+                                        onChange={(v) => {
                                             setData('customer_id', v);
                                             setData('order_id', '');
                                         }}
-                                    >
-                                        <SelectTrigger className="w-full border-border bg-accent">
-                                            <SelectValue placeholder="Vyberte zákazníka..." />
-                                        </SelectTrigger>
-                                        <SelectContent className="border-border bg-card">
-                                            {customers.map((c) => (
-                                                <SelectItem
-                                                    key={c.id}
-                                                    value={String(c.id)}
-                                                    className="focus:bg-accent"
-                                                >
-                                                    {c.name}
-                                                    {c.company
-                                                        ? ` (${c.company})`
-                                                        : ''}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    />
                                     <FieldError error={errors.customer_id} />
                                 </div>
 

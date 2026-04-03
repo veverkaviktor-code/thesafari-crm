@@ -16,7 +16,7 @@ class OrderItemController extends Controller
             'description' => 'nullable|string|max:500',
             'quantity' => 'required|numeric|min:0.01',
             'unit' => 'required|string|max:20',
-            'unit_price' => 'required|numeric|min:0',
+            'unit_price' => 'required|numeric',
         ]);
 
         DB::transaction(function () use ($order, $validated) {
@@ -36,7 +36,7 @@ class OrderItemController extends Controller
             'description' => 'nullable|string|max:500',
             'quantity' => 'required|numeric|min:0.01',
             'unit' => 'required|string|max:20',
-            'unit_price' => 'required|numeric|min:0',
+            'unit_price' => 'required|numeric',
         ]);
 
         DB::transaction(function () use ($order, $orderItem, $validated) {

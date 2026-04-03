@@ -122,7 +122,6 @@ export default function InvoiceItemsEditor({ items, onChange }: Props) {
                                 updateItem(i, 'unit_price', e.target.value)
                             }
                             type="number"
-                            min="0"
                             step="1"
                             placeholder="0"
                             className="border-border bg-accent"

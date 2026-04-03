@@ -1,6 +1,6 @@
 import { type FormEvent, useCallback, useMemo, useRef, useState } from 'react';
 import { Link, router, useForm } from '@inertiajs/react';
-import { Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { Check, ChevronsUpDown, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import DataTable, { type Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import OrderStatusBadge, {
 } from '@/components/orders/OrderStatusBadge';
 import DivisionBadge, {
     type Division,
+    allDivisions,
 } from '@/components/orders/DivisionBadge';
 import GlassModal from '@/components/ui/GlassModal';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
@@ -23,15 +24,29 @@ import OrderForm, {
     defaultOrderData,
     type OrderFormData,
 } from '@/components/orders/OrderForm';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import { cn, formatCurrency } from '@/lib/utils';
 
 interface Order {
     id: number;
     title: string;
     customer: { id: number; name: string };
-    division: Division;
+    division: Division[];
     status: OrderStatus;
     price: number;
+    total_time_cost: number | null;
     deadline: string | null;
     created_at: string;
     deleted_at?: string | null;
@@ -60,6 +75,7 @@ interface Props {
         search?: string;
         status?: string;
         division?: string;
+        customer_id?: string;
         sort?: string;
         direction?: 'asc' | 'desc';
         trashed?: string;
@@ -101,7 +117,13 @@ const baseColumns: Column<Order>[] = [
     {
         key: 'division',
         label: 'Divize',
-        render: (o) => <DivisionBadge division={o.division} />,
+        render: (o) => (
+            <div className="flex flex-wrap gap-1">
+                {(Array.isArray(o.division) ? o.division : [o.division]).map((d) => (
+                    <DivisionBadge key={d} division={d} />
+                ))}
+            </div>
+        ),
     },
     {
         key: 'status',
@@ -113,7 +135,7 @@ const baseColumns: Column<Order>[] = [
         label: 'Cena',
         sortable: true,
         render: (o) => (
-            <span className="text-foreground/70">{formatCurrency(o.price)}</span>
+            <span className="text-foreground/70">{formatCurrency((Number(o.price) || 0) + (Number(o.total_time_cost) || 0))}</span>
         ),
     },
     {
@@ -152,6 +174,7 @@ export default function Index({ orders, customers, filters, trashedCount }: Prop
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
     const [bulkProcessing, setBulkProcessing] = useState(false);
     const [showEmptyTrash, setShowEmptyTrash] = useState(false);
+    const [customerOpen, setCustomerOpen] = useState(false);
 
     const handleDelete = () => {
         if (!deleteTarget) return;
@@ -435,6 +458,7 @@ export default function Index({ orders, customers, filters, trashedCount }: Prop
                     selectable
                     selectedIds={selectedIds}
                     onSelectionChange={setSelectedIds}
+                    getItemId={(o) => o.id}
                     toolbar={
                         isTrashed ? (
                             trashedCount > 0 ? (
@@ -449,6 +473,55 @@ export default function Index({ orders, customers, filters, trashedCount }: Prop
                             ) : undefined
                         ) : (
                             <div className="flex gap-2">
+                                <Popover open={customerOpen} onOpenChange={setCustomerOpen}>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            aria-expanded={customerOpen}
+                                            className="w-[180px] justify-between border-border bg-muted text-sm font-normal"
+                                        >
+                                            <span className="truncate">
+                                                {filters.customer_id
+                                                    ? customers.find((c) => c.id === Number(filters.customer_id))?.name ?? 'Zákazník'
+                                                    : 'Všichni zákazníci'}
+                                            </span>
+                                            <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[220px] p-0 border-border bg-card" align="end">
+                                        <Command>
+                                            <CommandInput placeholder="Hledat zákazníka..." />
+                                            <CommandList>
+                                                <CommandEmpty>Nenalezeno</CommandEmpty>
+                                                <CommandGroup>
+                                                    <CommandItem
+                                                        onSelect={() => {
+                                                            applyFilters({ customer_id: undefined });
+                                                            setCustomerOpen(false);
+                                                        }}
+                                                    >
+                                                        <Check className={cn('mr-2 h-4 w-4', !filters.customer_id ? 'opacity-100' : 'opacity-0')} />
+                                                        Všichni zákazníci
+                                                    </CommandItem>
+                                                    {customers.map((c) => (
+                                                        <CommandItem
+                                                            key={c.id}
+                                                            onSelect={() => {
+                                                                applyFilters({ customer_id: String(c.id) });
+                                                                setCustomerOpen(false);
+                                                            }}
+                                                        >
+                                                            <Check className={cn('mr-2 h-4 w-4', filters.customer_id === String(c.id) ? 'opacity-100' : 'opacity-0')} />
+                                                            {c.name}
+                                                            {c.company && <span className="ml-1 text-muted-foreground">({c.company})</span>}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
                                 <Select
                                     value={filters.status ?? 'all'}
                                     onValueChange={(v) =>
@@ -458,7 +531,7 @@ export default function Index({ orders, customers, filters, trashedCount }: Prop
                                         })
                                     }
                                 >
-                                    <SelectTrigger className="w-[130px] border-border bg-muted">
+                                    <SelectTrigger className="w-[160px] border-border bg-muted">
                                         <SelectValue placeholder="Stav" />
                                     </SelectTrigger>
                                     <SelectContent className="border-border bg-card">
@@ -488,28 +561,18 @@ export default function Index({ orders, customers, filters, trashedCount }: Prop
                                         })
                                     }
                                 >
-                                    <SelectTrigger className="w-[130px] border-border bg-muted">
+                                    <SelectTrigger className="w-[160px] border-border bg-muted">
                                         <SelectValue placeholder="Divize" />
                                     </SelectTrigger>
                                     <SelectContent className="border-border bg-card">
                                         <SelectItem value="all" className="focus:bg-muted">
                                             Všechny divize
                                         </SelectItem>
-                                        <SelectItem value="tisk" className="focus:bg-muted">
-                                            Tisk
-                                        </SelectItem>
-                                        <SelectItem value="reklama" className="focus:bg-muted">
-                                            Reklama
-                                        </SelectItem>
-                                        <SelectItem value="polepy" className="focus:bg-muted">
-                                            Polepy
-                                        </SelectItem>
-                                        <SelectItem value="montaze" className="focus:bg-muted">
-                                            Montáže
-                                        </SelectItem>
-                                        <SelectItem value="weby" className="focus:bg-muted">
-                                            Weby
-                                        </SelectItem>
+                                        {allDivisions.map((d) => (
+                                            <SelectItem key={d.value} value={d.value} className="focus:bg-muted">
+                                                {d.label}
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             </div>

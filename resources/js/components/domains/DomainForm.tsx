@@ -19,6 +19,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import CustomerCombobox from '@/components/ui/CustomerCombobox';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -255,22 +256,13 @@ export default function DomainForm({
                 {/* Zákazník */}
                 <div>
                     <Label className="text-muted-foreground">Zákazník</Label>
-                    <Select
+                    <CustomerCombobox
+                        customers={customers}
                         value={data.customer_id}
-                        onValueChange={(v) => setData('customer_id', v === '_none' ? '' : v)}
-                    >
-                        <SelectTrigger className="mt-1.5 bg-muted border-border text-foreground">
-                            <SelectValue placeholder="Vyberte zákazníka" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-card border-border">
-                            <SelectItem value="_none">— Bez zákazníka —</SelectItem>
-                            {customers.map((c) => (
-                                <SelectItem key={c.id} value={String(c.id)}>
-                                    {c.company ? `${c.name} (${c.company})` : c.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                        onChange={(v) => setData('customer_id', v)}
+                        placeholder="Vyberte zákazníka"
+                        className="mt-1.5 bg-muted"
+                    />
                     {errors.customer_id && <p className="mt-1 text-xs text-red-400">{errors.customer_id}</p>}
                 </div>
 

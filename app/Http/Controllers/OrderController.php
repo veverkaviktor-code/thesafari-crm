@@ -14,9 +14,13 @@ class OrderController extends Controller
     {
         $trashed = $request->boolean('trashed');
 
+        $timeCostSubquery = \App\Models\TimeEntry::selectRaw('COALESCE(SUM(CEIL(duration_minutes / 30.0) * 0.5 * hourly_rate), 0)')
+            ->whereColumn('order_id', 'orders.id')
+            ->whereNotNull('stopped_at');
+
         $query = $trashed
-            ? Order::onlyTrashed()->with('customer:id,name,company')
-            : Order::query()->with('customer:id,name,company');
+            ? Order::onlyTrashed()->with('customer:id,name,company')->addSelect(['*', 'total_time_cost' => $timeCostSubquery])
+            : Order::query()->with('customer:id,name,company')->addSelect(['*', 'total_time_cost' => $timeCostSubquery]);
 
         $query->search($request->input('search'))
             ->when(!$trashed, fn ($q) => $q

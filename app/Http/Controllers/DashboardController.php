@@ -12,6 +12,8 @@ use App\Models\Ticket;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
+use App\Services\FioApiService;
+use Illuminate\Support\Facades\Cache;
 use Spatie\Activitylog\Models\Activity;
 
 class DashboardController extends Controller
@@ -31,6 +33,7 @@ class DashboardController extends Controller
             'taskStats' => $this->getTaskStats(),
             'financialSummary' => $this->getFinancialSummary(),
             'receivables' => $this->getReceivables(),
+            'bankBalance' => $this->getBankBalance(),
         ]);
     }
 
@@ -105,16 +108,23 @@ class DashboardController extends Controller
 
     private function getRevenueByDivision(): array
     {
-        return Order::whereIn('status', ['hotovo', 'fakturovano'])
-            ->selectRaw("division, COUNT(*) as count, COALESCE(SUM(price), 0) as total")
-            ->groupBy('division')
-            ->get()
-            ->map(fn($r) => [
-                'division' => $r->division,
-                'count' => $r->count,
-                'total' => (float) $r->total,
-            ])
-            ->toArray();
+        $orders = Order::whereIn('status', ['hotovo', 'fakturovano'])->get(['division', 'price']);
+        $grouped = [];
+        foreach ($orders as $order) {
+            $divs = is_array($order->division) ? $order->division : [$order->division];
+            foreach ($divs as $div) {
+                if (!isset($grouped[$div])) {
+                    $grouped[$div] = ['count' => 0, 'total' => 0];
+                }
+                $grouped[$div]['count']++;
+                $grouped[$div]['total'] += (float) $order->price;
+            }
+        }
+        return collect($grouped)->map(fn($data, $div) => [
+            'division' => $div,
+            'count' => $data['count'],
+            'total' => $data['total'],
+        ])->values()->toArray();
     }
 
     private function getRevenueData(): array
@@ -647,6 +657,13 @@ class DashboardController extends Controller
             'storage_by_server' => $storageByServer,
             'expiring' => $expiring,
         ];
+    }
+
+    private function getBankBalance(): ?array
+    {
+        return Cache::remember('fio_balance', 300, function () {
+            return app(FioApiService::class)->getBalance();
+        });
     }
 
     private function getFinancialSummary(): array

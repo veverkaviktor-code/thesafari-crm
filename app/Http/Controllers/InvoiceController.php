@@ -104,7 +104,9 @@ class InvoiceController extends Controller
         $prefillOrder = null;
 
         if ($orderId = $request->input('order_id')) {
-            $prefillOrder = Order::with('items')->select('id', 'title', 'price', 'customer_id')->find($orderId);
+            $prefillOrder = Order::with(['items', 'timeEntries' => function ($q) {
+                $q->whereNotNull('stopped_at');
+            }])->select('id', 'title', 'price', 'customer_id')->find($orderId);
         }
 
         return Inertia::render('Invoices/Create', [
@@ -118,7 +120,8 @@ class InvoiceController extends Controller
     public function store(InvoiceRequest $request)
     {
         $invoice = DB::transaction(function () use ($request) {
-            $invoiceNumber = Invoice::getNextInvoiceNumber();
+            $paymentMethod = $request->input('payment_method', 'banka');
+            $invoiceNumber = Invoice::getNextInvoiceNumber($paymentMethod);
             $items = collect($request->input('items'))->map(function ($item) {
                 $item['total_price'] = (float) $item['quantity'] * (float) $item['unit_price'];
                 return $item;

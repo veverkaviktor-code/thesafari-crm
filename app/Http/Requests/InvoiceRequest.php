@@ -26,8 +26,8 @@ class InvoiceRequest extends FormRequest
             'items.*.description' => ['required', 'string', 'max:500'],
             'items.*.quantity' => ['required', 'numeric', 'gt:0'],
             'items.*.unit' => ['nullable', 'string', 'max:20'],
-            'items.*.unit_price' => ['required', 'numeric', 'min:0'],
-            'items.*.total_price' => ['nullable', 'numeric', 'min:0'],
+            'items.*.unit_price' => ['required', 'numeric'],
+            'items.*.total_price' => ['nullable', 'numeric'],
         ];
     }
 }

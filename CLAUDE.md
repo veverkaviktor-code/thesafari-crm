@@ -29,22 +29,33 @@ ssh root@sss06.vas-server.cz "cd /var/www/hq.thesafari.cz && php artisan migrate
 - **Routes**: české URL (`/zakazky`, `/zakaznici`, `/faktury`, `/domeny`, `/hostingy`, `/vps`, `/tikety`)
 - **Modely**: anglické názvy (Order, Customer, Invoice, Hosting, HostingPayment, HostingCredential, Domain, TimeEntry, OrderItem, OrderCost)
 - **Nový model**: vždy přidat `use LogsActivity` + `$logFillable = true` + `$logOnlyDirty = true`
-- **Finance**: ceny v CZK, neplátce DPH, auto-sum z child items
+- **Finance**: ceny v CZK, neplátce DPH, auto-sum z child items. Záporné položky povoleny (kompenzace).
 - **Soft deletes**: na Customer, Order, Invoice, Hosting, Domain
-- **DB**: VARCHAR+CHECK místo ENUM, JSONB pro adresy/tagy/settings
+- **DB**: VARCHAR+CHECK místo ENUM, JSONB pro adresy/tagy/settings. CHECK constrainty na invoice_items ODSTRANĚNY (záporné ceny).
 
 ## Architektura
 - **Inertia shared props**: `auth.user`, `flash`, `runningTimer` (HandleInertiaRequests.php)
 - **Running timer**: amber sticky bar pod navbarem (RunningTimerBar.tsx)
 - **Dashboard**: StatCards, RevenueChart, DivisionChart (donut), ActivityTimeline (reálná data z activity_log), RecentTickets
 - **Glass Modal**: GlassModal.tsx pro Create/Edit dialogy (Zákazníci, Zakázky, VPS)
-- **OrderItems**: inline CRUD s auto-přepočtem order.price
+- **OrderItems**: inline CRUD s auto-přepočtem order.price, záporné ceny povoleny
 - **Invoice**: auto-numbering s lockForUpdate(), SPD QR kódy
+- **CustomerCombobox**: `@/components/ui/CustomerCombobox.tsx` — searchable combobox pro výběr zákazníka, použito ve VŠECH formulářích (OrderForm, InvoiceCreate/Edit, HostingForm, DomainForm)
+- **Fio Bank zůstatek**: `FioApiService::getBalance()` → Dashboard StatCard "Stav účtu", cache 5 min
 
 ## Divize
-- thesafari (tisk, reklama, polepy, montáže)
-- webové služby (weby, domény, hosting, správa)
-- thajskydotek (masáže — budoucí integrace)
+- 4 divize: `digital`, `design`, `lab`, `ostatni` (Safari Digital / Safari Design / Safari Lab / Ostatní)
+- Sloupec `orders.division` = **JSONB pole** (multi-select, zakázka může mít více divizí)
+- Model cast: `'division' => 'array'`, scope `byDivision` používá `whereJsonContains`
+- Frontend: toggle tlačítka (ne select), `DivisionBadge` renderuje pole
+- `allDivisions` export z DivisionBadge.tsx pro selecty/filtry
+
+## Fakturace — číselné řady
+- **Převodem**: 2026**0**001 nahoru (20260001, 20260002, ...)
+- **Hotově**: 2026**9**001 nahoru (20269001, 20269002, ...)
+- `Invoice::getNextInvoiceNumber($paymentMethod)` — parametr `'banka'` (default) nebo `'hotove'`
+- Sequence tabulka `invoice_sequences`: prefix `{year}_bank` / `{year}_cash`
+- Staré faktury (20261xxx, 20266xxx) zůstávají beze změny — historická data
 
 ## Gotchas — KRITICKÉ
 - **PostgreSQL decimal → JS string**: `sell_yearly` přichází jako `"0.00"` (truthy!). VŽDY `parseFloat()` před porovnáním
@@ -59,6 +70,10 @@ ssh root@sss06.vas-server.cz "cd /var/www/hq.thesafari.cz && php artisan migrate
 - **Thaimassage hostingy = is_free=true** — VPS se fakturuje celé ročně, jednotlivé hostingy ne
 - **Carbon 3 `diffInDays`** vrací záporné číslo (signed) — VŽDY `abs()` při výpočtu dní po splatnosti/do expirace
 - **Po v1.3.0 rename**: `websites` relace neexistuje → `hostings`. Zkontrolovat VŠECHNY commands/services při budoucích úpravách
+- **Invoice model `total`**: sloupec se jmenuje `total` (NE `total_amount`), cast `decimal:2`. Při ručním updatu vždy `$inv->total = X`.
+- **Invoice prefill z zakázky**: `InvoiceController::create()` loaduje `items` + `timeEntries` (dokončené). Time entries se předvyplní jako řádky faktury (popis, billable_hours, hourly_rate).
+- **DB CHECK constrainty**: Při povolení záporných hodnot NESTAČÍ upravit Laravel validaci — musíš dropnout i PostgreSQL CHECK constraint (`ALTER TABLE x DROP CONSTRAINT y`). Ověř přes `pg_constraint`.
+- **DataTable `selectable`**: VŽDY předat `getItemId={(o) => o.id}` když je `selectable` — jinak header má checkbox ale data řádky ne → sloupce posunuté o 1.
 
 ## Domény + Hostingy + VPS (v1.3.0)
 
@@ -84,9 +99,10 @@ ssh root@sss06.vas-server.cz "cd /var/www/hq.thesafari.cz && php artisan migrate
 - Formulář: select "Redirect na hosting" skryje pravý sloupec (server, ceny, správa)
 - Pending approval: možnost rovnou označit jako redirect
 
-### Fakturace
-- `AutoInvoiceHostings` (09:00) — hosting.sell_yearly, 30d před expirací, série 6XXX
+### Fakturace (auto)
+- `AutoInvoiceHostings` (09:00) — hosting.sell_yearly, 30d před expirací
 - `AutoInvoiceDomains` (09:05) — domain.sell_yearly kde is_registered_by_us=true
+- Auto-fakturace používá `getNextInvoiceNumber('banka')` — vždy řada převodem
 - `is_registered_by_us` = Wedos cli=Viktor (Klienti folder) NEBO vas-hosting isRegisteredByUs=true
 - Manuální fakturace: tlačítko na detailu hostingu/domény
 

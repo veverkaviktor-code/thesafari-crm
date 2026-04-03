@@ -23,10 +23,11 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { FieldError } from '@/components/ui/FieldError';
+import CustomerCombobox from '@/components/ui/CustomerCombobox';
 
 export interface OrderFormData {
     customer_id: string;
-    division: string;
+    division: string[];
     title: string;
     description: string;
     price: string;
@@ -35,7 +36,7 @@ export interface OrderFormData {
 
 export const defaultOrderData: OrderFormData = {
     customer_id: '',
-    division: '',
+    division: [],
     title: '',
     description: '',
     price: '',
@@ -56,13 +57,7 @@ interface Props {
     onCancel?: () => void;
 }
 
-const divisions = [
-    { value: 'tisk', label: 'Tisk' },
-    { value: 'reklama', label: 'Reklama' },
-    { value: 'polepy', label: 'Polepy' },
-    { value: 'montaze', label: 'Montáže' },
-    { value: 'weby', label: 'Weby' },
-];
+import { allDivisions } from '@/components/orders/DivisionBadge';
 
 export default function OrderForm({
     form,
@@ -94,51 +89,42 @@ export default function OrderForm({
                     {/* Customer select */}
                     <div className="space-y-1.5">
                         <Label className="text-muted-foreground">Zákazník *</Label>
-                        <Select
+                        <CustomerCombobox
+                            customers={customers}
                             value={data.customer_id}
-                            onValueChange={(v) => setData('customer_id', v)}
-                        >
-                            <SelectTrigger className="w-full border-border bg-accent">
-                                <SelectValue placeholder="Vyberte zákazníka..." />
-                            </SelectTrigger>
-                            <SelectContent className="border-border bg-card">
-                                {customers.map((c) => (
-                                    <SelectItem
-                                        key={c.id}
-                                        value={String(c.id)}
-                                        className="focus:bg-accent"
-                                    >
-                                        {c.name}
-                                        {c.company ? ` (${c.company})` : ''}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                            onChange={(v) => setData('customer_id', v)}
+                        />
                         <FieldError error={errors.customer_id} />
                     </div>
 
-                    {/* Division select */}
+                    {/* Division multi-select */}
                     <div className="space-y-1.5">
                         <Label className="text-muted-foreground">Divize *</Label>
-                        <Select
-                            value={data.division}
-                            onValueChange={(v) => setData('division', v)}
-                        >
-                            <SelectTrigger className="w-full border-border bg-accent">
-                                <SelectValue placeholder="Vyberte divizi..." />
-                            </SelectTrigger>
-                            <SelectContent className="border-border bg-card">
-                                {divisions.map((d) => (
-                                    <SelectItem
+                        <div className="flex flex-wrap gap-2">
+                            {allDivisions.map((d) => {
+                                const selected = data.division.includes(d.value);
+                                return (
+                                    <button
                                         key={d.value}
-                                        value={d.value}
-                                        className="focus:bg-accent"
+                                        type="button"
+                                        onClick={() => {
+                                            const next = selected
+                                                ? data.division.filter((v) => v !== d.value)
+                                                : [...data.division, d.value];
+                                            setData('division', next);
+                                        }}
+                                        className={cn(
+                                            'rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
+                                            selected
+                                                ? 'border-primary bg-primary/15 text-primary'
+                                                : 'border-border bg-accent text-muted-foreground hover:border-primary/50',
+                                        )}
                                     >
                                         {d.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                                    </button>
+                                );
+                            })}
+                        </div>
                         <FieldError error={errors.division} />
                     </div>
                 </div>

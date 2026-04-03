@@ -18,7 +18,8 @@ class OrderRequest extends FormRequest
 
         return [
             'customer_id' => [$isUpdate ? 'sometimes' : 'required', 'exists:customers,id'],
-            'division' => [$isUpdate ? 'sometimes' : 'required', Rule::in(['tisk', 'reklama', 'polepy', 'montaze', 'weby'])],
+            'division' => [$isUpdate ? 'sometimes' : 'required', 'array', 'min:1'],
+            'division.*' => [Rule::in(['digital', 'design', 'lab', 'ostatni'])],
             'status' => ['sometimes', Rule::in(['nova', 'v_reseni', 'hotovo', 'fakturovano'])],
             'title' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],

@@ -20,6 +20,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import CustomerCombobox from '@/components/ui/CustomerCombobox';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import InvoiceItemsEditor, {
@@ -134,24 +135,14 @@ export default function Edit({ invoice, customers, orders }: Props) {
                             <div className="grid gap-4 md:grid-cols-2">
                                 <div className="space-y-1.5">
                                     <Label className="text-muted-foreground">Zákazník *</Label>
-                                    <Select
+                                    <CustomerCombobox
+                                        customers={customers}
                                         value={data.customer_id}
-                                        onValueChange={(v) => {
+                                        onChange={(v) => {
                                             setData('customer_id', v);
                                             setData('order_id', '');
                                         }}
-                                    >
-                                        <SelectTrigger className="w-full border-border bg-accent">
-                                            <SelectValue placeholder="Vyberte zákazníka..." />
-                                        </SelectTrigger>
-                                        <SelectContent className="border-border bg-card">
-                                            {customers.map((c) => (
-                                                <SelectItem key={c.id} value={String(c.id)} className="focus:bg-accent">
-                                                    {c.name}{c.company ? ` (${c.company})` : ''}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    />
                                     <FieldError error={errors.customer_id} />
                                 </div>
 
