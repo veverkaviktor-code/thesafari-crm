@@ -150,14 +150,14 @@ class SyncFioTransactions extends Command
 
     private function matchTransaction(BankTransaction $bankTransaction, ?User $admin): void
     {
-        $vs = $bankTransaction->variable_symbol;
+        $vs = $this->normalizeVs($bankTransaction->variable_symbol);
         $amount = (float) $bankTransaction->amount;
 
         // Aktivní neuhrazené faktury
         $unpaidStatuses = ['vystavena', 'odeslana', 'po_splatnosti'];
 
         // (a) Přesná shoda: VS + částka
-        if (!empty($vs)) {
+        if ($vs !== null) {
             $invoice = Invoice::whereIn('status', $unpaidStatuses)
                 ->where('variable_symbol', $vs)
                 ->first();
@@ -180,6 +180,26 @@ class SyncFioTransactions extends Command
             }
         }
 
+        // (a2) Shoda podle čísla faktury v popisu / názvu protistrany / user_identification
+        $invoiceFromText = $this->findInvoiceInTransactionText($bankTransaction, $unpaidStatuses);
+        if ($invoiceFromText !== null) {
+            if (abs((float) $invoiceFromText->total - $amount) < 0.01) {
+                $this->line("  <fg=cyan>POPIS-MATCH: {$bankTransaction->bank_id} → faktura {$invoiceFromText->invoice_number} (z popisu)</>");
+                $this->autoMatch($bankTransaction, $invoiceFromText, $admin);
+                return;
+            }
+
+            // číslo v popisu sedí, ale částka ne — ruční kontrola
+            $this->countPartialMatch++;
+            $reason = "Číslo faktury {$invoiceFromText->invoice_number} nalezeno v popisu transakce, ale částka nesedí — očekáváno " . number_format((float) $invoiceFromText->total, 2, ',', '') . " Kč, přijato " . number_format($amount, 2, ',', '') . " Kč";
+            $this->line("  <fg=yellow>POPIS-MATCH (částka NE): {$bankTransaction->bank_id} → faktura {$invoiceFromText->invoice_number}</>");
+
+            if (!$this->dryRun && $admin) {
+                $admin->notify(new BankMatchRequired($bankTransaction, $reason, $invoiceFromText->id));
+            }
+            return;
+        }
+
         // (c) Bez VS, ale unikátní shoda částky
         $byAmount = Invoice::whereIn('status', $unpaidStatuses)
             ->whereRaw('ABS(total - ?) < 0.01', [$amount])
@@ -199,7 +219,7 @@ class SyncFioTransactions extends Command
 
         // (d) Žádná shoda
         $this->countNoMatch++;
-        $reason = empty($vs)
+        $reason = $vs === null
             ? "Transakce bez variabilního symbolu, žádná jednoznačná shoda s fakturou"
             : "Variabilní symbol {$vs} nenalezen v žádné neuhrazené faktuře";
         $this->line("  <fg=red>BEZ SHODY: {$bankTransaction->bank_id} | VS: " . ($vs ?: 'N/A') . " | {$amount} Kč</>");
@@ -207,6 +227,51 @@ class SyncFioTransactions extends Command
         if (!$this->dryRun && $admin) {
             $admin->notify(new BankMatchRequired($bankTransaction, $reason));
         }
+    }
+
+    /**
+     * Normalizuje VS — banka občas pošle "0" nebo prázdný string místo NULL.
+     * Vrací null pokud VS chybí nebo je formálně prázdný.
+     */
+    private function normalizeVs(?string $vs): ?string
+    {
+        if ($vs === null) {
+            return null;
+        }
+        $trimmed = trim($vs);
+        if ($trimmed === '' || $trimmed === '0' || ltrim($trimmed, '0') === '') {
+            return null;
+        }
+        return $trimmed;
+    }
+
+    /**
+     * Hledá v textových polích transakce (popis, název protistrany, user_identification)
+     * číslo faktury ve formátu 20XXXXXX (8 číslic, prefix "20" pro rok).
+     * Vrací první matchující NEUHRAZENOU fakturu nebo null.
+     */
+    private function findInvoiceInTransactionText(BankTransaction $bankTransaction, array $unpaidStatuses): ?Invoice
+    {
+        $haystack = trim(implode(' ', array_filter([
+            $bankTransaction->description,
+            $bankTransaction->counter_account_name,
+            $bankTransaction->raw_data['column7']['value'] ?? null, // user_identification
+        ])));
+
+        if ($haystack === '') {
+            return null;
+        }
+
+        // Číslo faktury: 8 číslic začínajících "20" (rok), bez okolních číslic
+        if (!preg_match_all('/(?<!\d)20\d{6}(?!\d)/', $haystack, $matches)) {
+            return null;
+        }
+
+        $candidates = array_unique($matches[0]);
+
+        return Invoice::whereIn('status', $unpaidStatuses)
+            ->whereIn('invoice_number', $candidates)
+            ->first();
     }
 
     private function autoMatch(BankTransaction $bankTransaction, Invoice $invoice, ?User $admin): void

@@ -19,12 +19,16 @@ class PaymentReceived extends Notification
 
     public function toArray(object $notifiable): array
     {
+        $invoice = $this->invoice;
+        $customerName = $invoice->customer?->name ?? 'neznámý klient';
+        $total = number_format((float) $invoice->total, 0, ',', ' ');
+
         return [
             'type' => 'payment_received',
-            'title' => "Platba přijata: {$this->invoice->total} Kč",
-            'message' => "Faktura {$this->invoice->invoice_number} ({$this->invoice->customer->name}) byla zaplacena.",
-            'link' => "/faktury/{$this->invoice->id}",
-            'invoice_id' => $this->invoice->id,
+            'title' => "Platba přijata: {$total} Kč",
+            'message' => "Faktura {$invoice->invoice_number} ({$customerName}) byla zaplacena.",
+            'link' => "/faktury/{$invoice->id}",
+            'invoice_id' => $invoice->id,
         ];
     }
 }
