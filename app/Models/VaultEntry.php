@@ -32,6 +32,7 @@ class VaultEntry extends Model
     {
         return LogOptions::defaults()
             ->logFillable()
+            ->logExcept(['password'])
             ->logOnlyDirty()
             ->dontLogIfAttributesChangedOnly(['sort_order']);
     }

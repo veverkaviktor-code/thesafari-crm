@@ -40,8 +40,8 @@ class HostingCredential extends Model
     {
         return LogOptions::defaults()
             ->logFillable()
-            ->logOnlyDirty()
-            ->dontLogIfAttributesChangedOnly(['password']);
+            ->logExcept(['password'])
+            ->logOnlyDirty();
     }
 
     public function hosting(): BelongsTo

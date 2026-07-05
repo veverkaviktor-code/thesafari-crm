@@ -32,6 +32,7 @@ class EmailAccount extends Model
     {
         return LogOptions::defaults()
             ->logFillable()
+            ->logExcept(['password'])
             ->logOnlyDirty();
     }
 
