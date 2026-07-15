@@ -16,7 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command('hostings:auto-invoice')->dailyAt('09:00');
         $schedule->command('domains:auto-invoice')->dailyAt('09:05');
-        $schedule->command('fio:sync')->hourly()->between('8:00', '20:00');
+        $schedule->command('fio:sync')->everyThirtyMinutes();
         $schedule->command('invoices:check-overdue')->dailyAt('08:00');
         $schedule->command('hostings:check-expiring')->dailyAt('08:00');
         $schedule->command('domains:check-expiring')->dailyAt('08:05');

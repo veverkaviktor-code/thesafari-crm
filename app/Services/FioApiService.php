@@ -118,7 +118,7 @@ class FioApiService
         $url = "{$this->baseUrl}/periods/{$this->token}/{$today}/{$today}/transactions.json";
 
         try {
-            $response = Http::timeout(30)->get($url);
+            $response = Http::connectTimeout(3)->timeout(8)->get($url);
 
             if ($response->status() === 409) {
                 return null; // rate limit

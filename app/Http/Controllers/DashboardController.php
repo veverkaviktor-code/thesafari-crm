@@ -12,7 +12,6 @@ use App\Models\Ticket;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
-use App\Services\FioApiService;
 use Illuminate\Support\Facades\Cache;
 use Spatie\Activitylog\Models\Activity;
 
@@ -661,9 +660,10 @@ class DashboardController extends Controller
 
     private function getBankBalance(): ?array
     {
-        return Cache::remember('fio_balance', 300, function () {
-            return app(FioApiService::class)->getBalance();
-        });
+        // Balance is refreshed out-of-band by the fio:sync cron and written to the
+        // 'fio_balance' cache key. The dashboard only reads it — never calls the Fio
+        // API synchronously, so a slow/dead Fio endpoint can't block the page render.
+        return Cache::get('fio_balance');
     }
 
     private function getFinancialSummary(): array

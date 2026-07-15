@@ -66,6 +66,14 @@ class SyncFioTransactions extends Command
 
         cache()->put('last_bank_sync', now()->toIso8601String());
 
+        // Refresh cached bank balance so dashboard reads it without a synchronous API call.
+        // Only overwrite the cache when the API actually returned a value — a Fio outage
+        // must not wipe the last known balance.
+        $balance = $fio->getBalance();
+        if ($balance !== null) {
+            cache()->put('fio_balance', $balance, now()->addHours(2));
+        }
+
         Log::info('fio:sync dokončen', [
             'fetched' => $this->countFetched,
             'saved' => $this->countSaved,
