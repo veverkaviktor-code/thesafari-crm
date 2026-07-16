@@ -90,7 +90,7 @@ export default function AuthenticatedLayout({
                         {children}
                     </div>
                     <footer className="mt-auto border-t border-border pt-4 pb-2 text-center text-xs text-muted-foreground/50">
-                        The Safari HQ &middot; v1.4.2
+                        The Safari HQ &middot; v1.4.3
                     </footer>
                 </main>
             </div>
