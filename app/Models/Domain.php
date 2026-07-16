@@ -106,6 +106,22 @@ class Domain extends Model
 
     // ── Helper methods ─────────────────────────────────────────────
 
+    /**
+     * Default yearly selling price based on the domain's TLD.
+     * Prices per project pricing table; returns null for unknown TLDs.
+     */
+    public static function defaultYearlyPriceForTld(string $name): ?float
+    {
+        $name = strtolower(trim($name));
+
+        return match (true) {
+            str_ends_with($name, '.click') => 480.0,
+            str_ends_with($name, '.eu')    => 280.0,
+            str_ends_with($name, '.cz')    => 300.0,
+            default                        => null,
+        };
+    }
+
     public function daysUntilExpiry(): ?int
     {
         if (! $this->expires_at) {
