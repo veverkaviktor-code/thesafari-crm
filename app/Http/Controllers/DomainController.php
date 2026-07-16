@@ -557,12 +557,40 @@ class DomainController extends Controller
     public function approvePending(Request $request)
     {
         $validated = $request->validate([
-            'id'          => 'required|exists:sync_pending,id',
-            'customer_id' => 'nullable|exists:customers,id',
-            'hosting_id'  => 'nullable|exists:hostings,id',
+            'domain_name'  => 'required|string|max:255',
+            'customer_id'  => 'nullable|exists:customers,id',
+            'hosting_id'   => 'nullable|exists:hostings,id',
+            'auto_invoice' => 'nullable|boolean',
+            'sell_yearly'  => 'nullable|numeric|min:0|max:999999.99',
         ]);
 
-        $pendingItem = SyncPending::findOrFail($validated['id']);
+        $pendingItem = SyncPending::where('domain_name', $validated['domain_name'])
+            ->where('type', 'domain')
+            ->firstOrFail();
+
+        // Domain already exists. Only recover from a failed earlier approval
+        // (an unconfigured leftover) — never silently overwrite a domain that
+        // is already assigned to a customer; that must go through the edit UI.
+        $existing = Domain::where('name', $pendingItem->domain_name)->whereNull('deleted_at')->first();
+        if ($existing) {
+            if ($existing->customer_id !== null) {
+                $pendingItem->delete();
+
+                return back()->with('error', "Doména {$pendingItem->domain_name} už existuje a je přiřazená zákazníkovi — uprav ji na detailu domény. Pending odstraněn.");
+            }
+
+            // Recovery scenario: fill in the leftover with the provided values.
+            $autoInvoice = (bool) ($validated['auto_invoice'] ?? false);
+            $existing->update([
+                'customer_id'  => $validated['customer_id'] ?? $existing->customer_id,
+                'hosting_id'   => $validated['hosting_id'] ?? $existing->hosting_id,
+                'auto_invoice' => $autoInvoice,
+                'sell_yearly'  => $autoInvoice ? ($validated['sell_yearly'] ?? null) : null,
+            ]);
+            $pendingItem->delete();
+
+            return back()->with('success', "Doména {$pendingItem->domain_name} doplněna a pending odstraněn.");
+        }
 
         // Determine registrar from source
         $registrar = match ($pendingItem->source) {
@@ -580,11 +608,14 @@ class DomainController extends Controller
             }
         }
 
+        $autoInvoice = (bool) ($validated['auto_invoice'] ?? false);
+
         Domain::create([
             'name'          => $pendingItem->domain_name,
             'registrar'     => $registrar,
             'status'        => 'aktivni',
-            'auto_invoice'  => false,
+            'auto_invoice'  => $autoInvoice,
+            'sell_yearly'   => $autoInvoice ? ($validated['sell_yearly'] ?? null) : null,
             'customer_id'   => $validated['customer_id'] ?? null,
             'hosting_id'    => $hostingId,
         ]);
@@ -600,10 +631,12 @@ class DomainController extends Controller
     public function ignorePending(Request $request)
     {
         $validated = $request->validate([
-            'id' => 'required|exists:sync_pending,id',
+            'domain_name' => 'required|string|max:255',
         ]);
 
-        $pendingItem = SyncPending::findOrFail($validated['id']);
+        $pendingItem = SyncPending::where('domain_name', $validated['domain_name'])
+            ->where('type', 'domain')
+            ->firstOrFail();
 
         SyncBlacklist::create([
             'domain_name' => $pendingItem->domain_name,

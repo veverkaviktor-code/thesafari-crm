@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Select,
     SelectContent,
@@ -16,6 +17,15 @@ import { CheckCircle, Ban, AtSign, ArrowLeft } from 'lucide-react';
 const sourceLabel: Record<string, string> = {
     portal: 'vas-hosting (portál)',
     wedos: 'Wedos',
+};
+
+// Mirror of App\Models\Domain::defaultYearlyPriceForTld()
+const tldDefaultPrice = (name: string): string => {
+    const n = name.toLowerCase().trim();
+    if (n.endsWith('.click')) return '480';
+    if (n.endsWith('.eu')) return '280';
+    if (n.endsWith('.cz')) return '300';
+    return '';
 };
 
 interface PendingItem {
@@ -44,6 +54,8 @@ interface Props {
 export default function Pending({ pendingItems, customers, hostings }: Props) {
     const [selectedCustomers, setSelectedCustomers] = useState<Record<string, string>>({});
     const [selectedHostings, setSelectedHostings] = useState<Record<string, string>>({});
+    const [autoInvoice, setAutoInvoice] = useState<Record<string, boolean>>({});
+    const [sellYearly, setSellYearly] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState<string | null>(null);
 
     const handleApprove = (domainName: string) => {
@@ -52,6 +64,8 @@ export default function Pending({ pendingItems, customers, hostings }: Props) {
             domain_name: domainName,
             customer_id: selectedCustomers[domainName] || null,
             hosting_id: selectedHostings[domainName] || null,
+            auto_invoice: autoInvoice[domainName] || false,
+            sell_yearly: autoInvoice[domainName] ? (sellYearly[domainName] || null) : null,
         }, {
             preserveState: false,
             onFinish: () => setProcessing(null),
@@ -66,6 +80,13 @@ export default function Pending({ pendingItems, customers, hostings }: Props) {
             preserveState: false,
             onFinish: () => setProcessing(null),
         });
+    };
+
+    const handleAutoInvoiceChange = (domainName: string, checked: boolean) => {
+        setAutoInvoice((prev) => ({ ...prev, [domainName]: checked }));
+        if (checked && !sellYearly[domainName]) {
+            setSellYearly((prev) => ({ ...prev, [domainName]: tldDefaultPrice(domainName) }));
+        }
     };
 
     return (
@@ -108,6 +129,7 @@ export default function Pending({ pendingItems, customers, hostings }: Props) {
                                     <th className="px-4 py-3 text-left font-medium">Nalezeno</th>
                                     <th className="px-4 py-3 text-left font-medium">Zákazník</th>
                                     <th className="px-4 py-3 text-left font-medium">Hosting</th>
+                                    <th className="px-4 py-3 text-left font-medium">Autofakturace</th>
                                     <th className="px-4 py-3 text-right font-medium">Akce</th>
                                 </tr>
                             </thead>
@@ -163,6 +185,33 @@ export default function Pending({ pendingItems, customers, hostings }: Props) {
                                                     ))}
                                                 </SelectContent>
                                             </Select>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center gap-2">
+                                                <Checkbox
+                                                    checked={autoInvoice[item.domain_name] || false}
+                                                    onCheckedChange={(checked) =>
+                                                        handleAutoInvoiceChange(item.domain_name, checked === true)
+                                                    }
+                                                    className="border-amber-600/50 data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600"
+                                                />
+                                                {autoInvoice[item.domain_name] && (
+                                                    <input
+                                                        type="number"
+                                                        min={0}
+                                                        max={999999.99}
+                                                        placeholder="Kč/rok"
+                                                        value={sellYearly[item.domain_name] ?? ''}
+                                                        onChange={(e) =>
+                                                            setSellYearly((prev) => ({
+                                                                ...prev,
+                                                                [item.domain_name]: e.target.value,
+                                                            }))
+                                                        }
+                                                        className="w-24 rounded-md border border-border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-amber-600"
+                                                    />
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-4 py-3 text-right">
                                             <div className="flex items-center justify-end gap-2">
