@@ -4,6 +4,21 @@
 
 set -e
 
+# --- production confirm gate (added 2026-07-18, security hardening) ---
+if [ "${DEPLOY_CONFIRM:-}" != "yes" ]; then
+  if [ -t 0 ] || [ -r /dev/tty ]; then
+    printf 'Deploy %s to PRODUCTION? Type "yes" to continue: ' "thesafari-crm" > /dev/tty 2>/dev/null || true
+    IFS= read -r _ans < /dev/tty 2>/dev/null || _ans=""
+  else
+    _ans=""
+  fi
+  if [ "$_ans" != "yes" ]; then
+    echo "Deploy aborted: not confirmed (interactive 'yes' or DEPLOY_CONFIRM=yes required)." >&2
+    exit 1
+  fi
+fi
+# --- end confirm gate ---
+
 VPS="root@sss06.vas-server.cz"
 REMOTE_DIR="/var/www/hq.thesafari.cz"
 LOCAL_DIR="$(cd "$(dirname "$0")" && pwd)"
