@@ -53,6 +53,8 @@ class SyncFioTransactions extends Command
         if (empty($transactions)) {
             $this->info('Žádné nové transakce k zpracování.');
             $this->printStats();
+            $this->refreshBalanceCache($fio);
+
             return self::SUCCESS;
         }
 
@@ -66,13 +68,7 @@ class SyncFioTransactions extends Command
 
         cache()->put('last_bank_sync', now()->toIso8601String());
 
-        // Refresh cached bank balance so dashboard reads it without a synchronous API call.
-        // Only overwrite the cache when the API actually returned a value — a Fio outage
-        // must not wipe the last known balance.
-        $balance = $fio->getBalance();
-        if ($balance !== null) {
-            cache()->put('fio_balance', $balance, now()->addHours(2));
-        }
+        $this->refreshBalanceCache($fio);
 
         Log::info('fio:sync dokončen', [
             'fetched' => $this->countFetched,
@@ -82,6 +78,30 @@ class SyncFioTransactions extends Command
         ]);
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Refreshes the cached account balance the dashboard reads.
+     *
+     * Must run on every sync, including one that fetched no transactions —
+     * incoming payments are rare, so tying the refresh to them left the
+     * dashboard with an expired cache and no balance to show.
+     *
+     * The cache outlives the 30-minute sync interval by a wide margin so that
+     * a run of Fio outages degrades to a stale balance rather than an empty
+     * one, and a failed read never overwrites the last known good value.
+     */
+    private function refreshBalanceCache(FioApiService $fio): void
+    {
+        $balance = $fio->getBalance();
+
+        if ($balance === null) {
+            $this->warn('Zůstatek se nepodařilo načíst — ponechávám poslední známou hodnotu.');
+
+            return;
+        }
+
+        cache()->put('fio_balance', $balance, now()->addHours(24));
     }
 
     private function processTransaction(array $txData, ?User $admin): void

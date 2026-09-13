@@ -17,6 +17,28 @@ class FioApiService
     }
 
     /**
+     * Removes the API token from text before it reaches the log.
+     *
+     * The token is part of every Fio endpoint URL, and HTTP client exceptions
+     * embed the full URL in their message — logging one verbatim would leak
+     * read access to the bank account.
+     */
+    private function redact(string $message): string
+    {
+        if ($this->token !== '') {
+            $message = str_replace($this->token, '***REDACTED***', $message);
+        }
+
+        // Defence in depth: mask any Fio-shaped token, even one from another
+        // source (a wrapped exception, a proxy error) that never hit $this->token.
+        return preg_replace(
+            '#(fioapi\.fio\.cz/v1/rest/[a-z-]+/)[A-Za-z0-9]{16,}#i',
+            '$1***REDACTED***',
+            $message
+        ) ?? $message;
+    }
+
+    /**
      * Stáhne transakce od poslední zarážky (bookmark).
      */
     public function getNewTransactions(): ?array
@@ -44,7 +66,7 @@ class FioApiService
             return $this->parseResponse($response->json());
         } catch (\Exception $e) {
             Log::error('Fio API: Výjimka při stahování transakcí', [
-                'message' => $e->getMessage(),
+                'message' => $this->redact($e->getMessage()),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
             ]);
@@ -79,7 +101,7 @@ class FioApiService
 
             return $this->parseResponse($response->json());
         } catch (\Exception $e) {
-            Log::error('Fio API: Výjimka', ['message' => $e->getMessage()]);
+            Log::error('Fio API: Výjimka', ['message' => $this->redact($e->getMessage())]);
             return null;
         }
     }
@@ -99,7 +121,7 @@ class FioApiService
             $response = Http::timeout(30)->get($url);
             return $response->successful();
         } catch (\Exception $e) {
-            Log::error('Fio API: Nelze nastavit zarážku', ['message' => $e->getMessage()]);
+            Log::error('Fio API: Nelze nastavit zarážku', ['message' => $this->redact($e->getMessage())]);
             return false;
         }
     }
@@ -141,7 +163,7 @@ class FioApiService
                 'iban' => $statement['iban'] ?? null,
             ];
         } catch (\Exception $e) {
-            Log::error('Fio API: Chyba při čtení zůstatku', ['message' => $e->getMessage()]);
+            Log::error('Fio API: Chyba při čtení zůstatku', ['message' => $this->redact($e->getMessage())]);
             return null;
         }
     }
