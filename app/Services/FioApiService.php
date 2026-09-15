@@ -127,6 +127,32 @@ class FioApiService
     }
 
     /**
+     * Picks the account balance out of a statement summary.
+     *
+     * The balance is read from a single-day statement, and on a day with no
+     * transactions Fio leaves closingBalance at 0.0 while openingBalance still
+     * carries the real figure. Taking closingBalance blindly showed 0 Kč on the
+     * dashboard — worse than showing nothing, because it reads as a fact.
+     */
+    private function resolveBalance(array $statement): float
+    {
+        $closing = $statement['closingBalance'] ?? null;
+        $opening = $statement['openingBalance'] ?? null;
+
+        // A genuine zero closing balance is possible, but only alongside
+        // movement on the day; with no transactions it just means "not filled".
+        if ($closing !== null && (float) $closing !== 0.0) {
+            return (float) $closing;
+        }
+
+        if ($opening !== null) {
+            return (float) $opening;
+        }
+
+        return (float) ($closing ?? 0);
+    }
+
+    /**
      * Vrátí aktuální zůstatek účtu.
      */
     public function getBalance(): ?array
@@ -156,7 +182,7 @@ class FioApiService
             }
 
             return [
-                'balance' => (float) ($statement['closingBalance'] ?? 0),
+                'balance' => $this->resolveBalance($statement),
                 'currency' => $statement['currency'] ?? 'CZK',
                 'account_id' => $statement['accountId'] ?? null,
                 'bank_id' => $statement['bankId'] ?? null,
