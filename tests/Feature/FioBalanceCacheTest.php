@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Console\Commands\SyncFioTransactions;
 use App\Services\FioApiService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -36,6 +37,21 @@ class FioBalanceCacheTest extends TestCase
         $fio->shouldReceive('getBalance')->andReturn($balance);
 
         $this->app->instance(FioApiService::class, $fio);
+        $this->skipRateLimitWait();
+    }
+
+    /**
+     * Replaces the command's rate-limit pause with a no-op; without this a test
+     * covering a failed balance read sits through the real 31-second wait.
+     */
+    private function skipRateLimitWait(): void
+    {
+        $this->app->extend(SyncFioTransactions::class, fn () => new class extends SyncFioTransactions {
+            protected function waitOutRateLimit(): void
+            {
+                // no-op in tests
+            }
+        });
     }
 
     /**
@@ -90,6 +106,34 @@ class FioBalanceCacheTest extends TestCase
         $this->artisan('fio:sync')->assertExitCode(0);
 
         $this->assertSame(self::BALANCE, Cache::get('fio_balance'));
+    }
+
+    /**
+     * Fio refuses two calls made less than 30s apart with HTTP 409, which
+     * getBalance() reports as null. Since the balance read always follows the
+     * transaction fetch, the first attempt is refused every time in production
+     * — the command has to wait out the window and ask again.
+     */
+    public function test_balance_is_retried_after_a_rate_limited_first_attempt(): void
+    {
+        Cache::forget('fio_balance');
+
+        $fio = Mockery::mock(FioApiService::class);
+        $fio->shouldReceive('getNewTransactions')->andReturn([]);
+        $fio->shouldReceive('getBalance')
+            ->twice()
+            ->andReturn(null, self::BALANCE);
+        $this->app->instance(FioApiService::class, $fio);
+
+        $this->skipRateLimitWait();
+
+        $this->artisan('fio:sync')->assertExitCode(0);
+
+        $this->assertSame(
+            self::BALANCE,
+            Cache::get('fio_balance'),
+            'A rate-limited first read was treated as an outage; the balance never reached the cache.'
+        );
     }
 
     /**

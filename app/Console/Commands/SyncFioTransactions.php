@@ -19,6 +19,9 @@ class SyncFioTransactions extends Command
 
     protected $description = 'Stáhne nové transakce z Fio banky, uloží je a spáruje s fakturami';
 
+    /** Fio refuses calls made less than 30s apart (HTTP 409); one second of margin. */
+    private const FIO_RATE_LIMIT_SECONDS = 31;
+
     private bool $dryRun = false;
 
     private int $countFetched = 0;
@@ -93,7 +96,10 @@ class SyncFioTransactions extends Command
      */
     private function refreshBalanceCache(FioApiService $fio): void
     {
-        $balance = $fio->getBalance();
+        // Fio rejects calls made less than 30s apart with HTTP 409. The balance
+        // read always follows a transaction fetch, so without this wait it is
+        // refused every single time and the balance never reaches the cache.
+        $balance = $this->retryAfterRateLimit(fn () => $fio->getBalance());
 
         if ($balance === null) {
             $this->warn('Zůstatek se nepodařilo načíst — ponechávám poslední známou hodnotu.');
@@ -102,6 +108,34 @@ class SyncFioTransactions extends Command
         }
 
         cache()->put('fio_balance', $balance, now()->addHours(24));
+    }
+
+    /**
+     * Runs $read, and on a null result waits out the Fio rate-limit window and
+     * tries once more. Skipped under --dry-run, where the delay buys nothing.
+     */
+    private function retryAfterRateLimit(callable $read): ?array
+    {
+        if (($balance = $read()) !== null) {
+            return $balance;
+        }
+
+        if ($this->dryRun) {
+            return null;
+        }
+
+        $this->line('Zůstatek odmítnut (rate limit) — čekám 31 s a zkouším znovu.');
+        $this->waitOutRateLimit();
+
+        return $read();
+    }
+
+    /**
+     * Seam so tests can exercise the retry without a real 31-second pause.
+     */
+    protected function waitOutRateLimit(): void
+    {
+        sleep(self::FIO_RATE_LIMIT_SECONDS);
     }
 
     private function processTransaction(array $txData, ?User $admin): void
