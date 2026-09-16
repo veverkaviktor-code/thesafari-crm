@@ -1,7 +1,7 @@
 # CRM hq.thesafari.cz — Project Instructions
 
 ## Stack
-- **Backend**: Laravel 12, PHP 8.3, PostgreSQL
+- **Backend**: Laravel 12, PHP 8.4, PostgreSQL
 - **Frontend**: Inertia.js + React 19 + TypeScript + Tailwind 4 + Shadcn/UI
 - **Design**: Safari Dark paleta (warm #0a0a08/#16140f, amber #D97706, warm white #F5F0E8)
 - **Icons**: Lucide React
@@ -19,10 +19,21 @@ rsync -avz --delete public/build/ root@sss06.vas-server.cz:/var/www/hq.thesafari
 # 3. Migrace + cache na serveru
 ssh root@sss06.vas-server.cz "cd /var/www/hq.thesafari.cz && php artisan migrate --force && php artisan config:cache && php artisan route:cache && php artisan view:cache"
 ```
-- PHP NENÍ na macOS — artisan příkazy JEN na VPS
 - SSH alias: `NENIWEB-VPS` nebo `root@sss06.vas-server.cz`
 - Web: https://hq.thesafari.cz
-- DB: PostgreSQL `safari_crm` (localhost na VPS)
+- DB: PostgreSQL **`thesafari_crm`** (localhost na VPS) — NE `safari_crm`; záloha: `sudo -u postgres pg_dump thesafari_crm | gzip > ...`
+
+## Lokální prostředí (od 2026-09-16)
+- **PHP 8.4** (`brew install php@8.4`) — `composer.lock` vyžaduje ≥ 8.4 kvůli Symfony 8. Pod 8.3 `composer install` selže a `vendor/` vůbec nevznikne.
+  ```bash
+  export PATH="/opt/homebrew/opt/php@8.4/bin:$PATH"
+  ```
+- **Testy běží na PostgreSQL**, ne SQLite — migrace používají syrové Postgres DDL (`::timestamptz`, `ALTER TABLE ... ADD CHECK`), které SQLite neumí naparsovat.
+  ```bash
+  createdb -h 127.0.0.1 thesafari_crm_test   # jednorázově
+  php artisan test
+  ```
+  DB jméno/uživatel jsou v `phpunit.xml`.
 
 ## Konvence
 - **Jazyk UI**: čeština s diakritikou (VŽDY)
@@ -41,7 +52,10 @@ ssh root@sss06.vas-server.cz "cd /var/www/hq.thesafari.cz && php artisan migrate
 - **OrderItems**: inline CRUD s auto-přepočtem order.price, záporné ceny povoleny
 - **Invoice**: auto-numbering s lockForUpdate(), SPD QR kódy
 - **CustomerCombobox**: `@/components/ui/CustomerCombobox.tsx` — searchable combobox pro výběr zákazníka, použito ve VŠECH formulářích (OrderForm, InvoiceCreate/Edit, HostingForm, DomainForm)
-- **Fio Bank zůstatek**: `FioApiService::getBalance()` → Dashboard StatCard "Stav účtu", cache 5 min
+- **Fio Bank zůstatek**: `FioApiService::getBalance()` → cache `fio_balance` (24 h) → Dashboard StatCard "Stav účtu". Dashboard cache jen ČTE, nikdy nevolá API synchronně (blokovalo render 30 s). Zapisuje výhradně `fio:sync`.
+  - **Rate limit:** Fio odmítá dvě volání do 30 s od sebe s **HTTP 409**, který `getBalance()` hlásí jako `null`. Zůstatek se čte hned po transakcích, takže první pokus je odmítnut VŽDY → `refreshBalanceCache()` počká 31 s a zkusí znovu. Při ručním ladění přes `tinker` počítej s tím, že tě vlastní dotaz zablokuje.
+  - **`closingBalance` je 0.0 ve dni bez pohybu** — skutečná částka je v `openingBalance`. Řeší `resolveBalance()`; nikdy nebrat `closingBalance` napřímo.
+  - **Token je v URL** → maskovat před logováním (`redact()`), jinak skončí v plaintextu v `laravel.log`.
 
 ## Divize
 - 4 divize: `digital`, `design`, `lab`, `ostatni` (Safari Digital / Safari Design / Safari Lab / Ostatní)
